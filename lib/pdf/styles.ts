@@ -1,0 +1,277 @@
+import { StyleSheet } from "@react-pdf/renderer";
+
+export const pdfStyles = StyleSheet.create({
+  page: {
+    fontFamily: "IBM Plex Sans",
+    fontSize: 9,
+    color: "#111111",
+    paddingTop: 158,
+    paddingBottom: 64,
+    paddingHorizontal: 36,
+  },
+  header: {
+    position: "absolute",
+    top: 22,
+    left: 36,
+    right: 36,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  logo: {
+    width: 168,
+    height: 42,
+    objectFit: "contain",
+  },
+  companyBlock: {
+    width: 250,
+    alignItems: "flex-end",
+  },
+  companyLine: {
+    fontSize: 7,
+    color: "#555555",
+    textAlign: "right",
+    lineHeight: 1.28,
+  },
+  titleRow: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+  },
+  title: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 13,
+    fontWeight: 700,
+    letterSpacing: 0.6,
+  },
+  dateText: {
+    fontSize: 9,
+    fontWeight: 700,
+    width: 118,
+    textAlign: "right",
+  },
+  footer: {
+    position: "absolute",
+    bottom: 16,
+    left: 36,
+    right: 36,
+  },
+  footerRule: {
+    borderTopWidth: 0.6,
+    borderTopColor: "#888888",
+    marginBottom: 6,
+  },
+  footerLine: {
+    fontSize: 7,
+    color: "#666666",
+    textAlign: "center",
+    lineHeight: 1.35,
+  },
+  pageNumber: {
+    position: "absolute",
+    left: 36,
+    bottom: 16,
+    fontSize: 8,
+    color: "#555555",
+  },
+  recipientRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 16,
+    marginBottom: 12,
+  },
+  recipient: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  recipientName: {
+    fontSize: 10,
+    fontWeight: 700,
+    lineHeight: 1.4,
+  },
+  recipientCity: {
+    fontSize: 9,
+    marginTop: 6,
+  },
+  meta: {
+    width: 210,
+  },
+  metaRow: {
+    flexDirection: "row",
+    marginBottom: 3,
+  },
+  metaLabel: {
+    width: 72,
+    fontSize: 9,
+  },
+  metaValue: {
+    flex: 1,
+    fontSize: 9,
+    fontWeight: 700,
+  },
+  greeting: {
+    fontSize: 9,
+    marginBottom: 6,
+  },
+  intro: {
+    fontSize: 9,
+    lineHeight: 1.4,
+    marginBottom: 2,
+  },
+  introBlock: {
+    marginBottom: 12,
+  },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: "#d0d0d0",
+    borderWidth: 0.6,
+    borderColor: "#8a8a8a",
+    paddingVertical: 4,
+    paddingHorizontal: 3,
+  },
+  tableHeaderCell: {
+    fontSize: 8,
+    fontWeight: 700,
+  },
+  tableRow: {
+    flexDirection: "row",
+    borderLeftWidth: 0.6,
+    borderRightWidth: 0.6,
+    borderBottomWidth: 0.6,
+    borderColor: "#8a8a8a",
+    paddingVertical: 5,
+    paddingHorizontal: 3,
+  },
+  colNo: { width: "7%" },
+  colCode: { width: "16%" },
+  colDesc: { width: "41%" },
+  colQty: { width: "8%", textAlign: "center" },
+  colUnit: { width: "14%", textAlign: "right" },
+  colPrice: { width: "14%", textAlign: "right" },
+  cell: { fontSize: 8, lineHeight: 1.35 },
+  cellBold: { fontSize: 8, fontWeight: 700, lineHeight: 1.35 },
+  bullet: { fontSize: 8, lineHeight: 1.4, marginLeft: 8 },
+  productImage: {
+    width: 92,
+    height: 70,
+    marginTop: 6,
+    objectFit: "contain",
+  },
+  totalsBlock: {
+    marginTop: 14,
+    alignItems: "flex-end",
+  },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "flex-end",
+    marginBottom: 3,
+    width: "100%",
+  },
+  totalLabel: {
+    width: 90,
+    fontSize: 9,
+    textAlign: "right",
+    marginRight: 12,
+  },
+  totalValue: {
+    width: 110,
+    fontSize: 9,
+    textAlign: "right",
+    fontWeight: 700,
+  },
+  closingRow: {
+    marginTop: 18,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  closingLeft: {
+    width: "48%",
+  },
+  closingTitle: {
+    fontSize: 9,
+    fontWeight: 700,
+    marginBottom: 4,
+  },
+  closingCompany: {
+    fontSize: 8,
+    fontWeight: 700,
+  },
+  closingRight: {
+    width: "48%",
+    alignItems: "flex-end",
+  },
+  onlyLine: {
+    fontSize: 8,
+    textAlign: "right",
+    marginBottom: 3,
+  },
+  vatNote: {
+    fontSize: 8,
+    fontWeight: 700,
+    textAlign: "right",
+  },
+  conditionsTitle: {
+    textAlign: "center",
+    fontSize: 12,
+    fontWeight: 700,
+    marginBottom: 12,
+    letterSpacing: 0.4,
+  },
+  condition: {
+    marginBottom: 8,
+  },
+  conditionTitle: {
+    fontSize: 9,
+    fontWeight: 700,
+    marginBottom: 3,
+  },
+  conditionBody: {
+    fontSize: 9,
+    lineHeight: 1.35,
+  },
+  note: {
+    fontSize: 8,
+    lineHeight: 1.4,
+    marginBottom: 6,
+  },
+  bankTitle: {
+    fontSize: 9,
+    fontWeight: 700,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  bankLine: {
+    fontSize: 9,
+    lineHeight: 1.4,
+  },
+  signRow: {
+    marginTop: 22,
+    flexDirection: "row",
+    gap: 16,
+  },
+  signBox: {
+    flex: 1,
+    borderWidth: 0.8,
+    borderStyle: "dashed",
+    borderColor: "#555555",
+    minHeight: 92,
+    padding: 8,
+  },
+  signTitle: {
+    fontSize: 8,
+    fontWeight: 700,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  signText: {
+    fontSize: 8,
+    lineHeight: 1.35,
+    textAlign: "center",
+  },
+});

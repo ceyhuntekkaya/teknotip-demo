@@ -1,0 +1,53 @@
+{
+  "quotedTo": {
+    "id": "",
+    "name": "",
+    "institution": "",
+    "contactPerson": "",
+    "date": "",
+    "quoteNumber": ""
+  },
+  "products": [
+    {
+      "lineId": "",
+      "id": "",
+      "name": "",
+      "modelId": "",
+      "modelName": "",
+      "price": 0,
+      "quantity": 1,
+      "description": "",
+      "image": "",
+      "category": "",
+      "propertyGroups": [
+        {
+          "id": "",
+          "name": "Teknik",
+          "state": "required",
+          "type": "single_choice",
+          "price": 0,
+          "properties": [
+            {
+              "id": "",
+              "type": "single_choice",
+              "name": "",
+              "value": "",
+              "price": 0,
+              "choiceId": ""
+            }
+          ]
+        }
+      ],
+      "lineTotal": 0
+    }
+  ],
+  "priceSummary": {
+    "subtotal": 0,
+    "discount": 0,
+    "tax": 0,
+    "taxRatePercent": 20,
+    "totalAfterDiscount": 0,
+    "totalAfterTax": 0
+  },
+  "preparedBy": ""
+}

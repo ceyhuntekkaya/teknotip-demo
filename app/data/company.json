@@ -1,0 +1,98 @@
+{
+  "company": {
+    "legalName": "Tekno-TIP Analitik Sistemler Ltd. Şti.",
+    "legalNameUpper": "TEKNOTİP ANALİTİK SİSTEMLER LTD. ŞTİ.",
+    "logo": "/brand/logo.png",
+    "addressLines": [
+      "Alacaatlı Mah., 3346. Cad. Yeşil Barış Sitesi, 3341.",
+      "Sokak No:35/154 06810 Çankaya / Ankara"
+    ],
+    "footerAddress": "Alacaatlı Mahallesi, 3346. Cadde Yeşil Barış Sitesi, 3341. Sokak No:35/154 06810 Çankaya / Ankara",
+    "taxOffice": "Doğanbey Vergi Dairesi Müd.",
+    "mersis": "0836039773800015",
+    "vkn": "8360397738",
+    "phone": "+90 312 236 42 07-08",
+    "fax": "+90 312 236 42 18",
+    "web": "www.teknotip.com.tr",
+    "email": "teknotip@teknotip.com.tr"
+  },
+  "bank": {
+    "accountName": "Teknotip Analitik Sistemler Ltd. Sti",
+    "bank": "Türkiye Halk Bankası A.Ş.",
+    "branch": "İvedik Çarşı Şubesi",
+    "branchCode": "1509",
+    "ibanTl": "TR98 0001 2001 5090 0010 1003 24",
+    "ibanEur": "TR58 0001 2001 5090 0058 1001 36",
+    "ibanUsd": "TR22 0001 2001 5090 0053 1001 43"
+  },
+  "texts": {
+    "documentTitle": "TEKLİF MEKTUBU",
+    "dateLabel": "Tarih :",
+    "phoneLabel": "Telefon",
+    "faxLabel": "Faks / Cep",
+    "quoteNoLabel": "Teklif No",
+    "greeting": "Sayın",
+    "intro": [
+      "Talebinize istinaden hazırlamış olduğumuz fiyat teklifimiz aşağıda bilgilerinize sunulmuştur.",
+      "Teklifimizin kabul göreceğini umar iyi çalışmalar dilerim."
+    ],
+    "table": {
+      "no": "No",
+      "code": "Ürün Kodu",
+      "description": "Malzeme Cinsi",
+      "quantity": "Adet",
+      "unitPrice": "Birim Fiyat",
+      "price": "Fiyat"
+    },
+    "totals": {
+      "gross": "Brüt Toplam",
+      "discount": "İndirim",
+      "net": "Net Toplam",
+      "tax": "KDV",
+      "grand": "Genel Toplam",
+      "only": "Yalnız"
+    },
+    "closing": "SAYGILARIMIZLA",
+    "vatIncluded": "%20 KDV DAHİLDİR.",
+    "salesConditionsTitle": "GENEL SATIŞ KOŞULLARI",
+    "bankTitle": "BANKA BİLGİLERİ:",
+    "customerApprovalTitle": "MÜŞTERİ ONAYI KAŞE VE İMZA",
+    "customerApprovalText": "Yukarıda belirtilen adet, fiyat, teslim ve ödeme koşulları ile siparişimizdir."
+  },
+  "terms": {
+    "validityDays": 22,
+    "conditions": [
+      {
+        "title": "ÖDEME",
+        "body": "TESLİMATTAN SONRASI PEŞİN"
+      },
+      {
+        "title": "KDV ve KUR",
+        "body": "%20 KDV DAHİLDİR."
+      },
+      {
+        "title": "GARANTİ",
+        "body": "Garanti süresi üretim hatalarına karşı 1 yıldır. Servis ve parça temin taahhüdümüz 8 yıldır."
+      },
+      {
+        "title": "TESLİM SÜRESİ",
+        "body": "8-10 HAFTA"
+      },
+      {
+        "title": "TESLİMAT ŞEKLİ",
+        "body": "SİSTEM YETKİLERİNCE KURULUM"
+      },
+      {
+        "title": "GEÇERLİLİK SÜRESİ",
+        "body": "Teklifimiz {date} TARİHİNE KADAR geçerlidir."
+      }
+    ],
+    "notes": [
+      "• SİPARİŞİNİZ YAZILI OLARAK TEYİT EDİLDİĞİNDE İŞLEME KONUR. KATİ SİPARİŞTEN SONRA SİPARİŞ İPTAL EDİLEMEZ.\n(Yurtdışından ithal edilecek ürünler için sipariş iptali sipariş teyidinden sonra ilk 5 gün bedelsiz olacaktır. 5 gün sonra edilmesi durumunda mal bedelinin %25’i, bir ay sonra iptal edilmesi durumunda mal bedelinin %50 si cezai olarak ödenecektir.)",
+      "• MÜCBİR (NAKLİYE, TSE, GÜMRÜK, SEL, VB.) SEBEPLERDEN KAYNAKLANAN GECİKMELERDEN FİRMAMIZ SORUMLU OLMAYACAKTIR.",
+      "• YURTDIŞINA SİPARİŞ EDİLEN İTHAL ÜRÜNLERDE SEÇİLEN ÜRÜN MÜŞTERİNİN İNİSİYATİFİNDE OLDUĞUNDAN, DOĞABİLECEK HERHANGİ BİR YANLIŞLIK MÜŞTERİYE AİTTİR. BU TÜR DURUMLARDA İTHAL ÜRÜN TARAFIMIZDAN İADE ALINMAYACAKTIR.",
+      "• STOK OLARAK BELİRTİLEN ÜRÜNLERİMİZDE OPSİYON 2 GÜNDÜR.",
+      "• DÖVİZ SATIŞLARINDA TCMB DÖVİZ SATIŞ KURU GEÇERLİDİR.\n(Kur Artışındaki dalgalanmalardan dolayı, TL Teklifimiz belirli ve kabul edilebilir kur artışı aralığı içinde geçerli olup, %1 oranındaki bir değişimde teklifimiz geçersiz olacaktır.)"
+    ]
+  }
+}

@@ -1,0 +1,812 @@
+[
+    {
+        "id": "p_tup-firin",
+        "name": "TÜP FIRIN",
+        "models": [
+            {
+                "id": "m_p_tup-firin_tup-firin-1",
+                "name": "Tüp Fırın 1",
+                "price": 19000,
+                "description": "Ekran: LCD touch screen\nProgram sayısı: 16 program\nAdım sayısı: 30 adım\nProgramlama: ±1 °C\nFlanşlar: Dahil",
+                "image": "https://via.placeholder.com/150",
+                "category": "Category 1"
+            }
+        ],
+        "propertyGroups": [
+            {
+                "id": "g_p_tup-firin_teknik",
+                "name": "Teknik Özellikler",
+                "state": "required",
+                "type": "single_choice",
+                "properties": [
+                    {
+                        "id": "pr_g_p_tup-firin_teknik_maksimum-sicaklik",
+                        "name": "Maksimum sıcaklık",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_tup-firin_teknik_maksimum-sicaklik_1200-c",
+                                "name": "1200°C",
+                                "price": 200
+                            },
+                            {
+                                "id": "c_pr_g_p_tup-firin_teknik_maksimum-sicaklik_1400-c",
+                                "name": "1400°C",
+                                "price": 300
+                            },
+                            {
+                                "id": "c_pr_g_p_tup-firin_teknik_maksimum-sicaklik_1700-c",
+                                "name": "1700°C",
+                                "price": 400
+                            }
+                        ]
+                    },
+                    {
+                        "id": "pr_g_p_tup-firin_teknik_tup-capi",
+                        "name": "Tüp çapı",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_tup-firin_teknik_tup-capi_50-mm",
+                                "name": "50 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_tup-firin_teknik_tup-capi_60-mm",
+                                "name": "60 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_tup-firin_teknik_tup-capi_80-mm",
+                                "name": "80 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_tup-firin_teknik_tup-capi_100-mm",
+                                "name": "100 mm"
+                            }
+                        ]
+                    },
+                    {
+                        "id": "pr_g_p_tup-firin_teknik_isitma-bolgesi",
+                        "name": "Isıtma bölgesi",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_tup-firin_teknik_isitma-bolgesi_200-mm",
+                                "name": "200 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_tup-firin_teknik_isitma-bolgesi_300-mm",
+                                "name": "300 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_tup-firin_teknik_isitma-bolgesi_4400-mm",
+                                "name": "4400 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_tup-firin_teknik_isitma-bolgesi_300-300-mm",
+                                "name": "300 + 300 mm"
+                            }
+                        ]
+                    },
+                    {
+                        "id": "pr_g_p_tup-firin_teknik_calisma-sicakligi",
+                        "name": "Çalışma sıcaklığı",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_tup-firin_teknik_calisma-sicakligi_1100-c",
+                                "name": "1100°C"
+                            },
+                            {
+                                "id": "c_pr_g_p_tup-firin_teknik_calisma-sicakligi_1300-c",
+                                "name": "1300°C"
+                            },
+                            {
+                                "id": "c_pr_g_p_tup-firin_teknik_calisma-sicakligi_1400-c",
+                                "name": "1400°C"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "id": "g_p_tup-firin_optinal",
+                "name": "Optional Özellikler",
+                "state": "optional",
+                "type": "single_choice",
+                "properties": [
+                    {
+                        "id": "pr_g_p_tup-firin_optinal_vakum-pompasi",
+                        "name": "Vakum pompası",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_tup-firin_optinal_vakum-pompasi_4-l-s",
+                                "name": "4 L/s",
+                                "price": 1000
+                            },
+                            {
+                                "id": "c_pr_g_p_tup-firin_optinal_vakum-pompasi_5-l-s",
+                                "name": "5 L/s",
+                                "price": 1000
+                            },
+                            {
+                                "id": "c_pr_g_p_tup-firin_optinal_vakum-pompasi_16-l-s",
+                                "name": "16 L/s",
+                                "price": 1000
+                            },
+                            {
+                                "id": "c_pr_g_p_tup-firin_optinal_vakum-pompasi_24-l-s",
+                                "name": "24 L/s",
+                                "price": 1000
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": "p_kul-firin",
+        "name": "KÜL FIRIN",
+        "models": [
+            {
+                "id": "m_p_kul-firin_kul-firin-1",
+                "name": "Kül Fırın 1",
+                "price": 15000,
+                "description": "Ekran: LCD touch screen\nProgram sayısı: 16 program\nAdım sayısı: 30 adım\nProgramlama: ±1 °C",
+                "image": "https://via.placeholder.com/150",
+                "category": "Category 1"
+            }
+        ],
+        "propertyGroups": [
+            {
+                "id": "g_p_kul-firin_teknik",
+                "name": "Teknik",
+                "state": "required",
+                "type": "single_choice",
+                "properties": [
+                    {
+                        "id": "pr_g_p_kul-firin_teknik_maksimum-sicaklik",
+                        "name": "Maksimum sıcaklık",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_kul-firin_teknik_maksimum-sicaklik_1200-c",
+                                "name": "1200°C"
+                            },
+                            {
+                                "id": "c_pr_g_p_kul-firin_teknik_maksimum-sicaklik_1400-c",
+                                "name": "1400°C"
+                            },
+                            {
+                                "id": "c_pr_g_p_kul-firin_teknik_maksimum-sicaklik_1700-c",
+                                "name": "1700°C"
+                            }
+                        ]
+                    },
+                    {
+                        "id": "pr_g_p_kul-firin_teknik_ic-hazne-boyutu",
+                        "name": "İç hazne boyutu",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_kul-firin_teknik_ic-hazne-boyutu_200-200-200-mm",
+                                "name": "200 × 200 × 200 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_kul-firin_teknik_ic-hazne-boyutu_300-300-300-mm",
+                                "name": "300 × 300 × 300 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_kul-firin_teknik_ic-hazne-boyutu_400-400-400-mm",
+                                "name": "400 × 400 × 400 mm"
+                            }
+                        ]
+                    },
+                    {
+                        "id": "pr_g_p_kul-firin_teknik_devamli-calisma-sicakligi",
+                        "name": "Devamlı çalışma sıcaklığı",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_kul-firin_teknik_devamli-calisma-sicakligi_1100-c",
+                                "name": "1100°C"
+                            },
+                            {
+                                "id": "c_pr_g_p_kul-firin_teknik_devamli-calisma-sicakligi_1200-c",
+                                "name": "1200°C"
+                            },
+                            {
+                                "id": "c_pr_g_p_kul-firin_teknik_devamli-calisma-sicakligi_1600-c",
+                                "name": "1600°C"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": "p_cvd-firin",
+        "name": "CVD FIRIN",
+        "models": [
+            {
+                "id": "m_p_cvd-firin_tup-firin-1",
+                "name": "Tüp Fırın 1",
+                "price": 19000,
+                "description": "Ekran: LCD touch screen\nProgram sayısı: 16 program\nAdım sayısı: 30 adım\nProgramlama: ±1 °C",
+                "image": "https://via.placeholder.com/150",
+                "category": "Category 1"
+            }
+        ],
+        "propertyGroups": [
+            {
+                "id": "g_p_cvd-firin_teknik",
+                "name": "Teknik",
+                "state": "required",
+                "type": "single_choice",
+                "properties": [
+                    {
+                        "id": "pr_g_p_cvd-firin_teknik_maksimum-sicaklik",
+                        "name": "Maksimum sıcaklık",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_cvd-firin_teknik_maksimum-sicaklik_1200-c",
+                                "name": "1200°C"
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_teknik_maksimum-sicaklik_1400-c",
+                                "name": "1400°C"
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_teknik_maksimum-sicaklik_1700-c",
+                                "name": "1700°C"
+                            }
+                        ]
+                    },
+                    {
+                        "id": "pr_g_p_cvd-firin_teknik_tup-capi",
+                        "name": "Tüp çapı",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_cvd-firin_teknik_tup-capi_50-mm",
+                                "name": "50 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_teknik_tup-capi_60-mm",
+                                "name": "60 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_teknik_tup-capi_80-mm",
+                                "name": "80 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_teknik_tup-capi_100-mm",
+                                "name": "100 mm"
+                            }
+                        ]
+                    },
+                    {
+                        "id": "pr_g_p_cvd-firin_teknik_isitma-bolgesi",
+                        "name": "Isıtma bölgesi",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_cvd-firin_teknik_isitma-bolgesi_200-mm",
+                                "name": "200 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_teknik_isitma-bolgesi_300-mm",
+                                "name": "300 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_teknik_isitma-bolgesi_4400-mm",
+                                "name": "4400 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_teknik_isitma-bolgesi_300-300-mm",
+                                "name": "300 + 300 mm"
+                            }
+                        ]
+                    },
+                    {
+                        "id": "pr_g_p_cvd-firin_teknik_calisma-sicakligi",
+                        "name": "Çalışma sıcaklığı",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_cvd-firin_teknik_calisma-sicakligi_1100-c",
+                                "name": "1100°C"
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_teknik_calisma-sicakligi_1300-c",
+                                "name": "1300°C"
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_teknik_calisma-sicakligi_1400-c",
+                                "name": "1400°C"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "id": "g_p_cvd-firin_optinal",
+                "name": "Optinal",
+                "state": "optional",
+                "type": "single_choice",
+                "properties": [
+                    {
+                        "id": "pr_g_p_cvd-firin_optinal_turbomolekuler-pompasi",
+                        "name": "Turbomoleküler pompa",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_cvd-firin_optinal_turbomolekuler-pompasi_300-l-s",
+                                "name": "300 L/s",
+                                "price": 1000
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_optinal_turbomolekuler-pompasi_600-l-s",
+                                "name": "600 L/s",
+                                "price": 1000
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "id": "g_p_cvd-firin_mfc-secenekleri",
+                "name": "MFC SEÇENEKLERİ",
+                "state": "required",
+                "type": "single_choice",
+                "properties": [
+                    {
+                        "id": "pr_g_p_cvd-firin_mfc-secenekleri_debi",
+                        "name": "Debi",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_cvd-firin_mfc-secenekleri_debi_0-200-sccm",
+                                "name": "0–200 sccm",
+                                "price": 1000
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_mfc-secenekleri_debi_0-500-sccm",
+                                "name": "0–500 sccm",
+                                "price": 1000
+                            }
+                        ]
+                    },
+                    {
+                        "id": "pr_g_p_cvd-firin_mfc-secenekleri_adet",
+                        "name": "Adet",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_cvd-firin_mfc-secenekleri_adet_1",
+                                "name": "1"
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_mfc-secenekleri_adet_2",
+                                "name": "2"
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_mfc-secenekleri_adet_3",
+                                "name": "3"
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_mfc-secenekleri_adet_4",
+                                "name": "4"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "id": "g_p_cvd-firin_gaz-tipi-secenekleri",
+                "name": "GAZ TİPİ SEÇENEKLERİ",
+                "state": "required",
+                "type": "multiple_choice",
+                "properties": [
+                    {
+                        "id": "pr_g_p_cvd-firin_gaz-tipi-secenekleri_gaz-tipi",
+                        "name": "Gaz Tipi",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_cvd-firin_gaz-tipi-secenekleri_gaz-tipi_ar",
+                                "name": "Ar"
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_gaz-tipi-secenekleri_gaz-tipi_o2",
+                                "name": "O₂"
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_gaz-tipi-secenekleri_gaz-tipi_h2",
+                                "name": "H₂"
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_gaz-tipi-secenekleri_gaz-tipi_ch4",
+                                "name": "CH₄"
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_gaz-tipi-secenekleri_gaz-tipi_co2",
+                                "name": "CO₂"
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_gaz-tipi-secenekleri_gaz-tipi_bcl3",
+                                "name": "BCl₃"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "id": "g_p_cvd-firin_vakum-pompasi-secenekleri",
+                "name": "VAKUM POMPASI SEÇENEKLERİ",
+                "state": "required",
+                "type": "single_choice",
+                "properties": [
+                    {
+                        "id": "pr_g_p_cvd-firin_vakum-pompasi-secenekleri_vakum-pompasi",
+                        "name": "Vakum pompası",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_cvd-firin_vakum-pompasi-secenekleri_vakum-pompasi_2-l-s",
+                                "name": "2 L/s",
+                                "price": 1000
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_vakum-pompasi-secenekleri_vakum-pompasi_4-l-s",
+                                "name": "4 L/s",
+                                "price": 1000
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_vakum-pompasi-secenekleri_vakum-pompasi_8-l-s",
+                                "name": "8 L/s",
+                                "price": 1000
+                            },
+                            {
+                                "id": "c_pr_g_p_cvd-firin_vakum-pompasi-secenekleri_vakum-pompasi_16-l-s",
+                                "name": "16 L/s",
+                                "price": 1000
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "id": "g_p_cvd-firin_optinal_2",
+                "name": "Optinal",
+                "state": "optional",
+                "type": "single_choice",
+                "properties": [
+                    {
+                        "id": "pr_g_p_cvd-firin_optinal_2_dijital-vakum-gostergesi",
+                        "name": "Dijital vakum göstergesi",
+                        "price": 1000
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": "p_pecvd-sistemleri",
+        "name": "PECVD SİSTEMLERİ",
+        "models": [
+            {
+                "id": "m_p_pecvd-sistemleri_pecvd-sistemleri-1",
+                "name": "PECVD SİSTEMLERİ 1",
+                "price": 19000,
+                "description": "Ekran: LCD touch screen\nProgram sayısı: 16 program\nAdım sayısı: 30 adım\nProgramlama: ±1 °C",
+                "image": "https://via.placeholder.com/150",
+                "category": "Category 1"
+            }
+        ],
+        "propertyGroups": [
+            {
+                "id": "g_p_pecvd-sistemleri_teknik",
+                "name": "Teknik",
+                "state": "required",
+                "type": "single_choice",
+                "properties": [
+                    {
+                        "id": "pr_g_p_pecvd-sistemleri_teknik_maksimum-sicaklik",
+                        "name": "Maksimum sıcaklık",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_teknik_maksimum-sicaklik_1200-c",
+                                "name": "1200°C"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_teknik_maksimum-sicaklik_1400-c",
+                                "name": "1400°C"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_teknik_maksimum-sicaklik_1700-c",
+                                "name": "1700°C"
+                            }
+                        ]
+                    },
+                    {
+                        "id": "pr_g_p_pecvd-sistemleri_teknik_tup-capi",
+                        "name": "Tüp çapı",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_teknik_tup-capi_50-mm",
+                                "name": "50 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_teknik_tup-capi_60-mm",
+                                "name": "60 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_teknik_tup-capi_80-mm",
+                                "name": "80 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_teknik_tup-capi_100-mm",
+                                "name": "100 mm"
+                            }
+                        ]
+                    },
+                    {
+                        "id": "pr_g_p_pecvd-sistemleri_teknik_isitma-bolgesi",
+                        "name": "Isıtma bölgesi",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_teknik_isitma-bolgesi_200-mm",
+                                "name": "200 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_teknik_isitma-bolgesi_300-mm",
+                                "name": "300 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_teknik_isitma-bolgesi_4400-mm",
+                                "name": "4400 mm"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_teknik_isitma-bolgesi_300-300-mm",
+                                "name": "300 + 300 mm"
+                            }
+                        ]
+                    },
+                    {
+                        "id": "pr_g_p_pecvd-sistemleri_teknik_calisma-sicakligi",
+                        "name": "Çalışma sıcaklığı",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_teknik_calisma-sicakligi_1100-c",
+                                "name": "1100°C"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_teknik_calisma-sicakligi_1300-c",
+                                "name": "1300°C"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_teknik_calisma-sicakligi_1600-c",
+                                "name": "1600°C"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "id": "g_p_pecvd-sistemleri_mfc-secenekleri",
+                "name": "MFC SEÇENEKLERİ",
+                "state": "required_one",
+                "type": "single_choice",
+                "properties": [
+                    {
+                        "id": "pr_g_p_pecvd-sistemleri_mfc-secenekleri_debi",
+                        "name": "Debi",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_mfc-secenekleri_debi_0-200-sccm",
+                                "name": "0–200 sccm",
+                                "price": 1000
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_mfc-secenekleri_debi_0-500-sccm",
+                                "name": "0–500 sccm",
+                                "price": 1000
+                            }
+                        ]
+                    },
+                    {
+                        "id": "pr_g_p_pecvd-sistemleri_mfc-secenekleri_adet",
+                        "name": "Adet",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_mfc-secenekleri_adet_1",
+                                "name": "1"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_mfc-secenekleri_adet_2",
+                                "name": "2"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_mfc-secenekleri_adet_3",
+                                "name": "3"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_mfc-secenekleri_adet_4",
+                                "name": "4"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "id": "g_p_pecvd-sistemleri_gaz-tipi-secenekleri",
+                "name": "GAZ TİPİ SEÇENEKLERİ",
+                "state": "required",
+                "type": "multiple_choice",
+                "properties": [
+                    {
+                        "id": "pr_g_p_pecvd-sistemleri_gaz-tipi-secenekleri_gaz-tipi",
+                        "name": "Gaz Tipi",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_gaz-tipi-secenekleri_gaz-tipi_ar",
+                                "name": "Ar"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_gaz-tipi-secenekleri_gaz-tipi_o2",
+                                "name": "O₂"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_gaz-tipi-secenekleri_gaz-tipi_h2",
+                                "name": "H₂"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_gaz-tipi-secenekleri_gaz-tipi_ch4",
+                                "name": "CH₄"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_gaz-tipi-secenekleri_gaz-tipi_co2",
+                                "name": "CO₂"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_gaz-tipi-secenekleri_gaz-tipi_bcl3",
+                                "name": "BCl₃"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "id": "g_p_pecvd-sistemleri_vakum-pmpasi-secenekleri",
+                "name": "Vakum Pmpası Seçenekleri",
+                "state": "required",
+                "type": "single_choice",
+                "properties": [
+                    {
+                        "id": "pr_g_p_pecvd-sistemleri_vakum-pmpasi-secenekleri_vakum-pompasi",
+                        "name": "Vakum pompası",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_vakum-pmpasi-secenekleri_vakum-pompasi_2",
+                                "name": "2"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_vakum-pmpasi-secenekleri_vakum-pompasi_4",
+                                "name": "4"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_vakum-pmpasi-secenekleri_vakum-pompasi_8",
+                                "name": "8"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_vakum-pmpasi-secenekleri_vakum-pompasi_16",
+                                "name": "16"
+                            }
+                        ]
+                    },
+                    {
+                        "id": "pr_g_p_pecvd-sistemleri_vakum-pmpasi-secenekleri_turbomolekuler-pompa",
+                        "name": "Turbomoleküler pompa",
+                        "choice": [
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_vakum-pmpasi-secenekleri_turbomolekuler-pompa_300",
+                                "name": "300"
+                            },
+                            {
+                                "id": "c_pr_g_p_pecvd-sistemleri_vakum-pmpasi-secenekleri_turbomolekuler-pompa_600",
+                                "name": "600"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "id": "g_p_pecvd-sistemleri_optinal",
+                "name": "Optinal",
+                "state": "optional",
+                "type": "single_choice",
+                "properties": [
+                    {
+                        "id": "pr_g_p_pecvd-sistemleri_optinal_dijital-vakum-gostergesi",
+                        "name": "Dijital vakum göstergesi"
+                    }
+                ]
+            },
+            {
+                "id": "g_p_pecvd-sistemleri_plazma-jeneratoru-ve-coil",
+                "name": "PLAZMA JENERATÖRÜ VE COIL",
+                "state": "optional",
+                "type": "single_choice",
+                "properties": [
+                    {
+                        "id": "pr_g_p_pecvd-sistemleri_plazma-jeneratoru-ve-coil_plazma-jeneratoru-300w-rf",
+                        "name": "Plazma jeneratörü 300W RF"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": "p_pecvd-sistemleri_2",
+        "name": "PECVD SİSTEMLERİ",
+        "models": [
+            {
+                "id": "m_p_pecvd-sistemleri_2_cs-100-m-tasinabilir-potansiyostat",
+                "name": "CS 100 M - Taşınabilir potansiyostat",
+                "price": 19000,
+                "description": "Taşınabilir potansiyostat + EIS",
+                "image": "https://via.placeholder.com/150",
+                "category": "Category 1"
+            },
+            {
+                "id": "m_p_pecvd-sistemleri_2_cs-100-me-tasinabilir-potansiyostat",
+                "name": "CS 100 ME - Taşınabilir potansiyostat",
+                "price": 19000,
+                "description": "Taşınabilir potansiyostat",
+                "image": "https://via.placeholder.com/150",
+                "category": "Category 1"
+            },
+            {
+                "id": "m_p_pecvd-sistemleri_2_cs-300-m-masaustu-potansiyostat-tek-kanalli",
+                "name": "CS 300 M - Masaüstü potansiyostat - Tek kanallı",
+                "price": 19000,
+                "description": "Masaüstü potansiyostat - Tek Kanallı",
+                "image": "https://via.placeholder.com/150",
+                "category": "Category 1"
+            },
+            {
+                "id": "m_p_pecvd-sistemleri_2_cs-310-m-masaustu-potansiyostat-tek-kanalli",
+                "name": "CS 310 M - Masaüstü potansiyostat - Tek kanallı",
+                "price": 19000,
+                "description": "Masaüstü potansiyostat - Tek Kanallı + EIS",
+                "image": "https://via.placeholder.com/150",
+                "category": "Category 1"
+            },
+            {
+                "id": "m_p_pecvd-sistemleri_2_cs-350-m-masaustu-potansiyostat-tek-kanalli",
+                "name": "CS 350 M - Masaüstü potansiyostat - Tek kanallı",
+                "price": 19000,
+                "description": "Masaüstü potansiyostat - Tek Kanallı + EIS",
+                "image": "https://via.placeholder.com/150",
+                "category": "Category 1"
+            }
+        ],
+        "propertyGroups": [
+            {
+                "id": "g_p_pecvd-sistemleri_2_aksesuarlar",
+                "name": "AKSESUARLAR",
+                "state": "optional",
+                "type": "single_choice",
+                "properties": [
+                    {
+                        "id": "pr_g_p_pecvd-sistemleri_2_aksesuarlar_cs-901-referans-elektrot",
+                        "name": "CS 901 Referans elektrot",
+                        "price": 1000
+                    },
+                    {
+                        "id": "pr_g_p_pecvd-sistemleri_2_aksesuarlar_cs-912-platin-elektrot",
+                        "name": "CS 912 Platin elektrot",
+                        "price": 1000
+                    },
+                    {
+                        "id": "pr_g_p_pecvd-sistemleri_2_aksesuarlar_cs-945-we-tutucu",
+                        "name": "CS 945 WE tutucu",
+                        "price": 1000
+                    },
+                    {
+                        "id": "pr_g_p_pecvd-sistemleri_2_aksesuarlar_cs-9355-3-elektrotlu-hucre",
+                        "name": "CS 9355 3 elektrotlu hücre",
+                        "price": 1000
+                    }
+                ]
+            }
+        ]
+    }
+]
