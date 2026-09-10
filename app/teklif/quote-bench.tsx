@@ -25,6 +25,7 @@ import {
 import type {
   ApplyWarning,
   ChatMessage,
+  ConversationFocus,
   QuoteDocument,
   QuoteDraft,
 } from "@/lib/quote/types";
@@ -34,6 +35,7 @@ export function QuoteBench() {
   const [document, setDocument] = useState<QuoteDocument | null>(null);
   const [missing, setMissing] = useState<MissingSlot[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [focus, setFocus] = useState<ConversationFocus>({});
   const [loading, setLoading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
@@ -60,6 +62,7 @@ export function QuoteBench() {
       setDocument(saved.document);
       setMissing(saved.missing);
       setMessages(saved.messages);
+      setFocus(saved.focus ?? {});
     }
   }, []);
 
@@ -78,8 +81,9 @@ export function QuoteBench() {
       document,
       missing,
       messages,
+      focus,
     });
-  }, [draft, document, missing, messages]);
+  }, [draft, document, missing, messages, focus]);
 
   useEffect(() => {
     return () => {
@@ -96,6 +100,7 @@ export function QuoteBench() {
     setDocument(next.document);
     setMissing(next.missing);
     setMessages(next.messages);
+    setFocus(next.focus);
     setError(null);
     setPdfQuote(null);
     setPdfUrl(null);
@@ -123,6 +128,7 @@ export function QuoteBench() {
             content: item.content,
           })),
           draft: outgoingDraft,
+          focus,
         }),
       });
       const payload = (await response.json()) as {
@@ -132,6 +138,7 @@ export function QuoteBench() {
         document?: QuoteDocument;
         missing?: MissingSlot[];
         warnings?: ApplyWarning[];
+        focus?: ConversationFocus;
       };
       if (!response.ok) {
         setError(payload.error ?? "İstek başarısız.");
@@ -140,6 +147,7 @@ export function QuoteBench() {
       if (payload.draft) setDraft(payload.draft);
       if (payload.document) setDocument(payload.document);
       setMissing(payload.missing ?? []);
+      setFocus(payload.focus ?? {});
       setPdfQuote(null);
       setPdfUrl(null);
       setMessages((prev) => [

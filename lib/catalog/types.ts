@@ -44,6 +44,7 @@ export interface ProductModel {
   description: string;
   image: string;
   category: string;
+  code?: string;
 }
 
 export interface Product {
@@ -51,6 +52,8 @@ export interface Product {
   name: string;
   models: ProductModel[];
   propertyGroups: PropertyGroup[];
+  code?: string;
+  aliases?: string[];
 }
 
 export type Catalog = Product[];

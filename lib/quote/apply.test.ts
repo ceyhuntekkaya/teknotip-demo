@@ -1,124 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { initPreview, previewTotal } from "@/lib/catalog/price";
-import { normalizeCatalog } from "@/lib/catalog/normalize";
 import { applyActions } from "./apply";
 import { emptyDraft } from "./draft";
 import { hydrateQuote } from "./hydrate";
 import { linePriceParts } from "./price";
+import { loadTestCatalog, productByName } from "./test-catalog";
 
-const fixture = normalizeCatalog([
-  {
-    name: "CVD FIRIN",
-    models: [
-      {
-        name: "CVD 1",
-        price: 19000,
-        description: "",
-        image: "",
-        category: "",
-      },
-    ],
-    propertieGroups: [
-      {
-        name: "Teknik",
-        state: "required",
-        type: "single_choice",
-        properties: [
-          {
-            name: "Maksimum sıcaklık",
-            choice: [
-              { name: "1200°C", price: 200 },
-              { name: "1400°C", price: 300 },
-            ],
-          },
-          {
-            name: "Tüp çapı",
-            choice: [{ name: "50 mm" }, { name: "60 mm" }],
-          },
-        ],
-      },
-      {
-        name: "Opsiyonel",
-        state: "optional",
-        type: "single_choice",
-        properties: [
-          {
-            name: "Vakum pompası",
-            choice: [
-              { name: "4 L/s", price: 1000 },
-              { name: "5 L/s", price: 1000 },
-            ],
-          },
-          { name: "Dijital gösterge", price: 1000 },
-        ],
-      },
-      {
-        name: "Gaz tipi",
-        state: "required",
-        type: "multiple_choice",
-        properties: [
-          {
-            name: "Gaz tipi",
-            choice: [{ name: "Ar" }, { name: "O₂" }, { name: "H₂" }],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    name: "KÜL FIRIN",
-    models: [
-      {
-        name: "Kül 1",
-        price: 15000,
-        description: "",
-        image: "",
-        category: "",
-      },
-    ],
-    propertyGroups: [
-      {
-        name: "Teknik",
-        state: "required",
-        type: "single_choice",
-        properties: [
-          {
-            name: "Maksimum sıcaklık",
-            choice: [{ name: "1200°C" }, { name: "1400°C" }],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    name: "POTANSİYOSTAT",
-    models: [
-      {
-        name: "CS 100",
-        price: 19000,
-        description: "",
-        image: "",
-        category: "",
-      },
-    ],
-    propertyGroups: [
-      {
-        name: "Aksesuarlar",
-        state: "optional",
-        type: "single_choice",
-        properties: [
-          { name: "CS 901 Referans elektrot", price: 1000 },
-          { name: "CS 912 Platin elektrot", price: 1000 },
-          { name: "CS 945 WE tutucu", price: 1000 },
-        ],
-      },
-    ],
-  },
-]);
-
-const cvd = fixture[0];
-const kul = fixture[1];
-const aksesuar = fixture[2];
+const fixture = loadTestCatalog();
+const cvd = productByName(fixture, "CVD FIRIN");
+const kul = productByName(fixture, "KÜL FIRIN");
+const aksesuar = productByName(fixture, "POTANSİYOSTAT");
 const tmax = cvd.propertyGroups[0].properties[0];
 const cap = cvd.propertyGroups[0].properties[1];
 const vakum = cvd.propertyGroups[1].properties[0];
@@ -238,7 +129,7 @@ describe("applyActions", () => {
     const selection = added.draft.items[0].selections.find(
       (item) => item.propertyId === gaz.id,
     );
-    expect(selection?.choiceIds).toHaveLength(3);
+    expect(selection?.choiceIds).toHaveLength(gaz.choice!.length);
   });
 
   it("keeps independent optional accessories on one line", () => {
@@ -340,5 +231,32 @@ describe("applyActions", () => {
     );
     expect(withPump.draft.items).toHaveLength(1);
     expect(selection?.choiceIds).toEqual([wide!.id]);
+  });
+
+  it("writes customer fields partially", () => {
+    const first = applyActions(fixture, emptyDraft(), [
+      {
+        op: "set_customer",
+        customer: { institution: "Ankara Üniversitesi", title: "Prof. Dr." },
+      },
+    ]);
+    expect(first.draft.quotedTo).toEqual({
+      institution: "Ankara Üniversitesi",
+      title: "Prof. Dr.",
+    });
+    const second = applyActions(fixture, first.draft, [
+      {
+        op: "set_customer",
+        customer: { contactPerson: "Ceyhun Tekkaya" },
+      },
+    ]);
+    expect(second.draft.quotedTo).toEqual({
+      institution: "Ankara Üniversitesi",
+      title: "Prof. Dr.",
+      contactPerson: "Ceyhun Tekkaya",
+    });
+    const document = hydrateQuote(fixture, second.draft, new Date("2026-09-10"));
+    expect(document.quotedTo.institution).toBe("Ankara Üniversitesi");
+    expect(document.quotedTo.contactPerson).toBe("Prof. Dr. Ceyhun Tekkaya");
   });
 });

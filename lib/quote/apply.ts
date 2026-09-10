@@ -253,6 +253,21 @@ function setQuantity(
   return null;
 }
 
+function setCustomer(draft: QuoteDraft, action: ChatAction): ApplyWarning | null {
+  const patch = action.customer;
+  if (!patch) return { op: "set_customer", message: "Müşteri bilgisi yok." };
+  const current = draft.quotedTo ?? {};
+  draft.quotedTo = {
+    ...current,
+    ...(patch.institution !== undefined ? { institution: patch.institution } : {}),
+    ...(patch.contactPerson !== undefined
+      ? { contactPerson: patch.contactPerson }
+      : {}),
+    ...(patch.title !== undefined ? { title: patch.title } : {}),
+  };
+  return null;
+}
+
 function setChoice(
   draft: QuoteDraft,
   action: ChatAction,
@@ -465,9 +480,9 @@ export function applyActions(
   catalog: Catalog,
   draft: QuoteDraft,
   actions: ChatAction[],
+  lookup = indexCatalog(catalog),
 ): ApplyResult {
   const next = cloneDraft(draft);
-  const lookup = indexCatalog(catalog);
   const warnings: ApplyWarning[] = [];
   const session: ApplySession = { incoming: draft, addedLineIds: [] };
   const ordered = hoistFirstAddLines(actions, draft, lookup);
@@ -499,6 +514,9 @@ export function applyActions(
       case "set_quantity":
         warning = setQuantity(next, action, lookup, session);
         break;
+      case "set_customer":
+        warning = setCustomer(next, action);
+        break;
       default:
         warning = { op: "add_line", message: "Bilinmeyen işlem." };
     }
@@ -510,8 +528,16 @@ export function applyActions(
 }
 
 export function labeledDraft(catalog: Catalog, draft: QuoteDraft): string {
-  if (!draft.items.length) return "(boş teklif)";
-  const lines = draft.items.map((line) => {
+  const customer = draft.quotedTo;
+  const customerLine = customer
+    ? `Müşteri: ${[customer.institution, customer.title, customer.contactPerson]
+        .filter(Boolean)
+        .join(" · ") || "(boş)"}`
+    : "Müşteri: (yok)";
+  if (!draft.items.length) {
+    return `${customerLine}\n(boş teklif)`;
+  }
+  const lines = draft.items.map((line, index) => {
     const product = catalog.find((item) => item.id === line.productId);
     const model = product?.models.find((item) => item.id === line.modelId);
     const selections = line.selections.map((selection) => {
@@ -526,16 +552,16 @@ export function labeledDraft(catalog: Catalog, draft: QuoteDraft): string {
         typeof selection.priceOverride === "number"
           ? ` fiyat=${selection.priceOverride}`
           : "";
-      return `    - ${property?.name ?? selection.propertyId}: ${values} (${selection.propertyId})${override}`;
+      return `    - ${property?.name ?? "özellik"}: ${values}${override}`;
     });
     const base =
       typeof line.basePriceOverride === "number"
         ? ` taban=${line.basePriceOverride}`
         : "";
     return [
-      `- satır ${line.lineId}: ${product?.name ?? line.productId} / ${model?.name ?? line.modelId} x${line.quantity}${base}`,
+      `- S${index + 1}: ${product?.name ?? "ürün"} / ${model?.name ?? "model"} x${line.quantity}${base}`,
       ...selections,
     ].join("\n");
   });
-  return lines.join("\n");
+  return [customerLine, "Mevcut teklif:", ...lines].join("\n");
 }

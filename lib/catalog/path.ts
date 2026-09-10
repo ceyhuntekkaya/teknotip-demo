@@ -116,7 +116,7 @@ export function canMove(catalog: Catalog, path: CatalogPath, dir: -1 | 1): boole
 export function updateProduct(
   catalog: Catalog,
   p: number,
-  patch: Partial<Pick<Product, "name">>,
+  patch: Partial<Pick<Product, "name" | "code" | "aliases">>,
 ): Catalog {
   const next = cloneCatalog(catalog);
   next[p] = { ...next[p], ...patch };

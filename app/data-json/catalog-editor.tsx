@@ -178,6 +178,7 @@ export function CatalogEditor({ initialCatalog }: { initialCatalog: Catalog }) {
     onAddProperty: (p, g) => apply(insertProperty(catalog, p, g)),
     onAddChoice: (p, g, pr) => apply(insertChoice(catalog, p, g, pr)),
     onUpdateProductName: (p, name) => setCatalog(updateProduct(catalog, p, { name })),
+    onUpdateProduct: (p, patch) => setCatalog(updateProduct(catalog, p, patch)),
     onUpdateModel: (p, m, patch) => setCatalog(updateModel(catalog, p, m, patch)),
     onUpdateGroup: (p, g, patch) =>
       setCatalog(updateGroup(catalog, p, g, patch)),

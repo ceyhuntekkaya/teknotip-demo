@@ -22,11 +22,16 @@ export type InspectorHandlers = {
   onAddProperty: (p: number, g: number) => void;
   onAddChoice: (p: number, g: number, pr: number) => void;
   onUpdateProductName: (p: number, name: string) => void;
+  onUpdateProduct: (
+    p: number,
+    patch: Partial<{ name: string; code: string; aliases: string[] }>,
+  ) => void;
   onUpdateModel: (
     p: number,
     m: number,
     patch: Partial<{
       name: string;
+      code: string;
       price: number;
       description: string;
       image: string;
@@ -190,6 +195,27 @@ function ProductForm({
           onChange={(event) => handlers.onUpdateProductName(path.p, event.target.value)}
         />
       </Field>
+      <Field label="Satış kodu">
+        <TextInput
+          value={product.code ?? ""}
+          onChange={(event) =>
+            handlers.onUpdateProduct(path.p, { code: event.target.value })
+          }
+        />
+      </Field>
+      <Field label="Takma adlar (virgülle)">
+        <TextInput
+          value={(product.aliases ?? []).join(", ")}
+          onChange={(event) =>
+            handlers.onUpdateProduct(path.p, {
+              aliases: event.target.value
+                .split(",")
+                .map((item) => item.trim())
+                .filter(Boolean),
+            })
+          }
+        />
+      </Field>
       <div className="flex flex-wrap gap-2">
         <ActionButton onClick={() => handlers.onAddModel(path.p)}>Model ekle</ActionButton>
         <ActionButton onClick={() => handlers.onAddGroup(path.p)}>
@@ -239,6 +265,14 @@ function ModelForm({
           value={model.name}
           onChange={(event) =>
             handlers.onUpdateModel(path.p, path.m, { name: event.target.value })
+          }
+        />
+      </Field>
+      <Field label="Model kodu">
+        <TextInput
+          value={model.code ?? ""}
+          onChange={(event) =>
+            handlers.onUpdateModel(path.p, path.m, { code: event.target.value })
           }
         />
       </Field>

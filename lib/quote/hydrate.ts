@@ -94,12 +94,15 @@ export function hydrateQuote(
   }
 
   const isoDate = date.toISOString().slice(0, 10);
+  const quoted = draft.quotedTo;
+  const greeting = [quoted?.title, quoted?.contactPerson].filter(Boolean).join(" ");
   return {
     quotedTo: {
       id: "",
       name: "",
-      institution: "",
-      contactPerson: "",
+      institution: quoted?.institution ?? "",
+      contactPerson: greeting,
+      title: quoted?.title,
       date: isoDate,
       quoteNumber: draft.quoteNumber,
     },

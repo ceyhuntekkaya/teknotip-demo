@@ -128,9 +128,22 @@ function normalizeGroup(raw: unknown): PropertyGroup {
   };
 }
 
+function optionalCode(value: unknown): string | undefined {
+  const trimmed = asString(value).trim();
+  return trimmed || undefined;
+}
+
+function optionalAliases(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const aliases = value
+    .map((item) => asString(item).trim())
+    .filter(Boolean);
+  return aliases.length ? aliases : undefined;
+}
+
 function normalizeModel(raw: unknown): ProductModel {
   const item = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
-  return {
+  const model: ProductModel = {
     id: asString(item.id),
     name: asString(item.name, "Model"),
     price: asNumber(item.price, 0),
@@ -138,6 +151,9 @@ function normalizeModel(raw: unknown): ProductModel {
     image: asString(item.image),
     category: asString(item.category),
   };
+  const code = optionalCode(item.code);
+  if (code) model.code = code;
+  return model;
 }
 
 function readGroups(item: Record<string, unknown>): unknown[] {
@@ -148,12 +164,17 @@ function readGroups(item: Record<string, unknown>): unknown[] {
 
 function normalizeProduct(raw: unknown): Product {
   const item = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
-  return {
+  const product: Product = {
     id: optionalId(item.id) ?? "",
     name: asString(item.name, "Ürün"),
     models: Array.isArray(item.models) ? item.models.map(normalizeModel) : [],
     propertyGroups: readGroups(item).map(normalizeGroup),
   };
+  const code = optionalCode(item.code);
+  if (code) product.code = code;
+  const aliases = optionalAliases(item.aliases);
+  if (aliases) product.aliases = aliases;
+  return product;
 }
 
 export function normalizeCatalog(raw: unknown): Catalog {

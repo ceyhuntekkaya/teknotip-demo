@@ -1,19 +1,18 @@
-import { readFile } from "fs/promises";
-import path from "path";
 import { NextResponse } from "next/server";
-import { parseCatalog } from "@/lib/catalog/normalize";
-import { missingSlots } from "@/lib/catalog/rules";
 import { getOllamaConfig, ollamaChatUrl } from "@/lib/ollama/config";
-import { applyActions } from "@/lib/quote/apply";
-import { hydrateQuote } from "@/lib/quote/hydrate";
+import { loadCatalogCached } from "@/lib/quote/catalog-cache";
+import { retrieveProducts } from "@/lib/quote/retrieve";
 import { buildUserPrompt, compileLlmCatalog, SYSTEM_PROMPT } from "@/lib/quote/prompt";
 import { chatTurnJsonSchema, parseChatTurn } from "@/lib/quote/schema";
-import type { ChatTurnOutput, QuoteDraft } from "@/lib/quote/types";
+import { processTurn, tryPendingTurn } from "@/lib/quote/turn";
+import type {
+  ChatIntent,
+  ConversationFocus,
+  QuoteDraft,
+} from "@/lib/quote/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
-
-const DATA_PATH = path.join(process.cwd(), "app/data/product.json");
 
 type IncomingMessage = { role: "user" | "assistant"; content: string };
 
@@ -23,21 +22,79 @@ function isDraft(value: unknown): value is QuoteDraft {
   return typeof record.quoteNumber === "string" && Array.isArray(record.items);
 }
 
-async function loadCatalog() {
-  const file = await readFile(DATA_PATH, "utf8");
-  const parsed = parseCatalog(file);
-  if (!parsed.ok) {
-    throw new Error(parsed.error);
-  }
-  return parsed.catalog;
+function isFocus(value: unknown): ConversationFocus | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as ConversationFocus;
+  return record;
 }
 
-function collectMissing(catalog: Awaited<ReturnType<typeof loadCatalog>>, draft: QuoteDraft) {
-  return draft.items.flatMap((line) => {
-    const product = catalog.find((item) => item.id === line.productId);
-    if (!product) return [];
-    return missingSlots(product, line.selections);
-  });
+async function askOllama(
+  system: string,
+  user: string,
+  extra?: { repair?: string },
+): Promise<{ ok: true; intents: ChatIntent[]; reply: string } | { ok: false; error: string; status: number }> {
+  const ollama = getOllamaConfig();
+  const content = extra?.repair
+    ? `${user}\n\nÖnceki çıktın şemaya uymadı (${extra.repair}). Yalnız geçerli JSON üret.`
+    : user;
+  try {
+    const response = await fetch(ollamaChatUrl(ollama), {
+      method: "POST",
+      headers: ollama.headers,
+      signal: AbortSignal.timeout(ollama.timeoutMs),
+      body: JSON.stringify({
+        model: ollama.model,
+        stream: false,
+        format: chatTurnJsonSchema(),
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content },
+        ],
+        options: {
+          temperature: 0,
+          top_p: 1,
+          num_ctx: ollama.numCtx,
+        },
+      }),
+    });
+    if (response.status === 401) {
+      return {
+        ok: false,
+        status: 502,
+        error:
+          "Ollama kimlik doğrulaması başarısız (401). OLLAMA_BASIC_USER / OLLAMA_BASIC_PASS kontrol edin.",
+      };
+    }
+    if (!response.ok) {
+      return { ok: false, status: 502, error: `Ollama yanıt vermedi (${response.status}).` };
+    }
+    const ollamaJson: unknown = await response.json();
+    const rawContent =
+      ollamaJson &&
+      typeof ollamaJson === "object" &&
+      "message" in ollamaJson &&
+      ollamaJson.message &&
+      typeof ollamaJson.message === "object" &&
+      "content" in ollamaJson.message
+        ? (ollamaJson.message as { content?: unknown }).content
+        : undefined;
+    const raw =
+      typeof rawContent === "string" ? (JSON.parse(rawContent) as unknown) : rawContent;
+    const turn = parseChatTurn(raw);
+    return { ok: true, intents: turn.intents, reply: turn.reply };
+  } catch (error) {
+    if (error instanceof SyntaxError || (error instanceof Error && error.name === "ZodError")) {
+      return { ok: false, status: 0, error: error.message };
+    }
+    const timedOut = error instanceof Error && error.name === "TimeoutError";
+    return {
+      ok: false,
+      status: 502,
+      error: timedOut
+        ? "Ollama zaman aşımına uğradı. Sunucu meşgul olabilir."
+        : "Ollama'ya bağlanılamadı. OLLAMA_URL ve kimlik bilgilerini kontrol edin.",
+    };
+  }
 }
 
 export async function POST(request: Request) {
@@ -64,103 +121,76 @@ export async function POST(request: Request) {
   if (!isDraft(record.draft)) {
     return NextResponse.json({ error: "Teklif taslağı geçersiz." }, { status: 400 });
   }
+  const focus = isFocus(record.focus);
 
-  let catalog;
+  let cached;
   try {
-    catalog = await loadCatalog();
+    cached = await loadCatalogCached();
   } catch {
     return NextResponse.json({ error: "Katalog okunamadı." }, { status: 500 });
   }
 
-  const ollama = getOllamaConfig();
-  const catalogYaml = compileLlmCatalog(catalog);
-  const history = messages.slice(-12, -1);
-  const historyBlock = history.length
-    ? `\n\nSon konuşma:\n${history.map((item) => `${item.role}: ${item.content}`).join("\n")}`
-    : "";
-
-  let ollamaJson: unknown;
-  try {
-    const response = await fetch(ollamaChatUrl(ollama), {
-      method: "POST",
-      headers: ollama.headers,
-      signal: AbortSignal.timeout(ollama.timeoutMs),
-      body: JSON.stringify({
-        model: ollama.model,
-        stream: false,
-        format: chatTurnJsonSchema(catalog, record.draft),
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: `${buildUserPrompt(catalogYaml, catalog, record.draft, lastUser.content)}${historyBlock}`,
-          },
-        ],
-        options: {
-          temperature: 0,
-          top_p: 1,
-          num_ctx: ollama.numCtx,
-        },
-      }),
+  const pendingHit = tryPendingTurn({
+    catalog: cached.catalog,
+    lookup: cached.lookup,
+    draft: record.draft,
+    focus,
+    userMessage: lastUser.content,
+  });
+  if (pendingHit) {
+    return NextResponse.json({
+      reply: pendingHit.reply,
+      draft: pendingHit.draft,
+      document: pendingHit.document,
+      missing: pendingHit.missing,
+      warnings: pendingHit.warnings,
+      focus: pendingHit.focus,
     });
-
-    if (response.status === 401) {
-      return NextResponse.json(
-        { error: "Ollama kimlik doğrulaması başarısız (401). OLLAMA_BASIC_USER / OLLAMA_BASIC_PASS kontrol edin." },
-        { status: 502 },
-      );
-    }
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: `Ollama yanıt vermedi (${response.status}).` },
-        { status: 502 },
-      );
-    }
-    ollamaJson = await response.json();
-  } catch (error) {
-    const timedOut = error instanceof Error && error.name === "TimeoutError";
-    return NextResponse.json(
-      {
-        error: timedOut
-          ? "Ollama zaman aşımına uğradı. Sunucu meşgul olabilir."
-          : "Ollama'ya bağlanılamadı. OLLAMA_URL ve kimlik bilgilerini kontrol edin.",
-      },
-      { status: 502 },
-    );
   }
 
-  const content =
-    ollamaJson &&
-    typeof ollamaJson === "object" &&
-    "message" in ollamaJson &&
-    ollamaJson.message &&
-    typeof ollamaJson.message === "object" &&
-    "content" in ollamaJson.message
-      ? (ollamaJson.message as { content?: unknown }).content
-      : undefined;
+  const scoped = retrieveProducts(cached.catalog, record.draft, lastUser.content);
+  const catalogYaml = compileLlmCatalog(scoped);
+  const userPrompt = buildUserPrompt(
+    catalogYaml,
+    scoped,
+    record.draft,
+    lastUser.content,
+    focus,
+  );
 
-  let turn: ChatTurnOutput;
-  try {
-    const raw =
-      typeof content === "string"
-        ? (JSON.parse(content) as unknown)
-        : content;
-    turn = parseChatTurn(raw);
-  } catch {
-    return NextResponse.json(
-      { error: "Model çıktısı beklenen şemaya uymadı." },
-      { status: 502 },
-    );
+  let asked = await askOllama(SYSTEM_PROMPT, userPrompt);
+  if (!asked.ok && asked.status === 0) {
+    asked = await askOllama(SYSTEM_PROMPT, userPrompt, { repair: asked.error });
+  }
+  if (!asked.ok && asked.status === 0) {
+    return NextResponse.json({
+      reply: "Anlayamadım, tekrar eder misiniz?",
+      draft: record.draft,
+      document: null,
+      missing: [],
+      warnings: [],
+      focus: focus ?? {},
+    });
+  }
+  if (!asked.ok) {
+    return NextResponse.json({ error: asked.error }, { status: asked.status || 502 });
   }
 
-  const applied = applyActions(catalog, record.draft, turn.actions);
-  const document = hydrateQuote(catalog, applied.draft);
+  const result = processTurn({
+    catalog: cached.catalog,
+    lookup: cached.lookup,
+    draft: record.draft,
+    focus,
+    userMessage: lastUser.content,
+    intents: asked.intents,
+  });
 
   return NextResponse.json({
-    reply: turn.reply,
-    draft: applied.draft,
-    document,
-    missing: collectMissing(catalog, applied.draft),
-    warnings: applied.warnings,
+    reply: result.reply,
+    draft: result.draft,
+    document: result.document,
+    missing: result.missing,
+    warnings: result.warnings,
+    focus: result.focus,
   });
 }

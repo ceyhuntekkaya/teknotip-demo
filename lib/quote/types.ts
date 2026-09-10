@@ -16,9 +16,16 @@ export type QuoteLine = {
   basePriceOverride?: number;
 };
 
+export type QuoteCustomer = {
+  institution?: string;
+  contactPerson?: string;
+  title?: string;
+};
+
 export type QuoteDraft = {
   quoteNumber: string;
   items: QuoteLine[];
+  quotedTo?: QuoteCustomer;
 };
 
 export type QuoteDocumentQuotedTo = {
@@ -26,6 +33,7 @@ export type QuoteDocumentQuotedTo = {
   name: string;
   institution: string;
   contactPerson: string;
+  title?: string;
   date: string;
   quoteNumber: string;
 };
@@ -87,6 +95,7 @@ export const CHAT_OPS = [
   "set_price",
   "remove_property",
   "set_quantity",
+  "set_customer",
 ] as const;
 
 export type ChatOp = (typeof CHAT_OPS)[number];
@@ -100,12 +109,76 @@ export type ChatAction = {
   choiceIds?: string[];
   quantity?: number | null;
   price?: number | null;
+  customer?: QuoteCustomer;
+};
+
+export const INTENT_OPS = [
+  "add_line",
+  "remove_line",
+  "set_model",
+  "set_value",
+  "set_price",
+  "remove_property",
+  "set_quantity",
+  "set_customer",
+  "clarify",
+] as const;
+
+export type IntentOp = (typeof INTENT_OPS)[number];
+
+export const VALUE_MODES = ["set", "add", "remove"] as const;
+export type ValueMode = (typeof VALUE_MODES)[number];
+
+export type ChatIntent = {
+  op: IntentOp;
+  productRef?: string | null;
+  lineRef?: string | null;
+  modelRef?: string | null;
+  propertyRef?: string | null;
+  value?: string | null;
+  values?: string[];
+  valueMode?: ValueMode | null;
+  price?: number | null;
+  quantity?: number | null;
+  customer?: QuoteCustomer;
 };
 
 export type ChatTurnOutput = {
   reply: string;
-  actions: ChatAction[];
+  intents: ChatIntent[];
 };
+
+export type ClarifyKind =
+  | "which_line"
+  | "which_product"
+  | "which_value"
+  | "confirm_remove";
+
+export type ClarifyCandidate = {
+  label: string;
+  ref: string;
+};
+
+export type ClarifyResult = {
+  kind: ClarifyKind;
+  question: string;
+  candidates: ClarifyCandidate[];
+  resume?: ChatIntent;
+};
+
+export type ConversationFocus = {
+  lastTouchedLineId?: string;
+  pending?: {
+    kind: ClarifyKind;
+    question: string;
+    candidates: ClarifyCandidate[];
+    resume?: ChatIntent;
+  };
+};
+
+export type ResolveOk = { action: ChatAction };
+export type ResolveClarify = { clarify: ClarifyResult };
+export type ResolveOutcome = ResolveOk | ResolveClarify;
 
 export type ApplyWarning = {
   op: ChatOp;

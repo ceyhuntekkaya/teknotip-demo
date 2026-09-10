@@ -59,6 +59,7 @@ describe("quote session", () => {
     expect(restored?.messages).toHaveLength(2);
     expect(restored?.missing[0]?.label).toBe("Tüp çapı");
     expect(restored?.document?.quotedTo.quoteNumber).toBe("T-20260910-ABCD");
+    expect(restored?.focus).toEqual({});
   });
 
   it("rejects corrupt or version-mismatched payloads", () => {

@@ -1,0 +1,247 @@
+[
+  {
+    "name": "CVD FIRIN",
+    "code": "FX-CVD-1",
+    "aliases": ["cvd", "cvd fırın", "cvd firin"],
+    "models": [
+      {
+        "name": "CVD 1",
+        "price": 19000,
+        "description": "",
+        "image": "",
+        "category": ""
+      }
+    ],
+    "propertyGroups": [
+      {
+        "name": "Teknik",
+        "state": "required",
+        "type": "single_choice",
+        "properties": [
+          {
+            "name": "Maksimum sıcaklık",
+            "choice": [
+              { "name": "1200°C", "price": 200 },
+              { "name": "1400°C", "price": 300 },
+              { "name": "1700°C", "price": 400 }
+            ]
+          },
+          {
+            "name": "Tüp çapı",
+            "choice": [
+              { "name": "50 mm" },
+              { "name": "60 mm" },
+              { "name": "80 mm" },
+              { "name": "100 mm" }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Opsiyonel",
+        "state": "optional",
+        "type": "single_choice",
+        "properties": [
+          {
+            "name": "Vakum pompası",
+            "choice": [
+              { "name": "4 L/s", "price": 1000 },
+              { "name": "5 L/s", "price": 1000 }
+            ]
+          },
+          { "name": "Dijital gösterge", "price": 1000 },
+          {
+            "name": "Turbomoleküler pompa",
+            "choice": [
+              { "name": "300 L/s", "price": 2000 },
+              { "name": "600 L/s", "price": 3000 }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Gaz tipi",
+        "state": "required",
+        "type": "multiple_choice",
+        "properties": [
+          {
+            "name": "Gaz tipi",
+            "choice": [
+              { "name": "Ar" },
+              { "name": "O₂" },
+              { "name": "H₂" },
+              { "name": "CO₂" }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "KÜL FIRIN",
+    "code": "FX-KUL-1",
+    "aliases": ["kül fırın", "kul firin"],
+    "models": [
+      {
+        "name": "Kül 1",
+        "price": 15000,
+        "description": "",
+        "image": "",
+        "category": ""
+      }
+    ],
+    "propertyGroups": [
+      {
+        "name": "Teknik",
+        "state": "required",
+        "type": "single_choice",
+        "properties": [
+          {
+            "name": "Maksimum sıcaklık",
+            "choice": [{ "name": "1200°C" }, { "name": "1400°C" }]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "POTANSİYOSTAT",
+    "code": "FX-PS-1",
+    "aliases": ["potansiyostat", "cs serisi"],
+    "models": [
+      {
+        "name": "CS 100",
+        "code": "CS-100",
+        "price": 19000,
+        "description": "",
+        "image": "",
+        "category": ""
+      },
+      {
+        "name": "CS 310 M - Masaüstü potansiyostat - Tek kanallı",
+        "code": "CS-310-M",
+        "price": 22000,
+        "description": "",
+        "image": "",
+        "category": ""
+      },
+      {
+        "name": "CS 350 M - Masaüstü potansiyostat - Tek kanallı",
+        "code": "CS-350-M",
+        "price": 25000,
+        "description": "",
+        "image": "",
+        "category": ""
+      }
+    ],
+    "propertyGroups": [
+      {
+        "name": "Aksesuarlar",
+        "state": "optional",
+        "type": "single_choice",
+        "properties": [
+          { "name": "CS 901 Referans elektrot", "price": 1000 },
+          { "name": "CS 912 Platin elektrot", "price": 1000 },
+          { "name": "CS 945 WE tutucu", "price": 1000 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "TÜP FIRIN",
+    "code": "FX-TUP-1",
+    "aliases": ["tüp fırın", "tup firin"],
+    "models": [
+      {
+        "name": "Tüp 1",
+        "price": 12000,
+        "description": "",
+        "image": "",
+        "category": ""
+      }
+    ],
+    "propertyGroups": [
+      {
+        "name": "Teknik",
+        "state": "required",
+        "type": "single_choice",
+        "properties": [
+          {
+            "name": "Maksimum sıcaklık",
+            "choice": [
+              { "name": "1200°C" },
+              { "name": "1400°C" },
+              { "name": "1700°C" }
+            ]
+          },
+          {
+            "name": "Çalışma sıcaklığı",
+            "choice": [
+              { "name": "1100°C" },
+              { "name": "1400°C" },
+              { "name": "1700°C" }
+            ]
+          },
+          {
+            "name": "Tüp çapı",
+            "choice": [{ "name": "50 mm" }, { "name": "60 mm" }, { "name": "80 mm" }]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "AKIŞ KONTROL",
+    "code": "FX-MFC-1",
+    "aliases": ["mfc", "akış kontrol"],
+    "models": [
+      {
+        "name": "MFC 1",
+        "price": 4000,
+        "description": "",
+        "image": "",
+        "category": ""
+      }
+    ],
+    "propertyGroups": [
+      {
+        "name": "MFC",
+        "state": "required_one",
+        "type": "single_choice",
+        "properties": [
+          {
+            "name": "Debi",
+            "choice": [
+              { "name": "0–200 sccm", "price": 1000 },
+              { "name": "0–500 sccm", "price": 1500 }
+            ]
+          },
+          {
+            "name": "Adet",
+            "choice": [{ "name": "1" }, { "name": "2" }, { "name": "3" }]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "YALIN ÜNİTE",
+    "code": "FX-YALIN",
+    "models": [
+      {
+        "name": "Yalın 1",
+        "price": 5000,
+        "description": "",
+        "image": "",
+        "category": ""
+      }
+    ],
+    "propertyGroups": []
+  },
+  {
+    "name": "TASLAK ÜRÜN",
+    "code": "FX-TASLAK",
+    "models": [],
+    "propertyGroups": []
+  }
+]

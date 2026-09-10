@@ -2,6 +2,7 @@ import { writeFile } from "fs/promises";
 import path from "path";
 import { NextResponse } from "next/server";
 import { parseCatalog, stringifyCatalog } from "@/lib/catalog/normalize";
+import { lintCatalogInput } from "@/lib/catalog/lint";
 
 const DATA_PATH = path.join(process.cwd(), "app/data/product.json");
 
@@ -18,6 +19,8 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
+  const warnings = lintCatalogInput(JSON.parse(text) as unknown, parsed.catalog);
+
   try {
     await writeFile(DATA_PATH, stringifyCatalog(parsed.catalog), "utf8");
   } catch {
@@ -27,5 +30,5 @@ export async function PUT(request: Request) {
     );
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, warnings });
 }

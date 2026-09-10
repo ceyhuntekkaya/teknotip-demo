@@ -1,8 +1,13 @@
 import type { MissingSlot } from "@/lib/catalog/rules";
-import type { ChatMessage, QuoteDocument, QuoteDraft } from "./types";
+import type {
+  ChatMessage,
+  ConversationFocus,
+  QuoteDocument,
+  QuoteDraft,
+} from "./types";
 
 export const QUOTE_SESSION_KEY = "teknotip.quote-session";
-export const QUOTE_SESSION_VERSION = 1;
+export const QUOTE_SESSION_VERSION = 2;
 
 export type QuoteSession = {
   version: number;
@@ -10,6 +15,7 @@ export type QuoteSession = {
   document: QuoteDocument | null;
   missing: MissingSlot[];
   messages: ChatMessage[];
+  focus: ConversationFocus;
 };
 
 export function emptyQuoteSession(): QuoteSession {
@@ -19,6 +25,7 @@ export function emptyQuoteSession(): QuoteSession {
     document: null,
     missing: [],
     messages: [],
+    focus: {},
   };
 }
 
@@ -26,7 +33,9 @@ export function parseQuoteSession(raw: string | null): QuoteSession | null {
   if (!raw) return null;
   try {
     const parsed: unknown = JSON.parse(raw);
-    if (!isRecord(parsed) || parsed.version !== QUOTE_SESSION_VERSION) return null;
+    if (!isRecord(parsed)) return null;
+    const version = parsed.version;
+    if (version !== 1 && version !== QUOTE_SESSION_VERSION) return null;
     if (!isDraft(parsed.draft)) return null;
     if (!isDocument(parsed.document)) return null;
     if (!Array.isArray(parsed.missing) || !parsed.missing.every(isMissingSlot)) {
@@ -41,6 +50,7 @@ export function parseQuoteSession(raw: string | null): QuoteSession | null {
       document: parsed.document,
       missing: parsed.missing,
       messages: parsed.messages,
+      focus: isFocus(parsed.focus),
     };
   } catch {
     return null;
@@ -78,7 +88,7 @@ export function clearQuoteSession(): void {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return value !== null && typeof value === "object";
 }
 
 function isDraft(value: unknown): value is QuoteDraft {
@@ -108,4 +118,9 @@ function isChatMessage(value: unknown): value is ChatMessage {
     (value.role === "user" || value.role === "assistant") &&
     typeof value.content === "string"
   );
+}
+
+function isFocus(value: unknown): ConversationFocus {
+  if (!isRecord(value)) return {};
+  return value as ConversationFocus;
 }

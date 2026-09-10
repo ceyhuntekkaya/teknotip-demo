@@ -1,7 +1,7 @@
 import { allowsMultipleChoices, groupRequirement } from "@/lib/catalog/rules";
 import type { Catalog } from "@/lib/catalog/types";
 import { labeledDraft } from "./apply";
-import type { QuoteDraft } from "./types";
+import type { ConversationFocus, QuoteDraft } from "./types";
 
 function yamlEscape(value: string): string {
   if (value === "") return '""';
@@ -28,15 +28,22 @@ export function compileLlmCatalog(catalog: Catalog): string {
   }
 
   for (const product of catalog) {
-    lines.push(`  - id: ${yamlEscape(product.id)}`);
-    lines.push(`    name: ${yamlEscape(product.name)}`);
+    lines.push(`  - name: ${yamlEscape(product.name)}`);
+    if (product.code) lines.push(`    code: ${yamlEscape(product.code)}`);
+    if (product.aliases?.length) {
+      lines.push(`    aliases: [${product.aliases.map((item) => yamlEscape(item)).join(", ")}]`);
+    }
     lines.push("    models:");
     if (!product.models.length) {
       lines.push("      []");
     } else {
       for (const model of product.models) {
         lines.push(
-          `      - ${inlineMap({ id: model.id, name: model.name, price: model.price })}`,
+          `      - ${inlineMap({
+            name: model.name,
+            code: model.code,
+            price: model.price,
+          })}`,
         );
       }
     }
@@ -47,8 +54,7 @@ export function compileLlmCatalog(catalog: Catalog): string {
       for (const group of product.propertyGroups) {
         const state = groupRequirement(group);
         const pick = allowsMultipleChoices(group) ? "N" : 1;
-        lines.push(`      - id: ${yamlEscape(group.id)}`);
-        lines.push(`        name: ${yamlEscape(group.name)}`);
+        lines.push(`      - name: ${yamlEscape(group.name)}`);
         lines.push(`        state: ${state}`);
         lines.push(`        pick: ${pick}`);
         lines.push("        props:");
@@ -58,8 +64,7 @@ export function compileLlmCatalog(catalog: Catalog): string {
           for (const property of group.properties) {
             const propReq =
               state === "required" || property.state === "required" ? 1 : 0;
-            lines.push(`          - id: ${yamlEscape(property.id)}`);
-            lines.push(`            name: ${yamlEscape(property.name)}`);
+            lines.push(`          - name: ${yamlEscape(property.name)}`);
             lines.push(`            req: ${propReq}`);
             if (typeof property.price === "number") {
               lines.push(`            price: ${property.price}`);
@@ -69,7 +74,6 @@ export function compileLlmCatalog(catalog: Catalog): string {
               for (const choice of property.choice) {
                 lines.push(
                   `              - ${inlineMap({
-                    id: choice.id,
                     name: choice.name,
                     price: choice.price,
                   })}`,
@@ -86,15 +90,19 @@ export function compileLlmCatalog(catalog: Catalog): string {
 }
 
 export const SYSTEM_PROMPT = [
-  "Sen TeknoTip teklif asistanısın.",
-  "Tek gerçeklik kaynağın verilen katalogdur. Katalog dışı ölçü, aksesuar veya özel üretim kabul etme; reddet ve izinli seçenekleri söyle.",
-  "KDV, genel toplam veya aritmetik üretme. Katalogdaki sayı birim listedir. Kullanıcı farklı birim fiyat söylediyse set_price yaz.",
-  "Teklif boşsa veya bu ürün teklifte yoksa add_line yaz. Mevcut satıra özellik/fiyat/adet işlemek için add_line kullanma; set_choice / set_price / set_quantity / remove_property kullan.",
-  "add_line yalnız teklifte olmayan bir ürün ailesi veya farklı konfigürasyonlu ikinci bir cihaz içindir. Aynı cihazdan 2 adet (aynı özellikler) için set_quantity kullan.",
-  "MFC grubundaki Adet, teklif satır adedi değildir; satır adedi set_quantity ile yazılır.",
-  "Opsiyoneli kaldırmak için remove_property, satır silmek için remove_line kullan.",
-  "Yeni lineId uydurma. Mevcut satırları verilen lineId ile adresle. lineId yoksa tek eşleşen satırı kastediyorsan boş bırak.",
-  "Yalnızca reply ve actions döndür.",
+  "Sen TeknoTip teklif asistanısın. Yalnız teklif hazırlarsın; teklif dışı isteği nazikçe reddet, op=clarify yaz.",
+  "Tek gerçeklik kaynağın verilen katalogdur; katalog dışı ürün/ölçü/özellik uydurma.",
+  "Emin değilsen veya birden çok eşleşme varsa aksiyon üretme, op=clarify ile sor.",
+  "İlgili ürünler tam kataloğun alt kümesidir. Kullanıcı burada görünmeyen bir ürün adı geçirirse yine de productRef üret; yok deme.",
+  "KDV, genel toplam veya aritmetik üretme. Kullanıcı farklı birim fiyat söylediyse set_price yaz.",
+  "Teklif boşsa veya ürün yoksa add_line yaz. Mevcut satıra özellik/fiyat/adet için set_value / set_price / set_quantity / remove_property kullan.",
+  "Aynı cihazdan 2 adet (aynı özellikler) için set_quantity veya add_line quantity=2 yaz. MFC Adet satır adedi değildir.",
+  "Satırları S1, S2 gibi kısa ref ile adresle. Katalog ID'si yazma.",
+  "Flag opsiyon eklemek için set_value value=ekle; kaldırmak için set_value value=çıkar.",
+  "multiple_choice kümesine eklemek için valueMode=add, çıkarmak için remove, yerine yazmak için set.",
+  "Adet her zaman mutlak sayı. 'bir tane daha' için mevcut adet+1 yaz.",
+  "Müşteri için set_customer (institution, contactPerson, title) kullan; ürünle aynı turda olabilir.",
+  "Yalnız reply ve intents döndür.",
 ].join(" ");
 
 export function buildUserPrompt(
@@ -102,16 +110,24 @@ export function buildUserPrompt(
   catalog: Catalog,
   draft: QuoteDraft,
   userMessage: string,
+  focus?: ConversationFocus,
 ): string {
+  const pending = focus?.pending
+    ? `\nBekleyen soru: ${focus.pending.question}\nAdaylar: ${focus.pending.candidates
+        .map((item) => `${item.ref}=${item.label}`)
+        .join("; ")}`
+    : "";
   return [
-    "Katalog:",
+    "İlgili ürünler (tam katalog daha geniştir):",
     catalogYaml,
     "",
     `Teklif no: ${draft.quoteNumber}`,
-    "Mevcut teklif:",
     labeledDraft(catalog, draft),
+    pending,
     "",
     "Kullanıcı:",
     userMessage,
-  ].join("\n");
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
 }

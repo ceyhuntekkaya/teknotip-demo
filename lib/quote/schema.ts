@@ -1,78 +1,71 @@
 import { z } from "zod";
-import type { Catalog } from "@/lib/catalog/types";
-import { CHAT_OPS, type ChatTurnOutput, type QuoteDraft } from "./types";
-
-const unique = (values: string[]) => [...new Set(values.filter(Boolean))];
+import {
+  INTENT_OPS,
+  VALUE_MODES,
+  type ChatIntent,
+  type ChatTurnOutput,
+} from "./types";
 
 export const chatTurnSchema = z.object({
   reply: z.string(),
-  actions: z.array(
+  intents: z.array(
     z.object({
-      op: z.enum(CHAT_OPS),
-      lineId: z.string().nullable().optional(),
-      productId: z.string().nullable().optional(),
-      modelId: z.string().nullable().optional(),
-      propertyId: z.string().nullable().optional(),
-      choiceIds: z.array(z.string()).optional(),
-      quantity: z.number().nullable().optional(),
+      op: z.enum(INTENT_OPS),
+      productRef: z.string().nullable().optional(),
+      lineRef: z.string().nullable().optional(),
+      modelRef: z.string().nullable().optional(),
+      propertyRef: z.string().nullable().optional(),
+      value: z.string().nullable().optional(),
+      values: z.array(z.string()).optional(),
+      valueMode: z.enum(VALUE_MODES).nullable().optional(),
       price: z.number().nullable().optional(),
+      quantity: z.number().nullable().optional(),
+      customer: z
+        .object({
+          institution: z.string().nullable().optional(),
+          contactPerson: z.string().nullable().optional(),
+          title: z.string().nullable().optional(),
+        })
+        .optional(),
     }),
   ),
 });
 
-function stringOrEnum(values: string[]) {
-  const items = unique(values);
-  if (!items.length) {
-    return { type: ["string", "null"] };
-  }
-  return {
-    anyOf: [{ type: "string", enum: items }, { type: "null" }],
-  };
-}
+const nullableString = { type: ["string", "null"] };
 
-export function chatTurnJsonSchema(catalog: Catalog, draft: QuoteDraft) {
-  const productIds: string[] = [];
-  const modelIds: string[] = [];
-  const propertyIds: string[] = [];
-  const choiceIds: string[] = [];
-
-  for (const product of catalog) {
-    productIds.push(product.id);
-    for (const model of product.models) modelIds.push(model.id);
-    for (const group of product.propertyGroups) {
-      for (const property of group.properties) {
-        propertyIds.push(property.id);
-        for (const choice of property.choice ?? []) choiceIds.push(choice.id);
-      }
-    }
-  }
-
+export function chatTurnJsonSchema() {
   return {
     type: "object",
     additionalProperties: false,
-    required: ["reply", "actions"],
+    required: ["reply", "intents"],
     properties: {
       reply: { type: "string" },
-      actions: {
+      intents: {
         type: "array",
         items: {
           type: "object",
           additionalProperties: false,
           required: ["op"],
           properties: {
-            op: { type: "string", enum: [...CHAT_OPS] },
-            lineId: stringOrEnum(draft.items.map((item) => item.lineId)),
-            productId: stringOrEnum(productIds),
-            modelId: stringOrEnum(modelIds),
-            propertyId: stringOrEnum(propertyIds),
-            choiceIds: {
-              type: "array",
-              items: choiceIds.length
-                ? { type: "string", enum: unique(choiceIds) }
-                : { type: "string" },
-            },
-            quantity: { type: ["integer", "null"], minimum: 1 },
+            op: { type: "string", enum: [...INTENT_OPS] },
+            productRef: nullableString,
+            lineRef: nullableString,
+            modelRef: nullableString,
+            propertyRef: nullableString,
+            value: nullableString,
+            values: { type: "array", items: { type: "string" } },
+            valueMode: { type: ["string", "null"], enum: [...VALUE_MODES, null] },
             price: { type: ["number", "null"], minimum: 0 },
+            quantity: { type: ["integer", "null"], minimum: 1 },
+            customer: {
+              type: ["object", "null"],
+              additionalProperties: false,
+              properties: {
+                institution: nullableString,
+                contactPerson: nullableString,
+                title: nullableString,
+              },
+            },
           },
         },
       },
@@ -81,5 +74,9 @@ export function chatTurnJsonSchema(catalog: Catalog, draft: QuoteDraft) {
 }
 
 export function parseChatTurn(raw: unknown): ChatTurnOutput {
-  return chatTurnSchema.parse(raw);
+  const parsed = chatTurnSchema.parse(raw);
+  return {
+    reply: parsed.reply,
+    intents: parsed.intents as ChatIntent[],
+  };
 }
