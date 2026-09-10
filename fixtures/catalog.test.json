@@ -98,7 +98,15 @@
         "properties": [
           {
             "name": "Maksimum sıcaklık",
-            "choice": [{ "name": "1200°C" }, { "name": "1400°C" }]
+            "choice": [{ "name": "1200°C" }, { "name": "1400°C" }, { "name": "1700°C" }]
+          },
+          {
+            "name": "İç hazne boyutu",
+            "choice": [
+              { "name": "200 × 200 × 200 mm" },
+              { "name": "300 × 300 × 300 mm" },
+              { "name": "400 × 400 × 400 mm" }
+            ]
           }
         ]
       }

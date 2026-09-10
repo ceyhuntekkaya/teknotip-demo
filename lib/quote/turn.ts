@@ -68,7 +68,7 @@ export function processTurn(input: TurnInput): TurnResult {
     input.lookup,
     input.draft,
     input.focus,
-    { confirmed: input.fromPending },
+    { confirmed: input.fromPending, userMessage: input.userMessage },
   );
   const applied = applyActions(
     input.catalog,
@@ -108,6 +108,11 @@ export function processTurn(input: TurnInput): TurnResult {
     focus,
     clarifications: resolved.clarifications,
   };
+}
+
+export function focusForNewTurn(focus?: ConversationFocus): ConversationFocus | undefined {
+  if (!focus?.lastTouchedLineId) return undefined;
+  return { lastTouchedLineId: focus.lastTouchedLineId };
 }
 
 export function tryPendingTurn(

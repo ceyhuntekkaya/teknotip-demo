@@ -4,7 +4,7 @@ import { loadCatalogCached } from "@/lib/quote/catalog-cache";
 import { retrieveProducts } from "@/lib/quote/retrieve";
 import { buildUserPrompt, compileLlmCatalog, SYSTEM_PROMPT } from "@/lib/quote/prompt";
 import { chatTurnJsonSchema, parseChatTurn } from "@/lib/quote/schema";
-import { processTurn, tryPendingTurn } from "@/lib/quote/turn";
+import { processTurn, tryPendingTurn, focusForNewTurn } from "@/lib/quote/turn";
 import type {
   ChatIntent,
   ConversationFocus,
@@ -148,6 +148,7 @@ export async function POST(request: Request) {
     });
   }
 
+  const llmFocus = focusForNewTurn(focus);
   const scoped = retrieveProducts(cached.catalog, record.draft, lastUser.content);
   const catalogYaml = compileLlmCatalog(scoped);
   const userPrompt = buildUserPrompt(
@@ -155,7 +156,7 @@ export async function POST(request: Request) {
     scoped,
     record.draft,
     lastUser.content,
-    focus,
+    llmFocus,
   );
 
   let asked = await askOllama(SYSTEM_PROMPT, userPrompt);
@@ -180,7 +181,7 @@ export async function POST(request: Request) {
     catalog: cached.catalog,
     lookup: cached.lookup,
     draft: record.draft,
-    focus,
+    focus: llmFocus,
     userMessage: lastUser.content,
     intents: asked.intents,
   });

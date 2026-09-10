@@ -1,5 +1,6 @@
 import type { Catalog, Product } from "@/lib/catalog/types";
 import type { QuoteDraft } from "./types";
+import { mentionedProducts } from "./resolve";
 import { normalizeText, tokenSet } from "./resolve/text";
 
 const DEFAULT_K = 5;
@@ -46,6 +47,9 @@ export function retrieveProducts(
   for (const line of draft.items) {
     const product = catalog.find((item) => item.id === line.productId);
     if (product) byId.set(product.id, product);
+  }
+  for (const product of mentionedProducts(catalog, query)) {
+    byId.set(product.id, product);
   }
   const ranked = catalog
     .map((product) => ({ product, score: lexicalScore(product, query) }))

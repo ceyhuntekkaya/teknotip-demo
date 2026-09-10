@@ -7,9 +7,13 @@ import {
   QuotePdfPanel,
   quotePdfFilename,
 } from "@/components/pdf/quote-pdf-panel";
+import { QuoteEditPane } from "@/components/quote/quote-edit-pane";
 import { formatAddOn, formatTry } from "@/lib/catalog/price";
+import type { Catalog } from "@/lib/catalog/types";
 import type { MissingSlot } from "@/lib/catalog/rules";
-import { emptyDraft, emptyDocument } from "@/lib/quote/draft";
+import { emptyDraft } from "@/lib/quote/draft";
+import { applyQuoteEdit } from "@/lib/quote/edit";
+import { hydrateQuote } from "@/lib/quote/hydrate";
 import {
   clearQuoteSession,
   emptyQuoteSession,
@@ -24,13 +28,14 @@ import {
 } from "@/lib/stt/client";
 import type {
   ApplyWarning,
+  ChatAction,
   ChatMessage,
   ConversationFocus,
   QuoteDocument,
   QuoteDraft,
 } from "@/lib/quote/types";
 
-export function QuoteBench() {
+export function QuoteBench({ catalog }: { catalog: Catalog }) {
   const [draft, setDraft] = useState<QuoteDraft>({ quoteNumber: "", items: [] });
   const [document, setDocument] = useState<QuoteDocument | null>(null);
   const [missing, setMissing] = useState<MissingSlot[]>([]);
@@ -42,6 +47,8 @@ export function QuoteBench() {
   const [error, setError] = useState<string | null>(null);
   const [pdfQuote, setPdfQuote] = useState<QuoteDocument | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [rightView, setRightView] = useState<"quote" | "edit">("quote");
+  const [editWarnings, setEditWarnings] = useState<ApplyWarning[]>([]);
   const scroller = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -104,6 +111,8 @@ export function QuoteBench() {
     setError(null);
     setPdfQuote(null);
     setPdfUrl(null);
+    setRightView("quote");
+    setEditWarnings([]);
     if (inputRef.current) inputRef.current.value = "";
     clearQuoteSession();
   };
@@ -112,7 +121,11 @@ export function QuoteBench() {
     const text = inputRef.current?.value.trim() ?? "";
     if (!text || loading || recording || transcribing) return;
     const nextMessages: ChatMessage[] = [...messages, { role: "user", content: text }];
-    const outgoingDraft = draft.quoteNumber ? draft : emptyDraft();
+    const outgoingDraft: QuoteDraft = {
+      quoteNumber: draft.quoteNumber || emptyDraft().quoteNumber,
+      items: draft.items,
+      quotedTo: draft.quotedTo,
+    };
     if (inputRef.current) inputRef.current.value = "";
     setMessages(nextMessages);
     setLoading(true);
@@ -150,6 +163,7 @@ export function QuoteBench() {
       setFocus(payload.focus ?? {});
       setPdfQuote(null);
       setPdfUrl(null);
+      setEditWarnings([]);
       setMessages((prev) => [
         ...prev,
         {
@@ -232,9 +246,27 @@ export function QuoteBench() {
     }
   };
 
-  const quote = document ?? emptyDocument(draft.quoteNumber);
+  const applyEdit = (actions: ChatAction[]) => {
+    const result = applyQuoteEdit(catalog, draft, actions, focus);
+    setDraft(result.draft);
+    setDocument(result.document);
+    setMissing(result.missing);
+    setFocus(result.focus);
+    setEditWarnings(result.warnings);
+    setPdfQuote(null);
+    setPdfUrl(null);
+  };
+
+  const quote = hydrateQuote(
+    catalog,
+    draft,
+    document?.quotedTo.date
+      ? new Date(`${document.quotedTo.date}T12:00:00`)
+      : new Date(),
+  );
   const speakBusy = loading || transcribing;
   const showingPdf = pdfQuote !== null;
+  const editing = rightView === "edit";
   const handlePdfUrl = useCallback((url: string | null) => {
     setPdfUrl(url);
   }, []);
@@ -366,7 +398,9 @@ export function QuoteBench() {
               <p className="font-display text-[11px] uppercase tracking-[0.22em] text-[var(--steel)]">
                 Belge
               </p>
-              <h2 className="font-display text-2xl leading-none tracking-wide">Teklif</h2>
+              <h2 className="font-display text-2xl leading-none tracking-wide">
+                {editing ? "Düzenleme" : "Teklif"}
+              </h2>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
               <p className="font-mono text-xs text-[var(--steel)]">
@@ -388,20 +422,39 @@ export function QuoteBench() {
                   </ActionButton>
                 </>
               ) : (
-                <ActionButton
-                  tone="heat"
-                  type="button"
-                  disabled={quote.products.length === 0}
-                  onClick={() => setPdfQuote(quote)}
-                >
-                  PDF Yap
-                </ActionButton>
+                <>
+                  <ActionButton
+                    type="button"
+                    onClick={() =>
+                      setRightView((current) => (current === "edit" ? "quote" : "edit"))
+                    }
+                  >
+                    {editing ? "Teklif Görünümü" : "Düzenleme Görünümü"}
+                  </ActionButton>
+                  <ActionButton
+                    tone="heat"
+                    type="button"
+                    disabled={quote.products.length === 0}
+                    onClick={() => setPdfQuote(quote)}
+                  >
+                    PDF Yap
+                  </ActionButton>
+                </>
               )}
             </div>
           </header>
 
           {showingPdf ? (
             <QuotePdfPanel quote={pdfQuote} onUrl={handlePdfUrl} />
+          ) : editing ? (
+            <QuoteEditPane
+              catalog={catalog}
+              draft={draft}
+              quote={quote}
+              missing={missing}
+              warnings={editWarnings}
+              onActions={applyEdit}
+            />
           ) : (
             <>
               <div className="min-h-0 flex-1 overflow-y-auto p-4">
@@ -438,9 +491,19 @@ export function QuoteBench() {
                               {product.modelName} · {product.quantity} adet
                             </p>
                           </div>
-                          <p className="font-mono text-sm text-[var(--heat)]">
-                            {formatTry(product.lineTotal)}
-                          </p>
+                          <div className="text-right">
+                            <p className="font-display text-[11px] uppercase tracking-[0.14em] text-[var(--steel)]">
+                              Birim
+                            </p>
+                            <p className="font-mono text-sm text-[var(--heat)]">
+                              {formatTry(product.basePrice)}
+                            </p>
+                            {product.lineTotal !== product.basePrice ? (
+                              <p className="font-mono text-xs text-[var(--steel)]">
+                                {formatTry(product.lineTotal)}
+                              </p>
+                            ) : null}
+                          </div>
                         </div>
                         {product.propertyGroups.map((group) => (
                           <div

@@ -27,4 +27,13 @@ describe("retrieveProducts", () => {
     const scoped = retrieveProducts(catalog, emptyDraft(), "fx-cvd-1");
     expect(scoped[0]?.name).toBe("CVD FIRIN");
   });
+
+  it("keeps a named product in scope for a long sentence", () => {
+    const scoped = retrieveProducts(
+      catalog,
+      emptyDraft(),
+      "CVD fırın olsun, sıcaklık 1400, çap 60 mm",
+    );
+    expect(scoped.some((item) => item.name === "CVD FIRIN")).toBe(true);
+  });
 });

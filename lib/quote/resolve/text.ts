@@ -160,11 +160,176 @@ const ORDINALS: Record<string, number> = {
 };
 
 export function parseLineOrdinal(value: string): number | null {
-  const folded = normalizeText(value).replace(/^satir\s+/, "");
+  const folded = normalizeText(value)
+    .replace(/^satir\s+/, "")
+    .replace(/\s+satir$/, "");
   const direct = folded.match(/^s(\d+)$/);
   if (direct) return Number.parseInt(direct[1], 10) - 1;
   if (folded in ORDINALS) return ORDINALS[folded];
   return null;
+}
+
+const REQUEST_VERBS = new Set([
+  "olsun",
+  "ekle",
+  "cikar",
+  "kaldir",
+  "yap",
+  "yaz",
+  "guncelle",
+  "olmasin",
+]);
+
+const AMOUNT_WORDS = new Set([
+  "tl",
+  "try",
+  "lira",
+  "fiyat",
+  "fiyati",
+  "fiyatin",
+  "birim",
+  "taban",
+]);
+
+const COUNT_WORDS = new Set([
+  "adet",
+  "adedi",
+  "adetin",
+  "adeti",
+  "adedini",
+  "tane",
+  "tanesini",
+  "quantity",
+  "count",
+  "qty",
+]);
+
+const LINE_COUNT_CUES = new Set([
+  "ana",
+  "urun",
+  "urunu",
+  "teklif",
+  "teklifte",
+  "mevcut",
+  "suanda",
+  "cihaz",
+  "satir",
+  "satiri",
+]);
+
+export function messageTokens(value: string): string[] {
+  return normalizeText(value)
+    .split(/\s+/)
+    .map((token) => token.replace(/[^\da-z]+/g, ""))
+    .filter(Boolean);
+}
+
+function parseNumericToken(raw: string): number | null {
+  const cleaned = raw.replace(/\s/g, "");
+  if (!cleaned) return null;
+  const normalized =
+    cleaned.includes(",") && !cleaned.includes(".")
+      ? cleaned.replace(",", ".")
+      : cleaned.replace(/\./g, "");
+  const parsed = Number.parseFloat(normalized.replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function parsePrice(value: string): number | null {
+  const folded = squeezeSpaces(normalizeText(value).replace(/₺/g, " tl "));
+  if (!folded) return null;
+  const nearCurrency = folded.match(
+    /(\d{1,3}(?:[.\s]\d{3})+|\d+(?:[.,]\d+)?)\s*(?:tl|try|lira)\b/,
+  );
+  const afterFiyat = folded.match(
+    /fiyat[a-z]*\s*(?:olsun\s*)?(\d{1,3}(?:[.\s]\d{3})+|\d+(?:[.,]\d+)?)/,
+  );
+  const raw = nearCurrency?.[1] ?? afterFiyat?.[1];
+  if (raw) {
+    const parsed = parseNumericToken(raw);
+    if (parsed != null && parsed >= 0) return parsed;
+  }
+  if (!isBareAmount(folded)) return null;
+  const parsed = parseNumericToken(folded.replace(/\b(tl|try|lira|fiyat|birim|taban)\b/g, "").trim());
+  return parsed != null && parsed >= 0 ? parsed : null;
+}
+
+export function isBareAmount(value: string): boolean {
+  const tokens = messageTokens(value).filter((token) => !AMOUNT_WORDS.has(token));
+  if (tokens.length !== 1) return false;
+  return parseNumericToken(tokens[0]) != null;
+}
+
+export function parseCount(value: string): number | null {
+  const folded = normalizeText(value);
+  if (!folded) return null;
+  const near =
+    folded.match(/(\d+)\s*adet/) ||
+    folded.match(/adet[a-z]*\s*(\d+)/) ||
+    folded.match(/(\d+)\s*tane/) ||
+    folded.match(/tane[a-z]*\s*(\d+)/);
+  if (near) {
+    const parsed = Number.parseInt(near[1], 10);
+    if (Number.isInteger(parsed) && parsed >= 1) return parsed;
+  }
+  const tokens = messageTokens(folded).filter(
+    (token) => !COUNT_WORDS.has(token) && !REQUEST_VERBS.has(token) && !AMOUNT_WORDS.has(token),
+  );
+  if (tokens.length !== 1) return null;
+  const parsed = Number.parseInt(tokens[0], 10);
+  return Number.isInteger(parsed) && parsed >= 1 ? parsed : null;
+}
+
+export function looksLikeLineLabel(value: string): boolean {
+  const folded = normalizeText(value);
+  if (!folded) return false;
+  return /^s\d+\b/.test(folded) || /\bx\d+$/.test(folded);
+}
+
+export function extractLineRef(value: string): string | undefined {
+  const match = normalizeText(value).match(/^s(\d+)\b/);
+  return match ? `S${match[1]}` : undefined;
+}
+
+export function measuresCompatible(query: ParsedMeasure, choice: ParsedMeasure): boolean {
+  if (!query.numbers.length || !choice.numbers.length) return false;
+  if (
+    query.unit &&
+    choice.unit &&
+    query.unit !== choice.unit
+  ) {
+    return false;
+  }
+  if (query.numbers.join(",") === choice.numbers.join(",")) return true;
+  if (query.numbers.length === 1 && choice.numbers.every((item) => item === query.numbers[0])) {
+    return true;
+  }
+  if (choice.numbers.length === 1 && query.numbers.every((item) => item === choice.numbers[0])) {
+    return true;
+  }
+  return false;
+}
+
+export function hasLineQuantityCue(value: string): boolean {
+  const tokens = new Set(messageTokens(value));
+  return [...LINE_COUNT_CUES].some((cue) => tokens.has(cue));
+}
+
+export function contentTokens(value: string): string[] {
+  return tokenSet(value).filter(
+    (token) =>
+      !REQUEST_VERBS.has(token) &&
+      !COUNT_WORDS.has(token) &&
+      !AMOUNT_WORDS.has(token) &&
+      !LINE_COUNT_CUES.has(token) &&
+      !/^\d+$/.test(token),
+  );
+}
+
+export function isRequestUtterance(value: string): boolean {
+  const tokens = messageTokens(value);
+  if (tokens.some((token) => REQUEST_VERBS.has(token)) && tokens.length >= 3) return true;
+  return tokens.length >= 5;
 }
 
 export function isIncrementPhrase(value: string): boolean {

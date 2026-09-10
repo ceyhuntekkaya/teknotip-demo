@@ -62,6 +62,7 @@ export type QuoteDocumentProduct = {
   name: string;
   modelId: string;
   modelName: string;
+  basePrice: number;
   price: number;
   quantity: number;
   description: string;

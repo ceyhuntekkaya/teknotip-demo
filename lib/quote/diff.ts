@@ -73,7 +73,11 @@ export function summarizeTurn(input: {
   for (const warning of input.warnings) {
     parts.push(`Uyarı: ${warning.message}`);
   }
+  const seenQuestions = new Set<string>();
   for (const item of input.clarifications) {
+    const key = `${item.kind}|${item.question}`;
+    if (seenQuestions.has(key)) continue;
+    seenQuestions.add(key);
     parts.push(item.question);
     if (item.candidates.length) {
       parts.push(item.candidates.map((candidate) => candidate.label).join(", "));

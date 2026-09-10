@@ -1,0 +1,9 @@
+# Bu --build-arg'lar zorunlu: Next.js API adresini build anında tarayıcıya gömer.
+# Dockerfile boş/localhost değerle imaj üretmeyi reddeder.
+docker buildx build \
+  --no-cache \
+  --platform linux/amd64 \
+  --target runner \
+  -t ctekkaya/teklif-demo:1.0 \
+  --push .
+

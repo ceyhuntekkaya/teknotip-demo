@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  extractLineRef,
+  looksLikeLineLabel,
   measureKey,
+  measuresCompatible,
   normalizeCode,
   normalizeText,
+  parseCount,
   parseMeasure,
   parseLineOrdinal,
+  parsePrice,
 } from "./text";
 
 describe("resolve text", () => {
@@ -26,6 +31,25 @@ describe("resolve text", () => {
     expect(parseLineOrdinal("S2")).toBe(1);
     expect(parseLineOrdinal("ikinci")).toBe(1);
     expect(parseLineOrdinal("sonuncu")).toBe(-1);
+    expect(parseLineOrdinal("ikinci satır")).toBe(1);
+  });
+
+  it("parses prices and counts from utterances", () => {
+    expect(parsePrice("ürün fiyatı 25000 tl olsun")).toBe(25000);
+    expect(parsePrice("25000")).toBe(25000);
+    expect(parsePrice("25.000 tl")).toBe(25000);
+    expect(parsePrice("vakum pompası 4 olsun")).toBeNull();
+    expect(parseCount("2 adet yap")).toBe(2);
+    expect(parseCount("mfc adet 2 olsun")).toBe(2);
+    expect(parseCount("ana ürün adeti 1 olsun")).toBe(1);
+  });
+
+  it("matches a single number to a repeated dimension", () => {
+    expect(
+      measuresCompatible(parseMeasure("300lük"), parseMeasure("300 × 300 × 300 mm")),
+    ).toBe(true);
+    expect(looksLikeLineLabel("S1: Ürün / Model 1 x2")).toBe(true);
+    expect(extractLineRef("S1: Ürün / Model 1 x2")).toBe("S1");
   });
 
   it("folds gas subscripts", () => {

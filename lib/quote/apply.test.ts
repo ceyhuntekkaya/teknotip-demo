@@ -117,6 +117,23 @@ describe("applyActions", () => {
     expect(linePriceParts(cvd, priced.draft.items[0]).extras).toBe(6200);
   });
 
+  it("hydrates the quoted base price from set_price instead of the catalog model", () => {
+    const added = applyActions(fixture, emptyDraft(), [
+      { op: "add_line", productId: cvd.id },
+    ]);
+    const catalogBase = cvd.models[0]?.price ?? 0;
+    const priced = applyActions(fixture, added.draft, [
+      { op: "set_price", price: 25000 },
+    ]);
+    const document = hydrateQuote(fixture, priced.draft);
+    expect(catalogBase).not.toBe(25000);
+    expect(document.products[0].basePrice).toBe(25000);
+    expect(document.products[0].price).toBe(
+      linePriceParts(cvd, priced.draft.items[0]).unit,
+    );
+    expect(document.products[0].lineTotal).toBeGreaterThan(25000);
+  });
+
   it("selects multiple gas choices when the group is multiple_choice", () => {
     const added = applyActions(fixture, emptyDraft(), [
       { op: "add_line", productId: cvd.id },

@@ -43,6 +43,68 @@ describe("resolve + apply", () => {
     expect(result.clarifications).toEqual([]);
   });
 
+  it("infers CVD from the utterance when the model omits productRef", () => {
+    const result = processTurn({
+      catalog,
+      lookup,
+      draft: emptyDraft(),
+      userMessage: "CVD fırın olsun, sıcaklık 1400, çap 60 mm",
+      intents: [
+        { op: "add_line" },
+        { op: "set_value", lineRef: "S1", value: "1400" },
+        { op: "set_value", lineRef: "S1", value: "60 mm" },
+      ],
+    });
+    expect(result.draft.items).toHaveLength(1);
+    expect(result.draft.items[0].productId).toBe(cvd.id);
+    const tmax = cvd.propertyGroups[0].properties[0];
+    const cap = cvd.propertyGroups[0].properties[1];
+    expect(
+      result.draft.items[0].selections.find((row) => row.propertyId === tmax.id)?.choiceIds,
+    ).toEqual([tmax.choice![1].id]);
+    expect(
+      result.draft.items[0].selections.find((row) => row.propertyId === cap.id)?.choiceIds,
+    ).toEqual([cap.choice![1].id]);
+    expect(result.clarifications).toEqual([]);
+  });
+
+  it("applies values with S1 even when the quote is still empty", () => {
+    const result = turn(emptyDraft(), [
+      { op: "add_line", productRef: "CVD fırın" },
+      { op: "set_value", lineRef: "S1", value: "1400" },
+      { op: "set_value", lineRef: "S1", value: "60 mm" },
+    ]);
+    expect(result.clarifications).toEqual([]);
+    expect(result.draft.items).toHaveLength(1);
+    const tmax = cvd.propertyGroups[0].properties[0];
+    const cap = cvd.propertyGroups[0].properties[1];
+    expect(
+      result.draft.items[0].selections.find((row) => row.propertyId === tmax.id)?.choiceIds,
+    ).toEqual([tmax.choice![1].id]);
+    expect(
+      result.draft.items[0].selections.find((row) => row.propertyId === cap.id)?.choiceIds,
+    ).toEqual([cap.choice![1].id]);
+  });
+
+  it("asks which product only once when several intents lack a product", () => {
+    const result = turn(emptyDraft(), [
+      { op: "set_value", value: "1400" },
+      { op: "set_value", value: "60 mm" },
+    ]);
+    expect(result.draft.items).toHaveLength(0);
+    expect(result.clarifications.every((item) => item.kind === "which_product")).toBe(true);
+    expect(result.reply).toBe("Hangi ürünü kastediyorsunuz?");
+  });
+
+  it("keeps a vague fırın ref on the draft line", () => {
+    const added = turn(emptyDraft(), [{ op: "add_line", productRef: "CVD fırın" }]);
+    const two = turn(added.draft, [{ op: "set_quantity", productRef: "fırın", quantity: 2 }]);
+    expect(two.clarifications).toEqual([]);
+    expect(two.draft.items).toHaveLength(1);
+    expect(two.draft.items[0].productId).toBe(cvd.id);
+    expect(two.draft.items[0].quantity).toBe(2);
+  });
+
   it("does not invent missing products", () => {
     const outcome = resolveIntent(
       { op: "add_line", productRef: "plazma kesici" },
@@ -198,8 +260,116 @@ describe("resolve + apply", () => {
       { op: "set_value", value: "6 cm" },
     ]);
     const cap = cvd.propertyGroups[0].properties[1];
-    expect(result.draft.items[0].selections.find((row) => row.propertyId === cap.id)?.choiceIds).toEqual([
+    expect(
+      result.draft.items[0].selections.find((row) => row.propertyId === cap.id)?.choiceIds,
+    ).toEqual([
       cap.choice![1].id,
     ]);
+  });
+
+  it("writes a base price from the utterance when the model omits price", () => {
+    const added = turn(emptyDraft(), [{ op: "add_line", productRef: "CVD fırın" }]);
+    const priced = processTurn({
+      catalog,
+      lookup,
+      draft: added.draft,
+      userMessage: "ürün fiyatı 25000 tl olsun",
+      intents: [{ op: "set_price", value: "25000 tl" }],
+    });
+    expect(priced.clarifications).toEqual([]);
+    expect(priced.draft.items[0].basePriceOverride).toBe(25000);
+    expect(priced.document.products[0].basePrice).toBe(25000);
+
+    const fromMessage = processTurn({
+      catalog,
+      lookup,
+      draft: added.draft,
+      userMessage: "ürün fiyatı 25000 tl olsun",
+      intents: [{ op: "set_price" }],
+    });
+    expect(fromMessage.draft.items[0].basePriceOverride).toBe(25000);
+  });
+
+  it("does not keep a missing-price question in front of a new request", () => {
+    const added = turn(emptyDraft(), [{ op: "add_line", productRef: "CVD fırın" }]);
+    const asked = processTurn({
+      catalog,
+      lookup,
+      draft: added.draft,
+      userMessage: "",
+      intents: [{ op: "set_price" }],
+    });
+    expect(asked.reply).toContain("Hangi fiyat");
+    expect(matchPendingReply("vakum pompası 4 olsun", asked.focus)).toBeNull();
+
+    const pump = processTurn({
+      catalog,
+      lookup,
+      draft: added.draft,
+      focus: { lastTouchedLineId: asked.focus.lastTouchedLineId },
+      userMessage: "vakum pompası 4 olsun",
+      intents: [{ op: "set_value", propertyRef: "Vakum pompası", value: "4" }],
+    });
+    const vakum = cvd.propertyGroups[1].properties[0];
+    expect(pump.clarifications).toEqual([]);
+    expect(
+      pump.draft.items[0].selections.find((row) => row.propertyId === vakum.id)?.choiceIds,
+    ).toEqual([vakum.choice![0].id]);
+  });
+
+  it("maps a single size token onto a repeated dimension choice", () => {
+    const kul = productByName(catalog, "KÜL FIRIN");
+    const result = turn(emptyDraft(), [
+      { op: "add_line", productRef: "kül fırın" },
+      { op: "set_value", value: "1700" },
+      { op: "set_value", value: "300lük" },
+    ]);
+    const tmax = kul.propertyGroups[0].properties[0];
+    const chamber = kul.propertyGroups[0].properties[1];
+    expect(
+      result.draft.items[0].selections.find((row) => row.propertyId === tmax.id)?.choiceIds,
+    ).toEqual([tmax.choice![2].id]);
+    expect(
+      result.draft.items[0].selections.find((row) => row.propertyId === chamber.id)?.choiceIds,
+    ).toEqual([chamber.choice![1].id]);
+  });
+
+  it("writes a named group count onto that property, not the line quantity", () => {
+    const added = turn(emptyDraft(), [{ op: "add_line", productRef: "akış kontrol" }]);
+    const changed = processTurn({
+      catalog,
+      lookup,
+      draft: added.draft,
+      userMessage: "mfc adet 2 olsun",
+      intents: [{ op: "set_quantity", quantity: 2 }],
+    });
+    const mfc = productByName(catalog, "AKIŞ KONTROL");
+    const adet = mfc.propertyGroups[0].properties[1];
+    expect(changed.draft.items[0].quantity).toBe(1);
+    expect(
+      changed.draft.items[0].selections.find((row) => row.propertyId === adet.id)?.choiceIds,
+    ).toEqual([adet.choice![1].id]);
+  });
+
+  it("keeps line quantity when the utterance names the quote line", () => {
+    const added = turn(emptyDraft(), [
+      { op: "add_line", productRef: "CVD fırın" },
+      { op: "set_quantity", quantity: 2 },
+    ]);
+    const one = processTurn({
+      catalog,
+      lookup,
+      draft: added.draft,
+      userMessage: "ana ürün adeti 1 olsun",
+      intents: [
+        {
+          op: "set_quantity",
+          propertyRef: "S1: CVD FIRIN / CVD 1 x2",
+          value: "1",
+        },
+      ],
+    });
+    expect(one.clarifications).toEqual([]);
+    expect(one.draft.items[0].quantity).toBe(1);
   });
 });

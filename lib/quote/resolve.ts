@@ -2,15 +2,23 @@ import type { Catalog, Product, Property } from "@/lib/catalog/types";
 import type { CatalogLookup } from "@/lib/catalog/rules";
 import { allowsMultipleChoices } from "@/lib/catalog/rules";
 import {
+  contentTokens,
+  extractLineRef,
   flagIntent,
+  hasLineQuantityCue,
   isIncrementPhrase,
+  looksLikeLineLabel,
   measureKey,
+  measuresCompatible,
   normalizeCode,
   normalizeText,
+  parseCount,
   parseLineOrdinal,
   parseMeasure,
+  parsePrice,
   similarity,
   squeezeSpaces,
+  tokenSet,
 } from "./resolve/text";
 import type {
   ChatAction,
@@ -77,6 +85,37 @@ function matchProducts(catalog: Catalog, query: string): Product[] {
   return scored.map((item) => item.product);
 }
 
+function productNameLists(product: Product): string[] {
+  return [product.name, ...(product.aliases ?? [])];
+}
+
+export function mentionedProducts(catalog: Catalog, query: string): Product[] {
+  const qTokens = new Set(tokenSet(query));
+  const qCode = normalizeCode(query);
+  return catalog.filter((product) => {
+    const names = productNameLists(product);
+    for (const name of names) {
+      const tokens = tokenSet(name);
+      if (tokens.length && tokens.every((token) => qTokens.has(token))) return true;
+    }
+    const code = product.code ? normalizeCode(product.code) : "";
+    return Boolean(code.length >= 4 && qCode.includes(code));
+  });
+}
+
+export function uniqueProductMention(
+  catalog: Catalog,
+  query: string,
+): Product | undefined {
+  const hits = mentionedProducts(catalog, query);
+  return hits.length === 1 ? hits[0] : undefined;
+}
+
+function refText(value?: string | null): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed || undefined;
+}
+
 function productCandidates(products: Product[]): ClarifyCandidate[] {
   return products.map((product) => ({
     label: product.name,
@@ -113,14 +152,13 @@ function choiceMatches(query: string, choiceName: string): number {
   const q = squeezeSpaces(query);
   const n = squeezeSpaces(choiceName);
   if (normalizeText(q) === normalizeText(n)) return 1;
-  const qKey = measureKey(parseMeasure(q));
-  const nKey = choiceMeasureKey(n);
-  if (qKey && nKey) {
-    const qMeas = parseMeasure(q);
-    const nMeas = parseMeasure(n);
-    if (qMeas.numbers.join(",") === nMeas.numbers.join(",")) {
-      if (!qMeas.unit || !nMeas.unit || qMeas.unit === nMeas.unit) return 0.97;
-    }
+  const qMeas = parseMeasure(q);
+  const nMeas = parseMeasure(n);
+  if (measuresCompatible(qMeas, nMeas)) {
+    const qKey = measureKey(qMeas);
+    const nKey = choiceMeasureKey(n);
+    if (qKey && nKey && qKey === nKey) return 0.97;
+    return 0.94;
   }
   const sim = similarity(q, n);
   return sim >= CHOICE_ACCEPT ? sim : 0;
@@ -200,8 +238,11 @@ function findProperty(
   intent: ChatIntent,
 ): { property: Property } | ResolveClarify | { none: true } {
   const values = intentValues(intent);
-  if (intent.propertyRef?.trim()) {
-    const named = matchPropertiesByName(product, intent.propertyRef);
+  const propertyRef = looksLikeLineLabel(intent.propertyRef ?? "")
+    ? undefined
+    : intent.propertyRef?.trim();
+  if (propertyRef) {
+    const named = matchPropertiesByName(product, propertyRef);
     if (named.length === 1) return { property: named[0] };
     if (named.length > 1) {
       return clarify(
@@ -210,13 +251,6 @@ function findProperty(
         named.map((property) => ({ label: property.name, ref: property.name })),
       );
     }
-    return clarify(
-      "which_value",
-      `"${intent.propertyRef}" adlı özellik bulunamadı. Hangisini seçelim?`,
-      product.propertyGroups.flatMap((group) =>
-        group.properties.map((property) => ({ label: property.name, ref: property.name })),
-      ),
-    );
   }
   if (!values.length) return { none: true };
   const byValue = propertiesMatchingValue(product, values);
@@ -254,6 +288,13 @@ function resolveProduct(
     if (matches.length === 0) {
       return clarify("which_product", "Bu ürünü bulamadım, biraz daha açar mısınız?");
     }
+    const inDraft = matches.filter((product) =>
+      draft.items.some((item) => item.productId === product.id),
+    );
+    if (inDraft.length === 1) return { product: inDraft[0] };
+    if (line && matches.some((product) => product.id === line.productId)) {
+      return { product: matches.find((product) => product.id === line.productId)! };
+    }
     return clarify(
       "which_product",
       "Birden fazla ürün uyuyor. Hangisini kastediyorsunuz?",
@@ -275,7 +316,7 @@ function resolveLineFromRef(
   draft: QuoteDraft,
   lineRef: string,
   productId?: string,
-): { line: QuoteLine } | ResolveClarify {
+): { line: QuoteLine } | ResolveClarify | { none: true } {
   const pool = productId
     ? draft.items.filter((item) => item.productId === productId)
     : draft.items;
@@ -290,14 +331,15 @@ function resolveLineFromRef(
     const index = ordinal < 0 ? labeled.length - 1 : ordinal;
     if (labeled[index]) return { line: labeled[index].line };
   }
-    return clarify(
-      "which_line",
-      "Hangi satır? İlk mi ikinci mi?",
-      labeled.map((item, index) => ({
-        label: `${item.ref} (${index + 1}. satır)`,
-        ref: item.ref,
-      })),
-    );
+  if (!draft.items.length) return { none: true };
+  return clarify(
+    "which_line",
+    "Hangi satır? İlk mi ikinci mi?",
+    labeled.map((item, index) => ({
+      label: `${item.ref} (${index + 1}. satır)`,
+      ref: item.ref,
+    })),
+  );
 }
 
 function resolveLine(
@@ -310,6 +352,7 @@ function resolveLine(
   if (intent.lineRef?.trim()) {
     const resolved = resolveLineFromRef(draft, intent.lineRef, productId);
     if ("line" in resolved) return { line: resolved.line };
+    if ("none" in resolved) return {};
     return resolved;
   }
   const pool = productId
@@ -358,13 +401,102 @@ function customerAction(intent: ChatIntent): ResolveOutcome {
   };
 }
 
+function coerceIntent(intent: ChatIntent, userMessage?: string): ChatIntent {
+  const next: ChatIntent = { ...intent };
+  if (looksLikeLineLabel(next.propertyRef ?? "")) {
+    next.lineRef = next.lineRef?.trim() || extractLineRef(next.propertyRef ?? "") || next.lineRef;
+    next.propertyRef = undefined;
+  }
+  if (next.op === "set_price" && typeof next.price !== "number") {
+    const price =
+      parsePrice(next.value ?? "") ??
+      parsePrice((next.values ?? []).join(" ")) ??
+      parsePrice(userMessage ?? "");
+    if (price != null) next.price = price;
+  }
+  if (next.op === "set_quantity" && (typeof next.quantity !== "number" || next.quantity < 1)) {
+    const quantity =
+      parseCount(next.value ?? "") ??
+      parseCount((next.values ?? []).join(" ")) ??
+      parseCount(userMessage ?? "");
+    if (quantity != null) next.quantity = quantity;
+  }
+  if (
+    next.op === "set_value" &&
+    !next.value?.trim() &&
+    !next.values?.length &&
+    userMessage?.trim()
+  ) {
+    const counted = parseCount(userMessage);
+    const measured = parseMeasure(userMessage);
+    if (counted != null) next.value = String(counted);
+    else if (measured.numbers.length) next.value = userMessage;
+  }
+  return next;
+}
+
+function nameMentions(name: string, tokens: string[]): boolean {
+  const names = tokenSet(name);
+  if (!names.length || !tokens.length) return false;
+  return tokens.some((token) => names.includes(token) && token.length >= 3);
+}
+
+function retargetQuantityIntent(
+  intent: ChatIntent,
+  product: Product,
+  userMessage?: string,
+): ChatIntent {
+  if (intent.op !== "set_quantity") return intent;
+  const blob = [userMessage, intent.propertyRef, intent.productRef, intent.value]
+    .filter(Boolean)
+    .join(" ");
+  if (hasLineQuantityCue(blob)) return intent;
+  const tokens = contentTokens(blob);
+  if (!tokens.length) return intent;
+  const quantity =
+    typeof intent.quantity === "number"
+      ? String(intent.quantity)
+      : intent.value?.trim() || parseCount(blob)?.toString();
+  if (!quantity) return intent;
+
+  const mentionedGroups = product.propertyGroups.filter((group) =>
+    nameMentions(group.name, tokens),
+  );
+  const pool = mentionedGroups.length
+    ? mentionedGroups.flatMap((group) => group.properties)
+    : product.propertyGroups
+        .flatMap((group) => group.properties)
+        .filter((property) => nameMentions(property.name, tokens));
+  const matching = pool.filter((property) => {
+    const matched = matchChoices(property, [quantity]);
+    return "ids" in matched && matched.ids.length;
+  });
+  if (matching.length === 1) {
+    return {
+      ...intent,
+      op: "set_value",
+      propertyRef: matching[0].name,
+      value: quantity,
+    };
+  }
+  if (matching.length > 1) {
+    return {
+      ...intent,
+      op: "set_value",
+      propertyRef: undefined,
+      value: quantity,
+    };
+  }
+  return intent;
+}
+
 export function resolveIntent(
   intent: ChatIntent,
   catalog: Catalog,
   lookup: CatalogLookup,
   draft: QuoteDraft,
   focus?: ConversationFocus,
-  options?: { confirmed?: boolean },
+  options?: { confirmed?: boolean; userMessage?: string },
 ): ResolveOutcome {
   if (intent.op === "clarify") {
     return clarify(
@@ -375,6 +507,8 @@ export function resolveIntent(
   if (intent.op === "set_customer") {
     return customerAction(intent);
   }
+
+  intent = coerceIntent(intent, options?.userMessage);
 
   const productResult = resolveProduct(catalog, intent, draft, undefined);
   if ("clarify" in productResult) return productResult;
@@ -430,6 +564,8 @@ export function resolveIntent(
     }
     return clarify("which_product", "Hangi ürünü kastediyorsunuz?");
   }
+
+  intent = retargetQuantityIntent(intent, product, options?.userMessage);
 
   if (intent.op === "remove_line") {
     if (!line) {
@@ -489,7 +625,9 @@ export function resolveIntent(
       ? current + 1
       : typeof intent.quantity === "number"
         ? intent.quantity
-        : Number.parseInt(intent.value ?? "", 10);
+        : (parseCount(intent.value ?? "") ??
+          parseCount(options?.userMessage ?? "") ??
+          Number.parseInt(intent.value ?? "", 10));
     if (!Number.isFinite(quantity) || quantity < 1) {
       return clarify("which_value", "Kaç adet olsun?");
     }
@@ -635,22 +773,26 @@ export function resolveIntents(
   lookup: CatalogLookup,
   draft: QuoteDraft,
   focus?: ConversationFocus,
-  options?: { confirmed?: boolean },
+  options?: { confirmed?: boolean; userMessage?: string },
 ): { actions: ChatAction[]; clarifications: ClarifyResult[] } {
   const actions: ChatAction[] = [];
   const clarifications: ClarifyResult[] = [];
+  const inferredRef = uniqueProductMention(
+    catalog,
+    options?.userMessage ?? "",
+  )?.name;
   let impliedProductRef: string | undefined;
   for (const intent of intents) {
     const patched: ChatIntent = {
       ...intent,
-      productRef: intent.productRef ?? impliedProductRef,
+      productRef: refText(intent.productRef) ?? impliedProductRef ?? inferredRef,
     };
     const outcome = resolveIntent(patched, catalog, lookup, draft, focus, options);
     if ("action" in outcome) {
       actions.push(outcome.action);
-      if (patched.productRef?.trim()) impliedProductRef = patched.productRef;
+      if (refText(patched.productRef)) impliedProductRef = patched.productRef ?? undefined;
       if (outcome.action.op === "add_line" && outcome.action.productId) {
-        impliedProductRef = patched.productRef ?? impliedProductRef;
+        impliedProductRef = refText(patched.productRef) ?? impliedProductRef;
       }
     } else {
       clarifications.push({ ...outcome.clarify, resume: patched });

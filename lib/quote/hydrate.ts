@@ -83,6 +83,7 @@ export function hydrateQuote(
       name: product.name,
       modelId: model.id,
       modelName: model.name,
+      basePrice: parts.base,
       price: parts.unit,
       quantity: line.quantity,
       description: model.description,
