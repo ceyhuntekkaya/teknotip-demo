@@ -8,6 +8,7 @@ import {
   quotePdfFilename,
 } from "@/components/pdf/quote-pdf-panel";
 import { QuoteEditPane } from "@/components/quote/quote-edit-pane";
+import { VoiceLevel } from "@/components/teklif/voice-level";
 import { formatAddOn, formatTry } from "@/lib/catalog/price";
 import type { Catalog } from "@/lib/catalog/types";
 import type { MissingSlot } from "@/lib/catalog/rules";
@@ -21,11 +22,18 @@ import {
   QUOTE_SESSION_VERSION,
   saveQuoteSession,
 } from "@/lib/quote/session";
+import { recordingFilename, transcribeAudio } from "@/lib/stt/client";
 import {
-  pickRecorderMimeType,
-  recordingFilename,
-  transcribeAudio,
-} from "@/lib/stt/client";
+  beginUtterance,
+  createListenSession,
+  destroyListenSession,
+  listenSessionLive,
+  type ListenSession,
+  type UtteranceHandle,
+  type UtteranceResult,
+} from "@/lib/stt/listen";
+import { voiceSettings } from "@/lib/stt/settings";
+import { isUsableTranscript } from "@/lib/stt/vad";
 import type {
   ApplyWarning,
   ChatAction,
@@ -44,6 +52,8 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
   const [loading, setLoading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const [voiceSession, setVoiceSession] = useState(false);
+  const [voiceLevel, setVoiceLevel] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [pdfQuote, setPdfQuote] = useState<QuoteDocument | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -51,15 +61,45 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
   const [editWarnings, setEditWarnings] = useState<ApplyWarning[]>([]);
   const scroller = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
   const skipSave = useRef(true);
+  const aliveRef = useRef(true);
+  const voiceSessionRef = useRef(false);
+  const recordingRef = useRef(false);
+  const loadingRef = useRef(false);
+  const listenSessionRef = useRef<ListenSession | null>(null);
+  const utteranceRef = useRef<UtteranceHandle | null>(null);
+  const messagesRef = useRef(messages);
+  const draftRef = useRef(draft);
+  const focusRef = useRef(focus);
+  const startListeningRef = useRef<() => Promise<void>>(async () => {});
+  const finishUtteranceRef = useRef<(result: UtteranceResult) => void>(() => {});
 
-  const stopMic = () => {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-    recorderRef.current = null;
+  messagesRef.current = messages;
+  draftRef.current = draft;
+  focusRef.current = focus;
+
+  const setSessionOpen = (open: boolean) => {
+    voiceSessionRef.current = open;
+    setVoiceSession(open);
+  };
+
+  const destroyListen = () => {
+    utteranceRef.current = null;
+    destroyListenSession(listenSessionRef.current);
+    listenSessionRef.current = null;
+    recordingRef.current = false;
+    setRecording(false);
+    setVoiceLevel(0);
+  };
+
+  const shouldResumeVoice = () => {
+    if (!aliveRef.current || !voiceSessionRef.current) return false;
+    const field = inputRef.current;
+    if (field?.value.trim()) return false;
+    if (field && typeof window !== "undefined" && window.document.activeElement === field) {
+      return false;
+    }
+    return true;
   };
 
   useEffect(() => {
@@ -93,11 +133,13 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
   }, [draft, document, missing, messages, focus]);
 
   useEffect(() => {
+    aliveRef.current = true;
     return () => {
-      if (recorderRef.current?.state === "recording") {
-        recorderRef.current.stop();
-      }
-      streamRef.current?.getTracks().forEach((track) => track.stop());
+      aliveRef.current = false;
+      voiceSessionRef.current = false;
+      utteranceRef.current?.stopManual();
+      destroyListenSession(listenSessionRef.current);
+      listenSessionRef.current = null;
     };
   }, []);
 
@@ -114,20 +156,37 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
     setRightView("quote");
     setEditWarnings([]);
     if (inputRef.current) inputRef.current.value = "";
+    setSessionOpen(false);
+    utteranceRef.current?.stopManual();
+    destroyListen();
     clearQuoteSession();
   };
 
-  const send = async () => {
-    const text = inputRef.current?.value.trim() ?? "";
-    if (!text || loading || recording || transcribing) return;
-    const nextMessages: ChatMessage[] = [...messages, { role: "user", content: text }];
+  const send = async (override?: string, source: "typed" | "voice" = "typed") => {
+    const text = (override ?? inputRef.current?.value ?? "").trim();
+    if (!text) return;
+    if (loadingRef.current) return;
+    if (source === "typed" && (recordingRef.current || transcribing)) return;
+
+    if (source === "typed") {
+      setSessionOpen(false);
+      utteranceRef.current?.stopManual();
+      destroyListen();
+      if (inputRef.current) inputRef.current.value = "";
+    }
+
+    const nextMessages: ChatMessage[] = [
+      ...messagesRef.current,
+      { role: "user", content: text },
+    ];
+    const currentDraft = draftRef.current;
     const outgoingDraft: QuoteDraft = {
-      quoteNumber: draft.quoteNumber || emptyDraft().quoteNumber,
-      items: draft.items,
-      quotedTo: draft.quotedTo,
+      quoteNumber: currentDraft.quoteNumber || emptyDraft().quoteNumber,
+      items: currentDraft.items,
+      quotedTo: currentDraft.quotedTo,
     };
-    if (inputRef.current) inputRef.current.value = "";
     setMessages(nextMessages);
+    loadingRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -141,7 +200,7 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
             content: item.content,
           })),
           draft: outgoingDraft,
-          focus,
+          focus: focusRef.current,
         }),
       });
       const payload = (await response.json()) as {
@@ -178,72 +237,117 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
     } catch {
       setError("Bağlantı kurulamadı.");
     } finally {
+      loadingRef.current = false;
       setLoading(false);
+      if (source === "voice" && shouldResumeVoice()) {
+        void startListeningRef.current();
+      }
     }
   };
 
-  const applyTranscript = (text: string) => {
-    const field = inputRef.current;
-    if (!field) return;
-    const current = field.value.trim();
-    field.value = current ? `${current} ${text}` : text;
-    field.focus();
-    field.setSelectionRange(field.value.length, field.value.length);
-  };
-
-  const finishRecording = async (mimeType: string) => {
-    const blob = new Blob(chunksRef.current, { type: mimeType || "audio/webm" });
-    chunksRef.current = [];
-    stopMic();
-    setRecording(false);
-    if (blob.size === 0) {
-      setError("Ses kaydı boş.");
-      return;
-    }
-    setTranscribing(true);
-    setError(null);
+  const startListening = async () => {
+    if (!aliveRef.current || !voiceSessionRef.current || recordingRef.current) return;
     try {
-      const text = await transcribeAudio(blob, recordingFilename(mimeType));
-      if (!text) {
-        setError("Ses anlaşılamadı. Tekrar deneyin.");
+      let session = listenSessionRef.current;
+      if (!session || !listenSessionLive(session)) {
+        destroyListenSession(session);
+        listenSessionRef.current = null;
+        session = await createListenSession();
+        listenSessionRef.current = session;
+      } else {
+        if (session.context.state === "suspended") {
+          await session.context.resume();
+        }
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, 40);
+        });
+      }
+      if (!aliveRef.current || !voiceSessionRef.current) {
+        destroyListen();
         return;
       }
-      applyTranscript(text);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "STT servisine bağlanılamadı.");
-    } finally {
-      setTranscribing(false);
+      recordingRef.current = true;
+      setRecording(true);
+      setVoiceLevel(0);
+      utteranceRef.current = beginUtterance(
+        session,
+        (level) => {
+          if (aliveRef.current) setVoiceLevel(level);
+        },
+        (result) => finishUtteranceRef.current(result),
+      );
+    } catch {
+      setSessionOpen(false);
+      destroyListen();
+      setError("Mikrofona erişilemedi.");
     }
   };
+  startListeningRef.current = startListening;
+
+  const finishUtterance = (result: UtteranceResult) => {
+    utteranceRef.current = null;
+    recordingRef.current = false;
+    setRecording(false);
+    setVoiceLevel(0);
+    if (!aliveRef.current) return;
+
+    if (result.reason === "manual") {
+      setSessionOpen(false);
+      destroyListen();
+    }
+
+    if (!result.speechSeen || result.blob.size === 0) {
+      if (result.speechSeen && result.blob.size === 0) {
+        setError("Ses kaydı boş.");
+      }
+      if (shouldResumeVoice()) void startListening();
+      return;
+    }
+
+    void (async () => {
+      setTranscribing(true);
+      setError(null);
+      try {
+        const text = await transcribeAudio(
+          result.blob,
+          recordingFilename(result.mimeType),
+        );
+        if (!aliveRef.current) return;
+        if (!isUsableTranscript(text)) {
+          setError("Ses anlaşılamadı. Tekrar deneyin.");
+          setTranscribing(false);
+          if (shouldResumeVoice()) void startListening();
+          return;
+        }
+        setTranscribing(false);
+        await send(text, "voice");
+      } catch (caught) {
+        if (!aliveRef.current) return;
+        setError(
+          caught instanceof Error ? caught.message : "STT servisine bağlanılamadı.",
+        );
+        if (shouldResumeVoice()) void startListening();
+      } finally {
+        setTranscribing(false);
+      }
+    })();
+  };
+  finishUtteranceRef.current = finishUtterance;
 
   const toggleSpeak = async () => {
-    if (recording) {
-      recorderRef.current?.stop();
+    if (recordingRef.current) {
+      setSessionOpen(false);
+      utteranceRef.current?.stopManual();
+      return;
+    }
+    if (voiceSessionRef.current && (loading || transcribing)) {
+      setSessionOpen(false);
       return;
     }
     if (loading || transcribing) return;
     setError(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      const mimeType = pickRecorderMimeType();
-      const recorder = mimeType
-        ? new MediaRecorder(stream, { mimeType })
-        : new MediaRecorder(stream);
-      chunksRef.current = [];
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) chunksRef.current.push(event.data);
-      };
-      recorder.onstop = () => {
-        void finishRecording(recorder.mimeType);
-      };
-      recorderRef.current = recorder;
-      recorder.start(250);
-      setRecording(true);
-    } catch {
-      stopMic();
-      setError("Mikrofona erişilemedi.");
-    }
+    setSessionOpen(true);
+    await startListening();
   };
 
   const applyEdit = (actions: ChatAction[]) => {
@@ -264,7 +368,8 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
       ? new Date(`${document.quotedTo.date}T12:00:00`)
       : new Date(),
   );
-  const speakBusy = loading || transcribing;
+  const speakDisabled = (loading || transcribing) && !voiceSession && !recording;
+  const speakOpen = recording || voiceSession;
   const showingPdf = pdfQuote !== null;
   const editing = rightView === "edit";
   const handlePdfUrl = useCallback((url: string | null) => {
@@ -351,6 +456,9 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
             }}
           >
             {error ? <p className="text-xs text-[#8f2d1f]">{error}</p> : null}
+            {speakOpen ? (
+              <VoiceLevel level={voiceLevel} active={recording} />
+            ) : null}
             <textarea
               ref={inputRef}
               rows={3}
@@ -366,19 +474,21 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
             />
             <p className="text-xs text-[var(--steel)]">
               {recording
-                ? "Dinleniyor. Bitince Durdur’a basın."
+                ? `Dinleniyor. ${voiceSettings.silenceSeconds} sn sessizlikte gönderilir; Durdur oturumu kapatır.`
                 : transcribing
                   ? "Ses yazıya çevriliyor…"
-                  : "Yazabilir veya konuşabilirsiniz. Ses kaydı saklanmaz."}
+                  : loading && voiceSession
+                    ? "Yanıt bekleniyor — dinleme yanıtta sürecek"
+                    : "Yazabilir veya konuşabilirsiniz. Ses kaydı saklanmaz."}
             </p>
             <div className="flex items-center justify-between gap-2">
               <ActionButton
-                tone={recording ? "danger" : "default"}
-                disabled={speakBusy}
+                tone={speakOpen ? "danger" : "default"}
+                disabled={speakDisabled}
                 type="button"
                 onClick={() => void toggleSpeak()}
               >
-                {recording ? "Durdur" : "Konuş"}
+                {speakOpen ? "Durdur" : "Konuş"}
               </ActionButton>
               <ActionButton
                 tone="heat"

@@ -63,8 +63,26 @@ body {
   text-shadow: 0 0 12px var(--glow);
 }
 
+.kiln-bench .voice-level[data-active="true"] .voice-level-bar {
+  animation: voice-breathe 1.6s ease-in-out infinite;
+}
+
+@keyframes voice-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .kiln-bench * {
     transition: none !important;
+  }
+
+  .kiln-bench .voice-level .voice-level-bar {
+    animation: none !important;
   }
 }
