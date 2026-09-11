@@ -43,6 +43,29 @@ describe("resolve + apply", () => {
     expect(result.clarifications).toEqual([]);
   });
 
+  it("does not add CVD twice when the model repeats add_line for diameter", () => {
+    const result = turn(emptyDraft(), [
+      { op: "add_line", productRef: "CVD fırın" },
+      { op: "set_value", productRef: "CVD fırın", value: "1400" },
+      { op: "add_line", productRef: "CVD fırın" },
+      { op: "set_value", productRef: "CVD fırın", value: "100 mm" },
+    ]);
+    expect(result.draft.items).toHaveLength(1);
+    expect(result.draft.items[0].quantity).toBe(1);
+    const eklendi = result.reply
+      .split("\n")
+      .filter((line) => line.includes("eklendi"));
+    expect(eklendi).toHaveLength(1);
+    const tmax = cvd.propertyGroups[0].properties[0];
+    const cap = cvd.propertyGroups[0].properties[1];
+    expect(
+      result.draft.items[0].selections.find((row) => row.propertyId === tmax.id)?.choiceIds,
+    ).toEqual([tmax.choice![1].id]);
+    expect(
+      result.draft.items[0].selections.find((row) => row.propertyId === cap.id)?.choiceIds,
+    ).toEqual([cap.choice![3].id]);
+  });
+
   it("infers CVD from the utterance when the model omits productRef", () => {
     const result = processTurn({
       catalog,

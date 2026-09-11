@@ -735,7 +735,7 @@
     },
     {
         "id": "p_pecvd-sistemleri_2",
-        "name": "PECVD SİSTEMLERİ",
+        "name": "POTANSİYOSTAT",
         "models": [
             {
                 "id": "m_p_pecvd-sistemleri_2_cs-100-m-tasinabilir-potansiyostat",

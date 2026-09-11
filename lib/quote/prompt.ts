@@ -96,6 +96,7 @@ export const SYSTEM_PROMPT = [
   "İlgili ürünler tam kataloğun alt kümesidir. Kullanıcı burada görünmeyen bir ürün adı geçirirse yine de productRef üret; yok deme.",
   "KDV, genel toplam veya aritmetik üretme. Kullanıcı birim/ürün fiyatı söylediyse set_price yaz ve sayıyı price alanına koy (ör. 25000); propertyRef yalnız bir eklenti fiyatıysa.",
   "Teklif boşsa veya ürün yoksa add_line yaz. Mevcut satıra özellik/fiyat/adet için set_value / set_price / set_quantity / remove_property kullan.",
+  "Aynı ürünü bir turda bir kez add_line ile ekle. Sıcaklık ve çap gibi özellikleri ikinci add_line açmadan aynı satıra set_value yaz. İkinci satır yalnız kullanıcı ayrı bir ürün veya çelişen ölçü istediğinde.",
   "Satır adedi set_quantity. Katalogdaki bir özelliğin değeri set_value (propertyRef = o özelliğin adı). Taslak satır başlığını propertyRef yapma; satır için lineRef S1, S2 kullan. Katalog ID'si yazma.",
   "Kullanıcı bekleyen soruyu cevaplamıyorsa onu yok say; yeni cümleyi yorumla.",
   "Flag opsiyon eklemek için set_value value=ekle; kaldırmak için set_value value=çıkar.",

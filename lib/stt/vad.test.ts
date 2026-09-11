@@ -34,6 +34,15 @@ describe("rmsFromByteTimeDomain", () => {
   it("is 0 for an empty buffer", () => {
     expect(rmsFromByteTimeDomain(new Uint8Array())).toBe(0);
   });
+
+  it("is ~0 for DC-biased silence (all 140)", () => {
+    const samples = Uint8Array.from({ length: 32 }, () => 140);
+    expect(rmsFromByteTimeDomain(samples)).toBeCloseTo(0, 8);
+  });
+
+  it("is ~0 when the analyser never wrote (all 0)", () => {
+    expect(rmsFromByteTimeDomain(new Uint8Array(32))).toBeCloseTo(0, 8);
+  });
 });
 
 describe("tickVad", () => {
@@ -75,6 +84,20 @@ describe("tickVad", () => {
       speaking.state.lastLoudAt! + SILENCE_MS,
     );
     expect(silent.decision).toBe("silence");
+  });
+
+  it("lets silence fire when the mic sits on a DC-biased floor", () => {
+    const speaking = confirmSpeech(0);
+    const dcSilence = rmsFromByteTimeDomain(
+      Uint8Array.from({ length: 32 }, () => 140),
+    );
+    expect(dcSilence).toBeLessThan(DEFAULT_VAD_CONFIG.speechRms);
+    const done = tickVad(
+      speaking.state,
+      dcSilence,
+      speaking.state.lastLoudAt! + SILENCE_MS,
+    );
+    expect(done.decision).toBe("silence");
   });
 
   it("resets the silence timer when speech returns", () => {

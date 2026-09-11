@@ -54,6 +54,7 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
   const [transcribing, setTranscribing] = useState(false);
   const [voiceSession, setVoiceSession] = useState(false);
   const [voiceLevel, setVoiceLevel] = useState(0);
+  const [speechHeard, setSpeechHeard] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pdfQuote, setPdfQuote] = useState<QuoteDocument | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -90,6 +91,7 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
     recordingRef.current = false;
     setRecording(false);
     setVoiceLevel(0);
+    setSpeechHeard(false);
   };
 
   const shouldResumeVoice = () => {
@@ -255,12 +257,19 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
         session = await createListenSession();
         listenSessionRef.current = session;
       } else {
-        if (session.context.state === "suspended") {
+        if (session.context.state !== "running") {
           await session.context.resume();
         }
-        await new Promise<void>((resolve) => {
-          window.setTimeout(resolve, 40);
-        });
+        if (session.context.state !== "running") {
+          destroyListenSession(session);
+          listenSessionRef.current = null;
+          session = await createListenSession();
+          listenSessionRef.current = session;
+        } else {
+          await new Promise<void>((resolve) => {
+            window.setTimeout(resolve, 40);
+          });
+        }
       }
       if (!aliveRef.current || !voiceSessionRef.current) {
         destroyListen();
@@ -269,10 +278,13 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
       recordingRef.current = true;
       setRecording(true);
       setVoiceLevel(0);
+      setSpeechHeard(false);
       utteranceRef.current = beginUtterance(
         session,
-        (level) => {
-          if (aliveRef.current) setVoiceLevel(level);
+        (level, heard) => {
+          if (!aliveRef.current) return;
+          setVoiceLevel(level);
+          if (heard) setSpeechHeard(true);
         },
         (result) => finishUtteranceRef.current(result),
       );
@@ -381,11 +393,11 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
   };
 
   return (
-    <div className="flex min-h-full flex-1 flex-col">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--rule)] px-4 py-3">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--rule)] px-4 py-3">
         <div>
           <p className="font-display text-[11px] uppercase tracking-[0.22em] text-[var(--steel)]">
-            TeknoTip · Deneme
+            TeknoTip · Genixo
           </p>
           <h1 className="font-display text-3xl leading-none tracking-wide">Teklif</h1>
         </div>
@@ -397,9 +409,9 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
         </Link>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 p-3 lg:grid-cols-[minmax(0,22rem)_1fr] xl:grid-cols-[minmax(0,28rem)_1fr]">
-        <section className="flex min-h-[24rem] flex-col border border-[var(--rule)] bg-[var(--paper)]">
-          <header className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--rule)] px-4 py-3">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto p-3 lg:grid-cols-[minmax(0,22rem)_1fr] lg:overflow-hidden xl:grid-cols-[minmax(0,28rem)_1fr]">
+        <section className="flex h-[min(70dvh,40rem)] min-h-0 flex-col overflow-hidden border border-[var(--rule)] bg-[var(--paper)] lg:h-full">
+          <header className="flex shrink-0 flex-wrap items-end justify-between gap-3 border-b border-[var(--rule)] px-4 py-3">
             <div>
               <p className="font-display text-[11px] uppercase tracking-[0.22em] text-[var(--steel)]">
                 Sohbet
@@ -414,7 +426,10 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
               Yeni teklif
             </ActionButton>
           </header>
-          <div ref={scroller} className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+          <div
+            ref={scroller}
+            className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4"
+          >
             {messages.length === 0 ? (
               <p className="text-sm text-[var(--steel)]">
                 Örnek: “CVD fırın olsun, sıcaklık 1400, çap 60 mm.”
@@ -448,7 +463,7 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
             ) : null}
           </div>
           <form
-            className="grid gap-2 border-t border-[var(--rule)] p-3"
+            className="grid shrink-0 gap-2 border-t border-[var(--rule)] p-3"
             method="dialog"
             onSubmit={(event) => {
               event.preventDefault();
@@ -474,7 +489,9 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
             />
             <p className="text-xs text-[var(--steel)]">
               {recording
-                ? `Dinleniyor. ${voiceSettings.silenceSeconds} sn sessizlikte gönderilir; Durdur oturumu kapatır.`
+                ? speechHeard
+                  ? `Konuşma alındı. ${voiceSettings.silenceSeconds} sn sessizlikte gönderilir; Durdur oturumu kapatır.`
+                  : `Dinleniyor. Konuşunca ${voiceSettings.silenceSeconds} sn sessizlikte gönderilir; Durdur oturumu kapatır.`
                 : transcribing
                   ? "Ses yazıya çevriliyor…"
                   : loading && voiceSession
@@ -502,8 +519,8 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
           </form>
         </section>
 
-        <section className="flex min-h-[24rem] flex-col border border-[var(--rule)] bg-[var(--paper)]">
-          <header className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--rule)] px-4 py-3">
+        <section className="flex min-h-[24rem] flex-col overflow-hidden border border-[var(--rule)] bg-[var(--paper)] lg:h-full lg:min-h-0">
+          <header className="flex shrink-0 flex-wrap items-end justify-between gap-3 border-b border-[var(--rule)] px-4 py-3">
             <div>
               <p className="font-display text-[11px] uppercase tracking-[0.22em] text-[var(--steel)]">
                 Belge
@@ -567,7 +584,7 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
             />
           ) : (
             <>
-              <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
                 {missing.length ? (
                   <div className="mb-4 flex flex-wrap gap-1.5">
                     {missing.map((slot) => (
@@ -648,7 +665,7 @@ export function QuoteBench({ catalog }: { catalog: Catalog }) {
                 )}
               </div>
 
-              <footer className="grid grid-cols-[1fr_auto] items-end gap-4 bg-[var(--soot)] px-4 py-3 text-[var(--paper)]">
+              <footer className="grid shrink-0 grid-cols-[1fr_auto] items-end gap-4 bg-[var(--soot)] px-4 py-3 text-[var(--paper)]">
                 <div className="grid gap-1 text-[11px] uppercase tracking-[0.16em] text-[var(--heat-soft)]">
                   <span>Ara {formatTry(quote.priceSummary.subtotal)}</span>
                   <span>

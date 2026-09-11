@@ -435,6 +435,122 @@ export function mergeIdenticalLines(draft: QuoteDraft): QuoteDraft {
   return draft;
 }
 
+function mutationOwnedByProduct(
+  action: ChatAction,
+  productId: string,
+  lookup: CatalogLookup,
+): boolean {
+  if (action.op === "add_line" || action.op === "set_customer") return false;
+  const pid = actionProductId(action, lookup);
+  return !pid || pid === productId;
+}
+
+function mutationSignature(action: ChatAction): { key: string; value: string } | null {
+  switch (action.op) {
+    case "set_model":
+      return action.modelId?.trim()
+        ? { key: "model", value: action.modelId.trim() }
+        : null;
+    case "set_choice":
+      if (!action.propertyId) return null;
+      return {
+        key: `choice:${action.propertyId}`,
+        value: [...(action.choiceIds ?? [])].sort().join("\0"),
+      };
+    case "set_price":
+      return {
+        key: action.propertyId ? `price:${action.propertyId}` : "basePrice",
+        value: String(action.price),
+      };
+    case "set_quantity":
+      return { key: "quantity", value: String(action.quantity) };
+    case "remove_property":
+      return action.propertyId ? { key: `choice:${action.propertyId}`, value: "" } : null;
+    default:
+      return null;
+  }
+}
+
+function segmentKeys(add: ChatAction, mutations: ChatAction[]): Map<string, string> {
+  const keys = new Map<string, string>();
+  if (add.modelId?.trim()) keys.set("model", add.modelId.trim());
+  for (const mutation of mutations) {
+    const signature = mutationSignature(mutation);
+    if (signature) keys.set(signature.key, signature.value);
+  }
+  return keys;
+}
+
+function segmentsConflict(
+  left: { add: ChatAction; mutations: ChatAction[] },
+  right: { add: ChatAction; mutations: ChatAction[] },
+): boolean {
+  const leftModel = left.add.modelId?.trim();
+  const rightModel = right.add.modelId?.trim();
+  if (leftModel && rightModel && leftModel !== rightModel) return true;
+  const a = segmentKeys(left.add, left.mutations);
+  const b = segmentKeys(right.add, right.mutations);
+  for (const [key, value] of b) {
+    const prev = a.get(key);
+    if (prev !== undefined && prev !== value) return true;
+  }
+  return false;
+}
+
+function collapseSpuriousAddLines(
+  actions: ChatAction[],
+  lookup: CatalogLookup,
+): ChatAction[] {
+  const addsByProduct = new Map<string, number[]>();
+  for (let index = 0; index < actions.length; index++) {
+    const action = actions[index];
+    if (action.op !== "add_line") continue;
+    const productId = action.productId?.trim();
+    if (!productId) continue;
+    const list = addsByProduct.get(productId) ?? [];
+    list.push(index);
+    addsByProduct.set(productId, list);
+  }
+
+  const drop = new Set<number>();
+  for (const [productId, indexes] of addsByProduct) {
+    if (indexes.length < 2) continue;
+
+    const segments = indexes.map((start, index) => {
+      const end = indexes[index + 1] ?? actions.length;
+      return {
+        index: start,
+        add: actions[start],
+        mutations: actions
+          .slice(start + 1, end)
+          .filter((action) => mutationOwnedByProduct(action, productId, lookup)),
+      };
+    });
+
+    const kept: typeof segments = [segments[0]];
+    for (let index = 1; index < segments.length; index++) {
+      const next = segments[index];
+      const conflict = kept.some((prev) => segmentsConflict(prev, next));
+      const bothBare =
+        next.mutations.length === 0 &&
+        kept.every((prev) => prev.mutations.length === 0);
+      if (conflict || bothBare) {
+        kept.push(next);
+        continue;
+      }
+      drop.add(next.index);
+      const target = kept[kept.length - 1];
+      if (!target.add.modelId?.trim() && next.add.modelId?.trim()) {
+        target.add.modelId = next.add.modelId;
+      }
+      target.mutations = [...target.mutations, ...next.mutations];
+    }
+  }
+
+  if (!drop.size) return actions;
+  return actions.filter((_, index) => !drop.has(index));
+}
+
 function hoistFirstAddLines(
   actions: ChatAction[],
   incoming: QuoteDraft,
@@ -485,7 +601,10 @@ export function applyActions(
   const next = cloneDraft(draft);
   const warnings: ApplyWarning[] = [];
   const session: ApplySession = { incoming: draft, addedLineIds: [] };
-  const ordered = hoistFirstAddLines(actions, draft, lookup);
+  const ordered = collapseSpuriousAddLines(
+    hoistFirstAddLines(actions, draft, lookup),
+    lookup,
+  );
 
   for (const action of ordered) {
     let warning: ApplyWarning | null = null;

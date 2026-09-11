@@ -213,6 +213,54 @@ describe("applyActions", () => {
     expect(temps).toEqual([hot!.id, cool!.id]);
   });
 
+  it("collapses a split add_line for temperature and diameter onto one line", () => {
+    const hot = tmax.choice?.[1];
+    const wide = cap.choice?.[3];
+    const added = applyActions(fixture, emptyDraft(), [
+      { op: "add_line", productId: cvd.id },
+      { op: "set_choice", propertyId: tmax.id, choiceIds: [hot!.id] },
+      { op: "add_line", productId: cvd.id },
+      { op: "set_choice", propertyId: cap.id, choiceIds: [wide!.id] },
+    ]);
+    expect(added.warnings).toEqual([]);
+    expect(added.draft.items).toHaveLength(1);
+    expect(added.draft.items[0].quantity).toBe(1);
+    const line = added.draft.items[0];
+    expect(line.selections.find((row) => row.propertyId === tmax.id)?.choiceIds).toEqual([
+      hot!.id,
+    ]);
+    expect(line.selections.find((row) => row.propertyId === cap.id)?.choiceIds).toEqual([
+      wide!.id,
+    ]);
+  });
+
+  it("collapses consecutive add_lines when later mutations configure the product", () => {
+    const hot = tmax.choice?.[1];
+    const wide = cap.choice?.[3];
+    const added = applyActions(fixture, emptyDraft(), [
+      { op: "add_line", productId: cvd.id },
+      { op: "add_line", productId: cvd.id },
+      { op: "set_choice", propertyId: tmax.id, choiceIds: [hot!.id] },
+      { op: "set_choice", propertyId: cap.id, choiceIds: [wide!.id] },
+    ]);
+    expect(added.draft.items).toHaveLength(1);
+    expect(added.draft.items[0].quantity).toBe(1);
+  });
+
+  it("drops a trailing extra add_line after the product is already configured", () => {
+    const hot = tmax.choice?.[1];
+    const added = applyActions(fixture, emptyDraft(), [
+      { op: "add_line", productId: cvd.id },
+      { op: "set_choice", propertyId: tmax.id, choiceIds: [hot!.id] },
+      { op: "add_line", productId: cvd.id },
+    ]);
+    expect(added.draft.items).toHaveLength(1);
+    expect(added.draft.items[0].quantity).toBe(1);
+    expect(
+      added.draft.items[0].selections.find((row) => row.propertyId === tmax.id)?.choiceIds,
+    ).toEqual([hot!.id]);
+  });
+
   it("matches hydrate extras to previewTotal defaults", () => {
     const added = applyActions(fixture, emptyDraft(), [
       { op: "add_line", productId: cvd.id },

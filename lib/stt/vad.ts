@@ -45,11 +45,27 @@ export function createVadState(now: number): VadState {
   };
 }
 
+/**
+ * RMS before subtracting the frame mean (DC bias).
+ *
+ * getByteTimeDomainData centers silence at 128, but some devices / AGC
+ * leave silence sitting at e.g. 140. Treating 128 as zero then reads a
+ * steady RMS ~0.09 — above SPEECH_RMS — so lastLoudAt never ages and
+ * the 2s silence timer never fires.
+ *
+ * An unwritten analyser buffer (all 0) used to read as RMS 1.0; removing
+ * the mean makes that 0 as well.
+ */
 export function rmsFromByteTimeDomain(samples: Uint8Array): number {
   if (samples.length === 0) return 0;
+  let mean = 0;
+  for (let i = 0; i < samples.length; i += 1) {
+    mean += samples[i] ?? 128;
+  }
+  mean /= samples.length;
   let sum = 0;
   for (let i = 0; i < samples.length; i += 1) {
-    const normalized = ((samples[i] ?? 128) - 128) / 128;
+    const normalized = ((samples[i] ?? 128) - mean) / 128;
     sum += normalized * normalized;
   }
   return Math.sqrt(sum / samples.length);
