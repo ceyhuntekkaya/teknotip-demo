@@ -1,0 +1,330 @@
+[
+    {
+        "product": {
+            "code": "TUPFRN",
+            "name": "Tüp Fırın 1",
+            "price": 19000,
+            "description": "Ekran: LCD touch screen\nProgram sayısı: 16 program\nAdım sayısı: 30 adım\nProgramlama: ±1 °C\nFlanşlar: Dahil",
+            "image": "https://via.placeholder.com/150",
+            "category": "Category 1",
+            "properties": [
+                {
+                    "name": "Maksimum sıcaklık",
+                    "type": "single_choice",
+                    "values": [
+                        "1200°C",
+                        "1400°C",
+                        "1700°C"
+                    ]
+                },
+                {
+                    "name": "Tüp çapı",
+                    "type": "single_choice",
+                    "values": [
+                        "50 mm",
+                        "60 mm",
+                        "80 mm",
+                        "100 mm"
+                    ]
+                },
+                {
+                    "name": "Isıtma bölgesi",
+                    "type": "single_choice",
+                    "values": [
+                        "200 mm",
+                        "399 mm",
+                        "400 mm",
+                        "300 + 300 mm"
+                    ]
+                },
+                {
+                    "name": "Çalışma sıcaklığı",
+                    "type": "single_choice",
+                    "values": [
+                        "1100 C",
+                        "1300 °C",
+                        "1400° C"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "product": {
+            "code": "VAKUMPOMP",
+            "name": "Vakum pompası",
+            "price": 19000,
+            "description": "Ekran: LCD touch screen\nProgram sayısı: 16 program\nAdım sayısı: 30 adım\nProgramlama: ±1 °C\nFlanşlar: Dahil",
+            "image": "https://via.placeholder.com/150",
+            "category": "Category 1",
+            "properties": [
+                {
+                    "name": "Vakum Gücü",
+                    "type": "single_choice",
+                    "values": [
+                        "4 L/s",
+                        "5 L/s",
+                        "16 L/s",
+                        "24 L/s"
+                    ]
+                },
+                {
+                    "name": "Dijital vakum göstergesi",
+                    "type": "single_choice",
+                    "values": [
+                        "VAR",
+                        "YOK"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "product": {
+            "code": "TURBOMOLEKULERPOMPA",
+            "name": "Turbomoleküler pompa",
+            "price": 19000,
+            "description": "Ekran: LCD touch screen\nProgram sayısı: 16 program\nAdım sayısı: 30 adım\nProgramlama: ±1 °C\nFlanşlar: Dahil",
+            "image": "https://via.placeholder.com/150",
+            "category": "Category 1",
+            "properties": [
+                {
+                    "name": "Vakum Gücü",
+                    "type": "single_choice",
+                    "values": [
+                        "300 L/s",
+                        "600 L/s"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "product": {
+            "code": "MFC",
+            "name": "MFC",
+            "price": 19000,
+            "description": "Ekran: LCD touch screen\nProgram sayısı: 16 program\nAdım sayısı: 30 adım\nProgramlama: ±1 °C\nFlanşlar: Dahil",
+            "image": "https://via.placeholder.com/150",
+            "category": "Category 1",
+            "properties": [
+                {
+                    "name": "Debi",
+                    "type": "single_choice",
+                    "values": [
+                        "0–200 sccm",
+                        "0–500 sccm"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "product": {
+            "code": "KULFRN",
+            "name": "KÜL FIRIN",
+            "price": 19000,
+            "description": "Ekran: LCD touch screen\nProgram sayısı: 16 program\nAdım sayısı: 30 adım\nProgramlama: ±1 °C",
+            "image": "https://via.placeholder.com/150",
+            "category": "Category 1",
+            "properties": [
+                {
+                    "name": "Maksimum sıcaklık",
+                    "type": "single_choice",
+                    "values": [
+                        "1200°C",
+                        "1400°C",
+                        "1700°C"
+                    ]
+                },
+                {
+                    "name": "İç hazne boyutu",
+                    "type": "single_choice",
+                    "values": [
+                        "200 × 200 × 200 mm",
+                        "300 × 300 × 300 mm",
+                        "400 × 400 × 400 mm"
+                    ]
+                },
+                {
+                    "name": "Devamlı çalışma sıcaklığı",
+                    "type": "single_choice",
+                    "values": [
+                        "1100 C",
+                        "1200 °C",
+                        "1600° C"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "product": {
+            "code": "CVDFRN",
+            "name": "CVD FIRIN",
+            "price": 19000,
+            "description": "Ekran: LCD touch screen\nProgram sayısı: 16 program\nAdım sayısı: 30 adım\nProgramlama: ±1 °C",
+            "image": "https://via.placeholder.com/150",
+            "category": "Category 1",
+            "properties": [
+                {
+                    "name": "Maksimum sıcaklık",
+                    "type": "single_choice",
+                    "values": [
+                        "1200°C",
+                        "1400°C",
+                        "1700°C"
+                    ]
+                },
+                {
+                    "name": "Tüp çapı",
+                    "type": "single_choice",
+                    "values": [
+                        "50 mm",
+                        "60 mm",
+                        "80 mm",
+                        "100 mm"
+                    ]
+                },
+                {
+                    "name": "Isıtma bölgesi",
+                    "type": "single_choice",
+                    "values": [
+                        "200 mm",
+                        "399 mm",
+                        "400 mm",
+                        "300 + 300 mm"
+                    ]
+                },
+                {
+                    "name": "Çalışma sıcaklığı",
+                    "type": "single_choice",
+                    "values": [
+                        "1100 C",
+                        "1300 °C",
+                        "1400° C"
+                    ]
+                },
+                {
+                    "name": "GAZ TİPİ",
+                    "type": "multiple_choice",
+                    "values": [
+                        "Ar",
+                        "O₂",
+                        "H₂",
+                        "CH₄",
+                        "CO₂",
+                        "BCl₃"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "product": {
+            "code": "p_pecvd-sistemleri",
+            "name": "PECVD SİSTEMLERİ",
+            "price": 19000,
+            "description": "Ekran: LCD touch screen\nProgram sayısı: 16 program\nAdım sayısı: 30 adım\nProgramlama: ±1 °C",
+            "image": "https://via.placeholder.com/150",
+            "category": "Category 1",
+            "properties": [
+                {
+                    "name": "Maksimum sıcaklık",
+                    "type": "single_choice",
+                    "values": [
+                        "1200°C",
+                        "1400°C",
+                        "1700°C"
+                    ]
+                },
+                {
+                    "name": "Tüp çapı",
+                    "type": "single_choice",
+                    "values": [
+                        "50 mm",
+                        "60 mm",
+                        "80 mm",
+                        "100 mm"
+                    ]
+                },
+                {
+                    "name": "Isıtma bölgesi",
+                    "type": "single_choice",
+                    "values": [
+                        "200 mm",
+                        "399 mm",
+                        "400 mm",
+                        "300 + 300 mm"
+                    ]
+                },
+                {
+                    "name": "Çalışma sıcaklığı",
+                    "type": "single_choice",
+                    "values": [
+                        "1100 C",
+                        "1300 °C",
+                        "1400° C"
+                    ]
+                },
+                {
+                    "name": "GAZ TİPİ",
+                    "type": "multiple_choice",
+                    "values": [
+                        "Ar",
+                        "O₂",
+                        "H₂",
+                        "CH₄",
+                        "CO₂",
+                        "BCl₃"
+                    ]
+                }
+            ],
+            "accessory": [
+                {
+                    "name": "Plazma jeneratörü"
+                },
+                {
+                    "name": "Coil çapı"
+                }
+            ]
+        }
+    },
+    {
+        "product": {
+            "code": "POTANSİYOSTAT",
+            "name": "POTANSİYOSTAT",
+            "price": 19000,
+            "description": "Ekran: LCD touch screen\nProgram sayısı: 16 program\nAdım sayısı: 30 adım\nProgramlama: ±1 °C\nFlanşlar: Dahil",
+            "image": "https://via.placeholder.com/150",
+            "category": "Category 1",
+            "properties": [
+                {
+                    "name": "Model",
+                    "type": "single_choice",
+                    "values": [
+                        "CS 100 M - Taşınabilir potansiyostat",
+                        "CS 100 ME - Taşınabilir potansiyostat",
+                        "CS 300 M - Masaüstü potansiyostat - Tek kanallı",
+                        "CS 310 M - Masaüstü potansiyostat - Tek kanallı",
+                        "CS 350 M - Masaüstü potansiyostat - Tek kanallı"
+                    ]
+                }
+            ],
+            "accessory": [
+                {
+                    "name": "CS 901 Referans elektrot"
+                },
+                {
+                    "name": "CS 912 Platin elektrot"
+                },
+                {
+                    "name": "CS 945 WE tutucu"
+                },
+                {
+                    "name": "CS 9355 3 elektrotlu hücre"
+                }
+            ]
+        }
+    }
+]
