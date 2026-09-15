@@ -29,6 +29,7 @@ import type {
   UserResponse
 } from '../../model';
 
+import { customFetch } from '../../../fetcher';
 
 export type refreshTokenResponse200 = {
   data: TokenResponse
@@ -84,14 +85,14 @@ export const getRefreshTokenUrl = () => {
 
 
 
-  return `http://localhost:8080/api/v1/auth/refresh`
+  return `/backend/v1/auth/refresh`
 }
 
 /**
  * Geçerli refresh token'ı tek kullanımlık kabul eder (rotation): eski anahtar iptal edilir, yeni access ve refresh token çifti döner.
  * @summary Access token yenile
  */
-export const refreshToken = async (refreshRequest: RefreshRequest, options?: RequestInit): Promise<refreshTokenResponse> => {
+export const refreshToken = async (refreshRequest: RefreshRequest, options?: Parameters<typeof customFetch>[1]): Promise<refreshTokenResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -107,21 +108,14 @@ export const refreshToken = async (refreshRequest: RefreshRequest, options?: Req
     }
     return headers;
   };
-const res = await fetch(getRefreshTokenUrl(),
+return customFetch<refreshTokenResponse>(getRefreshTokenUrl(),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(refreshRequest)
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: refreshTokenResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as refreshTokenResponse
-}
+);}
 
 
 export type logoutResponse200 = {
@@ -178,30 +172,23 @@ export const getLogoutUrl = () => {
 
 
 
-  return `http://localhost:8080/api/v1/auth/logout`
+  return `/backend/v1/auth/logout`
 }
 
 /**
  * Giriş yapmış kullanıcının tüm aktif refresh token'larını iptal eder. Access token kendi süresince geçerli kalır.
  * @summary Çıkış yap
  */
-export const logout = async ( options?: RequestInit): Promise<logoutResponse> => {
+export const logout = async ( options?: Parameters<typeof customFetch>[1]): Promise<logoutResponse> => {
 
-  const res = await fetch(getLogoutUrl(),
+  return customFetch<logoutResponse>(getLogoutUrl(),
   {
     ...options,
     method: 'POST'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: logoutResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as logoutResponse
-}
+);}
 
 
 export type loginResponse200 = {
@@ -258,14 +245,14 @@ export const getLoginUrl = () => {
 
 
 
-  return `http://localhost:8080/api/v1/auth/login`
+  return `/backend/v1/auth/login`
 }
 
 /**
  * Kullanıcı adı ve şifre ile oturum açar. Başarıda JWT access token ve opak refresh token döner. Rol veya yetki ayrımı yoktur. Hatalı denemeler hesabı geçici olarak kilitleyebilir.
  * @summary Giriş yap
  */
-export const login = async (loginRequest: LoginRequest, options?: RequestInit): Promise<loginResponse> => {
+export const login = async (loginRequest: LoginRequest, options?: Parameters<typeof customFetch>[1]): Promise<loginResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -281,21 +268,14 @@ export const login = async (loginRequest: LoginRequest, options?: RequestInit): 
     }
     return headers;
   };
-const res = await fetch(getLoginUrl(),
+return customFetch<loginResponse>(getLoginUrl(),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(loginRequest)
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: loginResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as loginResponse
-}
+);}
 
 
 export type getCurrentUserResponse200 = {
@@ -352,29 +332,22 @@ export const getGetCurrentUserUrl = () => {
 
 
 
-  return `http://localhost:8080/api/v1/auth/me`
+  return `/backend/v1/auth/me`
 }
 
 /**
  * Bearer access token ile doğrulanmış kullanıcının temel bilgilerini döner.
  * @summary Oturumdaki kullanıcı
  */
-export const getCurrentUser = async ( options?: RequestInit): Promise<getCurrentUserResponse> => {
+export const getCurrentUser = async ( options?: Parameters<typeof customFetch>[1]): Promise<getCurrentUserResponse> => {
 
-  const res = await fetch(getGetCurrentUserUrl(),
+  return customFetch<getCurrentUserResponse>(getGetCurrentUserUrl(),
   {
     ...options,
     method: 'GET'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: getCurrentUserResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as getCurrentUserResponse
-}
+);}
 
 

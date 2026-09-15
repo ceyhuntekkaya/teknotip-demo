@@ -11,9 +11,12 @@ export default defineConfig({
       target: "lib/api/generated/endpoints",
       schemas: "lib/api/generated/model",
       clean: true,
-      prettier: false,
-      baseUrl: "http://localhost:8080/api",
+      baseUrl: "/backend",
       override: {
+        mutator: {
+          path: "./lib/api/fetcher.ts",
+          name: "customFetch",
+        },
         fetch: {
           includeHttpResponseReturnType: true,
         },

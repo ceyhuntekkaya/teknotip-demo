@@ -10,10 +10,10 @@ import {
   usableProductImage,
 } from "@/lib/pdf/format";
 import { pdfStyles as s } from "@/lib/pdf/styles";
-import type { QuoteDocument, QuoteDocumentProduct } from "@/lib/quote/types";
+import type { QuoteLineResponse, QuoteResponse } from "@/lib/api/generated/model";
 
 type Props = {
-  quote: QuoteDocument;
+  quote: QuoteResponse;
   origin: string;
   template?: CompanyTemplate;
 };
@@ -81,40 +81,46 @@ function Footer({ template }: { template: CompanyTemplate }) {
 }
 
 function ProductRow({
-  product,
+  line,
   index,
   origin,
 }: {
-  product: QuoteDocumentProduct;
+  line: QuoteLineResponse;
   index: number;
   origin: string;
 }) {
-  const specs = product.propertyGroups.flatMap((group) =>
-    group.properties.map((property) => `· ${property.name}: ${property.value}`),
-  );
-  const showImage = usableProductImage(product.image);
+  const specs = [
+    ...(line.properties ?? [])
+      .filter((property) => property.name && property.values)
+      .map((property) => `· ${property.name}: ${property.values}`),
+    ...(line.accessories ?? []).map((accessory) => {
+      const qty = accessory.quantity && accessory.quantity > 1 ? ` x${accessory.quantity}` : "";
+      return `· ${accessory.name}${qty}`;
+    }),
+  ];
+  const showImage = usableProductImage(line.image ?? "");
 
   return (
     <View style={s.tableRow} wrap={false}>
       <Text style={[s.cell, s.colNo]}>{index}</Text>
-      <Text style={[s.cell, s.colCode]}>{product.modelName}</Text>
+      <Text style={[s.cell, s.colCode]}>{line.code || "—"}</Text>
       <View style={s.colDesc}>
-        <Text style={s.cellBold}>{product.name}</Text>
-        {specs.map((line) => (
-          <Text key={line} style={s.bullet}>
-            {line}
+        <Text style={s.cellBold}>{line.name}</Text>
+        {specs.map((item) => (
+          <Text key={item} style={s.bullet}>
+            {item}
           </Text>
         ))}
         {showImage ? (
           <Image
-            src={assetUrl(origin, product.image)}
+            src={assetUrl(origin, line.image ?? "")}
             style={s.productImage}
           />
         ) : null}
       </View>
-      <Text style={[s.cell, s.colQty]}>{product.quantity}</Text>
-      <Text style={[s.cell, s.colUnit]}>{formatTl(product.price)}</Text>
-      <Text style={[s.cell, s.colPrice]}>{formatTl(product.lineTotal)}</Text>
+      <Text style={[s.cell, s.colQty]}>{line.quantity ?? 1}</Text>
+      <Text style={[s.cell, s.colUnit]}>{formatTl(line.price ?? 0)}</Text>
+      <Text style={[s.cell, s.colPrice]}>{formatTl(line.lineTotal ?? 0)}</Text>
     </View>
   );
 }
@@ -123,18 +129,18 @@ function Totals({
   quote,
   template,
 }: {
-  quote: QuoteDocument;
+  quote: QuoteResponse;
   template: CompanyTemplate;
 }) {
   const { texts } = template;
-  const { priceSummary } = quote;
-  const taxLabel = `${texts.totals.tax} (% ${priceSummary.taxRatePercent})`;
+  const priceSummary = quote.priceSummary;
+  const taxLabel = `${texts.totals.tax} (% ${priceSummary?.taxRatePercent ?? 20})`;
   const rows = [
-    { label: texts.totals.gross, value: formatTl(priceSummary.subtotal) },
-    { label: texts.totals.discount, value: formatTl(priceSummary.discount) },
-    { label: texts.totals.net, value: formatTl(priceSummary.totalAfterDiscount) },
-    { label: taxLabel, value: formatTl(priceSummary.tax) },
-    { label: texts.totals.grand, value: formatTl(priceSummary.totalAfterTax) },
+    { label: texts.totals.gross, value: formatTl(priceSummary?.subtotal ?? 0) },
+    { label: texts.totals.discount, value: formatTl(priceSummary?.discount ?? 0) },
+    { label: texts.totals.net, value: formatTl(priceSummary?.totalAfterDiscount ?? 0) },
+    { label: taxLabel, value: formatTl(priceSummary?.tax ?? 0) },
+    { label: texts.totals.grand, value: formatTl(priceSummary?.totalAfterTax ?? 0) },
   ];
 
   return (
@@ -155,14 +161,16 @@ export function QuotePdfDocument({
   template = companyTemplate,
 }: Props) {
   const { company, bank, texts, terms } = template;
-  const dateLabel = formatQuoteDate(quote.quotedTo.date);
-  const validityDate = addDaysFormatted(quote.quotedTo.date, terms.validityDays);
-  const words = amountInWords(quote.priceSummary.totalAfterTax);
-  const quoted = quote.quotedTo;
+  const dateIso = quote.quotedDate ?? "";
+  const dateLabel = formatQuoteDate(dateIso);
+  const validityDate = addDaysFormatted(dateIso, terms.validityDays);
+  const words = amountInWords(quote.priceSummary?.totalAfterTax ?? 0);
+  const quoted = quote.quotedTo ?? {};
+  const lines = quote.lines ?? [];
 
   return (
     <Document
-      title={`${texts.documentTitle} ${quoted.quoteNumber}`.trim()}
+      title={`${texts.documentTitle} ${quote.quoteNumber ?? ""}`.trim()}
       author={company.legalName}
       subject={texts.documentTitle}
       language="tr"
@@ -174,16 +182,16 @@ export function QuotePdfDocument({
         <View style={s.recipientRow}>
           <View style={s.recipient}>
             <Text style={s.recipientName}>
-              {quoted.institution.trim() || dashed("")}
+              {(quoted.institution ?? "").trim() || dashed("")}
             </Text>
-            {quoted.name.trim() ? (
-              <Text style={s.recipientName}>{quoted.name}</Text>
+            {quoted.department?.trim() ? (
+              <Text style={s.recipientName}>{quoted.department}</Text>
             ) : null}
           </View>
           <View style={s.meta}>
             <View style={s.metaRow}>
               <Text style={s.metaLabel}>{texts.phoneLabel}</Text>
-              <Text style={s.metaValue}>:</Text>
+              <Text style={s.metaValue}>: {quoted.phone?.trim() || "—"}</Text>
             </View>
             <View style={s.metaRow}>
               <Text style={s.metaLabel}>{texts.faxLabel}</Text>
@@ -192,14 +200,14 @@ export function QuotePdfDocument({
             <View style={s.metaRow}>
               <Text style={s.metaLabel}>{texts.quoteNoLabel}</Text>
               <Text style={s.metaValue}>
-                : {quoted.quoteNumber.trim() || "—"}
+                : {quote.quoteNumber?.trim() || "—"}
               </Text>
             </View>
           </View>
         </View>
 
         <Text style={s.greeting}>
-          {texts.greeting} {dashed(quoted.contactPerson)}
+          {texts.greeting} {dashed(quoted.greetingName ?? quoted.contactPerson ?? "")}
         </Text>
         <View style={s.introBlock}>
           {texts.intro.map((line) => (
@@ -217,10 +225,10 @@ export function QuotePdfDocument({
           <Text style={[s.tableHeaderCell, s.colUnit]}>{texts.table.unitPrice}</Text>
           <Text style={[s.tableHeaderCell, s.colPrice]}>{texts.table.price}</Text>
         </View>
-        {quote.products.map((product, index) => (
+        {lines.map((line, index) => (
           <ProductRow
-            key={product.lineId}
-            product={product}
+            key={line.id ?? `line-${index}`}
+            line={line}
             index={index + 1}
             origin={origin}
           />

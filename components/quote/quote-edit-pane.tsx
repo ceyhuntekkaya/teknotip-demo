@@ -1,63 +1,36 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { NumberInput } from "@/components/catalog/fields";
-import { normalizeGroupState, normalizeGroupType } from "@/lib/catalog/normalize";
-import { formatAddOn, formatTry } from "@/lib/catalog/price";
-import {
-  allowsMultipleChoices,
-  isPropertyLocked,
-  type MissingSlot,
-} from "@/lib/catalog/rules";
-import {
-  GROUP_STATE_LABELS,
-  GROUP_TYPE_LABELS,
-  type Catalog,
-  type GroupPreview,
-  type Product,
-  type ProductModel,
-  type Property,
-  type PropertyGroup,
-} from "@/lib/catalog/types";
-import {
-  addPropertyAction,
-  groupPreviewFromSelections,
-  modelIndexForLine,
-  removePropertyAction,
-  setChoiceAction,
-  setModelAction,
-  setPriceAction,
-  setQuantityAction,
-  toggleChoiceIndexes,
-} from "@/lib/quote/line-preview";
-import { propertyAddOn } from "@/lib/quote/price";
 import type {
-  ApplyWarning,
-  ChatAction,
-  QuoteDocument,
-  QuoteDraft,
-  QuoteLine,
-  QuoteLineSelection,
-} from "@/lib/quote/types";
-
-function quotedExtra(
-  property: Property,
-  selection: QuoteLineSelection | undefined,
-): number {
-  if (typeof selection?.priceOverride === "number") return selection.priceOverride;
-  return propertyAddOn(property, selection?.choiceIds ?? []);
-}
+  CustomerResponse,
+  ProductResponse,
+  QuoteLineAccessoryResponse,
+  QuoteLineResponse,
+  QuoteResponse,
+} from "@/lib/api/generated/model";
+import {
+  ActionButton,
+  Field,
+  NumberInput,
+  Select,
+  TextArea,
+  TextInput,
+} from "@/components/catalog/fields";
+import { formatTry } from "@/lib/catalog/price";
+import {
+  addProductLine,
+  applyCustomer,
+  catalogForLine,
+  removeLine,
+  replaceLine,
+} from "@/lib/quote/document-edit";
 
 function PriceInput({
   value,
   onCommit,
-  className = "h-9 w-24",
-  "aria-label": ariaLabel,
 }: {
   value: number;
   onCommit: (price: number) => void;
-  className?: string;
-  "aria-label"?: string;
 }) {
   const [text, setText] = useState(String(value));
   const [focused, setFocused] = useState(false);
@@ -80,626 +53,348 @@ function PriceInput({
   return (
     <NumberInput
       min={0}
-      aria-label={ariaLabel}
-      className={className}
+      step="0.01"
       value={text}
-      onClick={(event) => event.stopPropagation()}
       onFocus={() => setFocused(true)}
       onChange={(event) => setText(event.target.value)}
       onBlur={commit}
       onKeyDown={(event) => {
-        if (event.key === "Enter") event.currentTarget.blur();
+        if (event.key === "Enter") (event.target as HTMLInputElement).blur();
       }}
+      className="h-9 w-28"
     />
   );
 }
 
-type QuoteEditPaneProps = {
-  catalog: Catalog;
-  draft: QuoteDraft;
-  quote: QuoteDocument;
-  missing: MissingSlot[];
-  warnings: ApplyWarning[];
-  onActions: (actions: ChatAction[]) => void;
-};
-
 export function QuoteEditPane({
-  catalog,
-  draft,
   quote,
-  missing,
-  warnings,
-  onActions,
-}: QuoteEditPaneProps) {
+  products,
+  customers,
+  onChange,
+}: {
+  quote: QuoteResponse;
+  products: ProductResponse[];
+  customers: CustomerResponse[];
+  onChange: (next: QuoteResponse) => void;
+}) {
+  const quoted = quote.quotedTo ?? {};
+  const lines = quote.lines ?? [];
+
+  const patchQuoted = (patch: Partial<NonNullable<QuoteResponse["quotedTo"]>>) => {
+    onChange({ ...quote, quotedTo: { ...quoted, ...patch } });
+  };
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
-        {warnings.length ? (
-          <ul className="mb-4 grid gap-1 text-xs text-[#8f2d1f]">
-            {warnings.map((warning, index) => (
-              <li key={`${warning.op}-${index}`}>{warning.message}</li>
+    <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain p-4">
+      <section className="grid gap-3 sm:grid-cols-2">
+        <Field label="Müşteri kaydı">
+          <Select
+            value={quoted.customerId ?? ""}
+            onChange={(event) => {
+              const id = event.target.value;
+              const customer = customers.find((item) => item.id === id) ?? null;
+              onChange(applyCustomer(quote, customer));
+            }}
+          >
+            <option value="">Elle gir</option>
+            {customers.map((customer) => (
+              <option key={customer.id} value={customer.id}>
+                {customer.institution}
+              </option>
             ))}
-          </ul>
-        ) : null}
-
-        {missing.length ? (
-          <div className="mb-4 flex flex-wrap gap-1.5">
-            {missing.map((slot) => (
-              <span
-                key={`${slot.groupId}-${slot.propertyId ?? "group"}`}
-                className="bg-[var(--heat)]/15 px-2 py-1 font-display text-[11px] uppercase tracking-[0.12em] text-[var(--heat)]"
-              >
-                Eksik: {slot.label}
-              </span>
-            ))}
-          </div>
-        ) : null}
-
-        {draft.items.length === 0 ? (
-          <p className="grid place-items-center px-6 py-16 text-center text-sm text-[var(--steel)]">
-            Soldan bir ürün isteyin.
-          </p>
-        ) : (
-          <div className="grid gap-5">
-            {draft.items.map((line, index) => {
-              const product = catalog.find((item) => item.id === line.productId);
-              if (!product) {
-                return (
-                  <p key={line.lineId} className="text-sm text-[var(--steel)]">
-                    S{index + 1}: katalogda bulunamayan ürün.
-                  </p>
-                );
+          </Select>
+        </Field>
+        <Field label="Kurum">
+          <TextInput
+            value={quoted.institution ?? ""}
+            onChange={(event) => patchQuoted({ institution: event.target.value })}
+          />
+        </Field>
+        <Field label="Yetkili">
+          <TextInput
+            value={quoted.contactPerson ?? ""}
+            onChange={(event) => patchQuoted({ contactPerson: event.target.value })}
+          />
+        </Field>
+        <Field label="Unvan">
+          <TextInput
+            value={quoted.title ?? ""}
+            onChange={(event) => patchQuoted({ title: event.target.value })}
+          />
+        </Field>
+        <Field label="Telefon">
+          <TextInput
+            value={quoted.phone ?? ""}
+            onChange={(event) => patchQuoted({ phone: event.target.value })}
+          />
+        </Field>
+        <Field label="E-posta">
+          <TextInput
+            value={quoted.email ?? ""}
+            onChange={(event) => patchQuoted({ email: event.target.value })}
+          />
+        </Field>
+        <div className="sm:col-span-2">
+          <Field label="Adres">
+            <TextArea
+              value={quoted.address ?? ""}
+              onChange={(event) => patchQuoted({ address: event.target.value })}
+            />
+          </Field>
+        </div>
+        <Field label="İndirim">
+          <NumberInput
+            min={0}
+            step="0.01"
+            value={quote.priceSummary?.discount ?? 0}
+            onChange={(event) =>
+              onChange({
+                ...quote,
+                priceSummary: {
+                  ...quote.priceSummary,
+                  discount: Number(event.target.value) || 0,
+                },
+              })
+            }
+          />
+        </Field>
+        <Field label="KDV %">
+          <NumberInput
+            min={0}
+            step="0.01"
+            value={quote.priceSummary?.taxRatePercent ?? 20}
+            onChange={(event) =>
+              onChange({
+                ...quote,
+                priceSummary: {
+                  ...quote.priceSummary,
+                  taxRatePercent: Number(event.target.value) || 0,
+                },
+              })
+            }
+          />
+        </Field>
+        <div className="sm:col-span-2">
+          <Field label="Ek bilgi">
+            <TextArea
+              value={quote.additionalInformation ?? ""}
+              onChange={(event) =>
+                onChange({ ...quote, additionalInformation: event.target.value })
               }
-              const priced = quote.products.find((item) => item.lineId === line.lineId);
-              return (
-                <LineEditor
-                  key={line.lineId}
-                  index={index}
-                  product={product}
-                  line={line}
-                  lineTotal={priced?.lineTotal ?? 0}
-                  onActions={onActions}
-                />
-              );
-            })}
-          </div>
-        )}
-      </div>
+            />
+          </Field>
+        </div>
+      </section>
 
-      <footer className="grid grid-cols-[1fr_auto] items-end gap-4 bg-[var(--soot)] px-4 py-3 text-[var(--paper)]">
-        <div className="grid gap-1 text-[11px] uppercase tracking-[0.16em] text-[var(--heat-soft)]">
-          <span>Ara {formatTry(quote.priceSummary.subtotal)}</span>
-          <span>
-            KDV %{quote.priceSummary.taxRatePercent} {formatTry(quote.priceSummary.tax)}
-          </span>
+      <section className="grid gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h3 className="font-display text-lg tracking-wide">Satırlar</h3>
+          <Field label="Katalogdan ekle">
+            <Select
+              value=""
+              onChange={(event) => {
+                const product = products.find((item) => item.id === event.target.value);
+                if (product) onChange(addProductLine(quote, product));
+              }}
+            >
+              <option value="">Ürün seç</option>
+              {products.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.code} · {product.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
         </div>
-        <div className="text-right">
-          <p className="font-display text-[11px] uppercase tracking-[0.22em] text-[var(--heat-soft)]">
-            Genel toplam
-          </p>
-          <p className="kiln-readout font-mono text-3xl leading-none text-[var(--heat-soft)]">
-            {formatTry(quote.priceSummary.totalAfterTax)}
-          </p>
-        </div>
-      </footer>
+
+        {lines.length === 0 ? (
+          <p className="text-sm text-[var(--steel)]">Henüz satır yok.</p>
+        ) : (
+          lines.map((line, index) => (
+            <LineEditor
+              key={line.id ?? `line-${index}`}
+              line={line}
+              product={catalogForLine(products, line)}
+              onChange={(next) => onChange(replaceLine(quote, index, next))}
+              onRemove={() => onChange(removeLine(quote, index))}
+            />
+          ))
+        )}
+      </section>
     </div>
   );
 }
 
 function LineEditor({
-  index,
-  product,
   line,
-  lineTotal,
-  onActions,
+  product,
+  onChange,
+  onRemove,
 }: {
-  index: number;
-  product: Product;
-  line: QuoteLine;
-  lineTotal: number;
-  onActions: (actions: ChatAction[]) => void;
+  line: QuoteLineResponse;
+  product?: ProductResponse;
+  onChange: (line: QuoteLineResponse) => void;
+  onRemove: () => void;
 }) {
-  const modelIndex = modelIndexForLine(product, line.modelId);
-  const model = product.models[modelIndex];
-  const basePrice = line.basePriceOverride ?? model?.price ?? 0;
+  const properties = line.properties ?? [];
+  const accessories = line.accessories ?? [];
 
   return (
-    <article className="border border-[var(--rule)]">
-      <div className="flex flex-wrap items-start justify-between gap-3 px-3 py-2.5">
+    <article className="grid gap-3 border border-[var(--rule)] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
-            S{index + 1}
-          </p>
-          <h3 className="font-display text-lg uppercase tracking-[0.08em]">{product.name}</h3>
-          <p className="text-sm text-[var(--steel)]">{model?.name ?? "Model yok"}</p>
+          <h4 className="font-display text-lg uppercase tracking-[0.08em]">
+            {line.name}
+          </h4>
+          <p className="font-mono text-xs text-[var(--steel)]">{line.code}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <label className="grid gap-1">
-            <span className="font-display text-[11px] uppercase tracking-[0.14em] text-[var(--steel)]">
-              Adet
-            </span>
-            <NumberInput
-              min={1}
-              className="h-9 w-20"
-              value={line.quantity}
-              onChange={(event) => {
-                const quantity = Math.floor(Number(event.target.value));
-                if (!Number.isFinite(quantity) || quantity < 1 || quantity === line.quantity) {
-                  return;
-                }
-                onActions([setQuantityAction(line.lineId, quantity)]);
-              }}
-            />
-          </label>
-          <label className="grid gap-1">
-            <span className="font-display text-[11px] uppercase tracking-[0.14em] text-[var(--steel)]">
-              Birim fiyat
-            </span>
-            <PriceInput
-              aria-label={`${product.name} birim fiyat`}
-              className="h-9 w-28"
-              value={basePrice}
-              onCommit={(price) => onActions([setPriceAction(line.lineId, price)])}
-            />
-          </label>
-          <p className="font-mono text-sm text-[var(--heat)]">{formatTry(lineTotal)}</p>
-        </div>
+        <ActionButton tone="danger" onClick={onRemove}>
+          Satırı sil
+        </ActionButton>
       </div>
-
-      {product.models.length ? (
-        <div className="border-t border-[var(--rule)] px-3 py-3">
-          <p className="mb-2 font-display text-[11px] uppercase tracking-[0.18em] text-[var(--steel)]">
-            Model
-          </p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {product.models.map((item) => (
-              <ModelCard
-                key={item.id}
-                model={item}
-                selected={item.id === line.modelId}
-                onSelect={() => onActions([setModelAction(line.lineId, item.id)])}
-              />
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {product.propertyGroups.map((group) => (
-        <GroupSection
-          key={group.id}
-          group={group}
-          preview={groupPreviewFromSelections(group, line.selections)}
-          selections={line.selections}
-          onToggleProperty={(property, selected) => {
-            onActions([
-              selected
-                ? removePropertyAction(line.lineId, property)
-                : addPropertyAction(line.lineId, property),
-            ]);
-          }}
-          onChoice={(property, propertyIndex, choiceIndex) => {
-            const current = groupPreviewFromSelections(group, line.selections);
-            const selected = current.selected.includes(propertyIndex);
-            const nextIndexes = toggleChoiceIndexes(
-              selected ? (current.choices[propertyIndex] ?? []) : [],
-              choiceIndex,
-              allowsMultipleChoices(group),
-            );
-            onActions([setChoiceAction(line.lineId, group, property, nextIndexes)]);
-          }}
-          onPrice={(property, price) =>
-            onActions([setPriceAction(line.lineId, price, property)])
-          }
-        />
-      ))}
-    </article>
-  );
-}
-
-function ModelCard({
-  model,
-  selected,
-  onSelect,
-}: {
-  model: ProductModel;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={`border bg-[var(--alumina)] text-left transition-colors hover:border-[var(--charcoal)] ${
-        selected ? "border-[var(--charcoal)]" : "border-[var(--rule)]"
-      }`}
-    >
-      <div className="relative aspect-[4/3] overflow-hidden bg-[var(--soot)]">
-        {model.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={model.image}
-            alt=""
-            className="h-full w-full object-cover opacity-90"
-            onError={(event) => {
-              event.currentTarget.style.display = "none";
-            }}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field label="Adet">
+          <NumberInput
+            min={1}
+            value={line.quantity ?? 1}
+            onChange={(event) =>
+              onChange({ ...line, quantity: Math.max(1, Number(event.target.value) || 1) })
+            }
           />
-        ) : null}
-        <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent,transparent_18px,rgba(196,92,18,0.18)_18px,rgba(196,92,18,0.18)_19px)]" />
+        </Field>
+        <Field label="Birim fiyat">
+          <PriceInput
+            value={line.price ?? line.basePrice ?? 0}
+            onCommit={(price) => onChange({ ...line, price, lineTotal: undefined })}
+          />
+        </Field>
+        <p className="self-end font-mono text-sm text-[var(--heat)]">
+          {formatTry(line.lineTotal ?? 0)}
+        </p>
       </div>
-      <div className="grid gap-1 px-2.5 py-2">
-        <p className="line-clamp-2 text-sm font-medium leading-snug">{model.name}</p>
-        <p className="font-mono text-xs text-[var(--heat)]">{formatTry(model.price)}</p>
-      </div>
-    </button>
-  );
-}
 
-function GroupSection({
-  group,
-  preview,
-  selections,
-  onToggleProperty,
-  onChoice,
-  onPrice,
-}: {
-  group: PropertyGroup;
-  preview: GroupPreview;
-  selections: QuoteLineSelection[];
-  onToggleProperty: (property: Property, selected: boolean) => void;
-  onChoice: (property: Property, propertyIndex: number, choiceIndex: number) => void;
-  onPrice: (property: Property, price: number) => void;
-}) {
-  const state = normalizeGroupState(group.state);
-  const choiceType = normalizeGroupType(group.type);
-  const multipleChoices = choiceType === "multiple_choice";
-  const badgeTone =
-    state === "optional"
-      ? "bg-[var(--vacuum-soft)] text-[var(--vacuum)]"
-      : "bg-[var(--heat)]/15 text-[var(--heat)]";
-
-  return (
-    <section className="border-t border-[var(--rule)]">
-      <div className="flex items-center justify-between gap-3 px-3 py-2.5">
-        <h3 className="font-display text-lg uppercase tracking-[0.08em]">{group.name}</h3>
-        <span className="flex shrink-0 items-center gap-1.5">
-          <span
-            className={`px-2 py-0.5 font-display text-[11px] uppercase tracking-[0.14em] ${badgeTone}`}
-          >
-            {GROUP_STATE_LABELS[state]}
-          </span>
-          <span className="bg-[var(--alumina)] px-2 py-0.5 font-display text-[11px] uppercase tracking-[0.14em] text-[var(--steel)]">
-            {GROUP_TYPE_LABELS[choiceType]}
-          </span>
-        </span>
-      </div>
-      <div className="grid gap-3 px-3 pb-3">
-        {group.properties.length === 0 ? (
-          <p className="text-sm text-[var(--steel)]">Bu grupta özellik yok.</p>
-        ) : state === "required_one" ? (
-          <div className="grid gap-2">
-            {group.properties.map((property, propertyIndex) => {
-              const selected = preview.selected.includes(propertyIndex);
-              const selection = selections.find(
-                (item) => item.groupId === group.id && item.propertyId === property.id,
-              );
-              return (
-                <PropertyCard
-                  key={property.id}
-                  property={property}
-                  selected={selected}
-                  extra={quotedExtra(property, selection)}
-                  exclusive
-                  choiceIndexes={preview.choices[propertyIndex] ?? []}
-                  multipleChoices={multipleChoices}
-                  onSelectProperty={() => {
-                    if (!selected) onToggleProperty(property, false);
-                  }}
-                  onChoice={(choiceIndex) => onChoice(property, propertyIndex, choiceIndex)}
-                  onPrice={(price) => onPrice(property, price)}
-                />
-              );
-            })}
-          </div>
-        ) : (
-          group.properties.map((property, propertyIndex) => {
-            const selected = preview.selected.includes(propertyIndex);
-            const locked = isPropertyLocked(group, propertyIndex, preview.selected);
-            const selection = selections.find(
-              (item) => item.groupId === group.id && item.propertyId === property.id,
-            );
-            return (
-              <PropertyRow
-                key={property.id}
-                property={property}
-                selectable={state !== "required"}
-                selected={selected}
-                locked={Boolean(locked && selected)}
-                extra={quotedExtra(property, selection)}
-                choiceIndexes={preview.choices[propertyIndex] ?? []}
-                multipleChoices={multipleChoices}
-                onToggle={() => {
-                  if (state === "required") return;
-                  if (selected && locked) return;
-                  onToggleProperty(property, selected);
-                }}
-                onChoice={(choiceIndex) => onChoice(property, propertyIndex, choiceIndex)}
-                onPrice={(price) => onPrice(property, price)}
-              />
-            );
-          })
-        )}
-      </div>
-    </section>
-  );
-}
-
-function PropertyPrice({
-  property,
-  selected,
-  extra,
-  multipleChoices,
-  onPrice,
-}: {
-  property: Property;
-  selected: boolean;
-  extra: number;
-  multipleChoices: boolean;
-  onPrice: (price: number) => void;
-}) {
-  if (!selected) {
-    if (property.choice?.length) return null;
-    const addon = formatAddOn(property.price);
-    if (!addon) return null;
-    return <span className="font-mono text-xs text-[var(--steel)]">{addon}</span>;
-  }
-
-  if (!property.choice?.length) {
-    return (
-      <PriceInput
-        aria-label={`${property.name} ek fiyat`}
-        value={extra}
-        onCommit={onPrice}
-      />
-    );
-  }
-
-  if (!multipleChoices) return null;
-
-  const hasPrice =
-    extra !== 0 || property.choice.some((choice) => (choice.price ?? 0) !== 0);
-  if (!hasPrice) return null;
-
-  return (
-    <PriceInput
-      aria-label={`${property.name} ek fiyat`}
-      value={extra}
-      onCommit={onPrice}
-    />
-  );
-}
-
-function PropertyCard({
-  property,
-  selected,
-  extra,
-  exclusive,
-  choiceIndexes,
-  multipleChoices,
-  onSelectProperty,
-  onChoice,
-  onPrice,
-}: {
-  property: Property;
-  selected: boolean;
-  extra: number;
-  exclusive?: boolean;
-  choiceIndexes: number[];
-  multipleChoices: boolean;
-  onSelectProperty: () => void;
-  onChoice: (choiceIndex: number) => void;
-  onPrice: (price: number) => void;
-}) {
-  return (
-    <div
-      className={`border px-3 py-2 ${
-        selected
-          ? "border-[var(--heat)] bg-[var(--glow)]"
-          : "border-[var(--rule)] bg-[var(--alumina)] text-[var(--steel)]"
-      }`}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={onSelectProperty}
-          className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left"
-        >
-          <span className="text-sm font-medium">
-            {exclusive ? (
-              <span className={`mr-2 font-mono ${selected ? "text-[var(--heat)]" : ""}`}>
-                {selected ? "●" : "○"}
-              </span>
-            ) : null}
-            {property.name}
-          </span>
-          {property.state ? (
-            <span className="font-display text-[10px] uppercase tracking-[0.14em] text-[var(--steel)]">
-              {property.state === "required" ? "Zorunlu" : "Opsiyonel"}
-            </span>
-          ) : null}
-        </button>
-        <PropertyPrice
-          property={property}
-          selected={selected}
-          extra={extra}
-          multipleChoices={multipleChoices}
-          onPrice={onPrice}
-        />
-      </div>
-      {selected ? (
-        <ChoiceList
-          property={property}
-          extra={extra}
-          choiceIndexes={choiceIndexes}
-          multiple={multipleChoices}
-          onChoice={onChoice}
-          onPrice={onPrice}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-function PropertyRow({
-  property,
-  selectable,
-  selected,
-  locked,
-  extra,
-  choiceIndexes,
-  multipleChoices,
-  onToggle,
-  onChoice,
-  onPrice,
-}: {
-  property: Property;
-  selectable: boolean;
-  selected: boolean;
-  locked: boolean;
-  extra: number;
-  choiceIndexes: number[];
-  multipleChoices: boolean;
-  onToggle: () => void;
-  onChoice: (choiceIndex: number) => void;
-  onPrice: (price: number) => void;
-}) {
-  const inactive = !selected;
-
-  return (
-    <div className={`grid gap-2 p-1 ${inactive ? "bg-[var(--alumina)] text-[var(--steel)]" : ""}`}>
-      <div className="flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => {
-            if (selectable) onToggle();
-          }}
-          disabled={selectable && locked}
-          className="flex min-w-0 items-center gap-2 text-left disabled:cursor-not-allowed"
-        >
-          {selectable ? (
-            <span
-              className={`grid h-4 w-4 place-items-center border text-[10px] ${
-                selected
-                  ? "border-[var(--heat)] bg-[var(--heat)] text-[var(--paper)]"
-                  : "border-[var(--steel)]"
-              }`}
-            >
-              {selected ? "✓" : ""}
-            </span>
-          ) : null}
-          <span className={`text-sm font-medium ${inactive ? "text-[var(--steel)]" : ""}`}>
-            {property.name}
-          </span>
-          {locked && selectable ? (
-            <span className="font-display text-[10px] uppercase tracking-[0.12em] text-[var(--steel)]">
-              kilitli
-            </span>
-          ) : null}
-        </button>
-        <PropertyPrice
-          property={property}
-          selected={selected}
-          extra={extra}
-          multipleChoices={multipleChoices}
-          onPrice={onPrice}
-        />
-      </div>
-      {selected || !selectable ? (
-        <ChoiceList
-          property={property}
-          extra={extra}
-          choiceIndexes={choiceIndexes}
-          multiple={multipleChoices}
-          muted={inactive}
-          onChoice={onChoice}
-          onPrice={onPrice}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-function ChoiceList({
-  property,
-  extra,
-  choiceIndexes,
-  multiple,
-  muted = false,
-  onChoice,
-  onPrice,
-}: {
-  property: Property;
-  extra: number;
-  choiceIndexes: number[];
-  multiple: boolean;
-  muted?: boolean;
-  onChoice: (choiceIndex: number) => void;
-  onPrice: (price: number) => void;
-}) {
-  if (!property.choice?.length) return null;
-  const selected = choiceIndexes.length ? choiceIndexes : [];
-  const editChoicePrice = !multiple;
-
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {property.choice.map((choice, index) => {
-        const active = selected.includes(index);
-        const catalogAddon = formatAddOn(choice.price);
-        const showChoicePrice =
-          active && editChoicePrice && (choice.price !== undefined || extra !== 0);
+      {properties.map((property, propertyIndex) => {
+        const catalogProperty = product?.properties?.find(
+          (item) => item.id === property.productPropertyId,
+        );
+        const options = catalogProperty?.values ?? [];
         return (
-          <div
-            key={choice.id}
-            className={`flex items-center gap-1.5 border px-2.5 py-1.5 text-sm ${
-              active
-                ? "border-[var(--heat)] bg-[var(--heat)] text-[var(--paper)]"
-                : muted
-                  ? "border-[var(--rule)] text-[var(--steel)]"
-                  : "border-[var(--rule)] hover:border-[var(--charcoal)]"
-            }`}
-          >
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                onChoice(index);
-              }}
-              className="text-left"
-            >
-              {multiple ? (
-                <span className="mr-1.5 font-mono text-[11px]">{active ? "☑" : "☐"}</span>
-              ) : null}
-              <span>{choice.name}</span>
-            </button>
-            {showChoicePrice ? (
+          <div key={property.id ?? `prop-${propertyIndex}`} className="grid gap-2 sm:grid-cols-[1fr_8rem]">
+            <Field label={property.name ?? "Özellik"}>
+              {options.length ? (
+                <Select
+                  value={property.values ?? ""}
+                  onChange={(event) => {
+                    const next = [...properties];
+                    next[propertyIndex] = { ...property, values: event.target.value };
+                    onChange({ ...line, properties: next, lineTotal: undefined });
+                  }}
+                >
+                  <option value="">Seçilmedi</option>
+                  {options.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <TextInput
+                  value={property.values ?? ""}
+                  onChange={(event) => {
+                    const next = [...properties];
+                    next[propertyIndex] = { ...property, values: event.target.value };
+                    onChange({ ...line, properties: next, lineTotal: undefined });
+                  }}
+                />
+              )}
+            </Field>
+            <Field label="Fiyat">
               <PriceInput
-                aria-label={`${property.name} ${choice.name} ek fiyat`}
-                className="h-7 w-20 border-[var(--paper)]/40 bg-[var(--paper)] text-[var(--charcoal)]"
-                value={extra}
-                onCommit={onPrice}
+                value={property.price ?? 0}
+                onCommit={(price) => {
+                  const next = [...properties];
+                  next[propertyIndex] = { ...property, price };
+                  onChange({ ...line, properties: next, lineTotal: undefined });
+                }}
               />
-            ) : catalogAddon ? (
-              <span
-                className={`font-mono text-[11px] ${
-                  active ? "text-[var(--paper)]" : muted ? "text-[var(--steel)]" : "text-[var(--heat)]"
-                }`}
-              >
-                {catalogAddon}
-              </span>
-            ) : null}
+            </Field>
           </div>
         );
       })}
-    </div>
+
+      <div className="grid gap-2">
+        <div className="flex items-center justify-between">
+          <p className="font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
+            Aksesuarlar
+          </p>
+          {product?.accessories?.length ? (
+            <Select
+              value=""
+              onChange={(event) => {
+                const accessory = product.accessories?.find(
+                  (item) => item.id === event.target.value,
+                );
+                if (!accessory) return;
+                const next: QuoteLineAccessoryResponse[] = [
+                  ...accessories,
+                  {
+                    productAccessoryId: accessory.id,
+                    name: accessory.name,
+                    quantity: 1,
+                    price: 0,
+                  },
+                ];
+                onChange({ ...line, accessories: next, lineTotal: undefined });
+              }}
+            >
+              <option value="">Aksesuar ekle</option>
+              {product.accessories.map((accessory) => (
+                <option key={accessory.id} value={accessory.id}>
+                  {accessory.name}
+                </option>
+              ))}
+            </Select>
+          ) : null}
+        </div>
+        {accessories.map((accessory, accessoryIndex) => (
+          <div key={accessory.id ?? `acc-${accessoryIndex}`} className="flex flex-wrap items-end gap-2">
+            <span className="flex-1 text-sm">{accessory.name}</span>
+            <NumberInput
+              min={1}
+              value={accessory.quantity ?? 1}
+              className="h-9 w-20"
+              onChange={(event) => {
+                const next = [...accessories];
+                next[accessoryIndex] = {
+                  ...accessory,
+                  quantity: Math.max(1, Number(event.target.value) || 1),
+                };
+                onChange({ ...line, accessories: next, lineTotal: undefined });
+              }}
+            />
+            <PriceInput
+              value={accessory.price ?? 0}
+              onCommit={(price) => {
+                const next = [...accessories];
+                next[accessoryIndex] = { ...accessory, price };
+                onChange({ ...line, accessories: next, lineTotal: undefined });
+              }}
+            />
+            <ActionButton
+              tone="danger"
+              onClick={() =>
+                onChange({
+                  ...line,
+                  accessories: accessories.filter((_, i) => i !== accessoryIndex),
+                  lineTotal: undefined,
+                })
+              }
+            >
+              Sil
+            </ActionButton>
+          </div>
+        ))}
+      </div>
+    </article>
   );
 }

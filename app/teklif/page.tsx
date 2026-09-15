@@ -1,23 +1,18 @@
-import { readFile } from "fs/promises";
-import path from "path";
-import { parseCatalog } from "@/lib/catalog/normalize";
-import type { Catalog } from "@/lib/catalog/types";
+import type { CustomerResponse, ProductResponse } from "@/lib/api/generated/model";
+import { listCustomers, listProducts } from "@/lib/api/server";
 import { QuoteBench } from "./quote-bench";
 
 export const dynamic = "force-dynamic";
 
 export default async function TeklifPage() {
-  let catalog: Catalog = [];
-  try {
-    const file = await readFile(
-      path.join(process.cwd(), "app/data/product.json"),
-      "utf8",
-    );
-    const parsed = parseCatalog(file);
-    if (parsed.ok) catalog = parsed.catalog;
-  } catch {
-    catalog = [];
-  }
+  const [productResponse, customerResponse] = await Promise.all([
+    listProducts({ page: 0, size: 100, sort: ["name"] }),
+    listCustomers({ page: 0, size: 100, sort: ["institution"] }),
+  ]);
+  const products: ProductResponse[] =
+    productResponse.status === 200 ? (productResponse.data.content ?? []) : [];
+  const customers: CustomerResponse[] =
+    customerResponse.status === 200 ? (customerResponse.data.content ?? []) : [];
 
-  return <QuoteBench catalog={catalog} />;
+  return <QuoteBench products={products} customers={customers} />;
 }

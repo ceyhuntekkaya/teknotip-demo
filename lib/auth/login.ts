@@ -1,24 +1,31 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { DEMO_SESSION_COOKIE, isDemoLogin } from "./demo";
+import { login } from "@/lib/api/generated/endpoints/auth/auth";
+import { apiErrorMessage } from "@/lib/api/errors";
+import { setAuthCookies } from "./session";
 
 export async function loginAction(
   _prev: string | null,
   formData: FormData,
 ): Promise<string | null> {
-  const username = String(formData.get("username") ?? "");
+  const username = String(formData.get("username") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  if (!isDemoLogin(username, password)) {
-    return "Kullanıcı adı veya şifre hatalı.";
+  if (!username || !password) {
+    return "Kullanıcı adı ve şifre zorunludur.";
   }
-  const jar = await cookies();
-  jar.set(DEMO_SESSION_COOKIE, "1", {
-    path: "/",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7,
-    httpOnly: true,
-  });
+
+  let response;
+  try {
+    response = await login({ username, password });
+  } catch {
+    return "Sunucuya bağlanılamadı. Lütfen tekrar deneyin.";
+  }
+
+  if (response.status !== 200) {
+    return apiErrorMessage(response.data, "Kullanıcı adı veya şifre hatalı.");
+  }
+
+  await setAuthCookies(response.data);
   redirect("/teklif");
 }

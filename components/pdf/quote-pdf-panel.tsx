@@ -4,13 +4,13 @@ import { pdf } from "@react-pdf/renderer";
 import { useEffect, useState } from "react";
 import { QuotePdfDocument } from "@/components/pdf/quote-document";
 import { registerPdfFonts } from "@/lib/pdf/fonts";
-import type { QuoteDocument } from "@/lib/quote/types";
+import type { QuoteResponse } from "@/lib/api/generated/model";
 
 export function QuotePdfPanel({
   quote,
   onUrl,
 }: {
-  quote: QuoteDocument;
+  quote: QuoteResponse;
   onUrl?: (url: string | null) => void;
 }) {
   const [url, setUrl] = useState<string | null>(null);
