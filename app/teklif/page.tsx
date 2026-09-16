@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function TeklifPage() {
   const [productResponse, customerResponse] = await Promise.all([
     listProducts({ page: 0, size: 100, sort: ["name"] }),
-    listCustomers({ page: 0, size: 100, sort: ["institution"] }),
+    listCustomers({ page: 0, size: 1000, sort: ["institution"] }),
   ]);
   const products: ProductResponse[] =
     productResponse.status === 200 ? (productResponse.data.content ?? []) : [];

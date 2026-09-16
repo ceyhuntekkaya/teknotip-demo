@@ -12,7 +12,7 @@ export default async function QuotesPage() {
   const [quoteResponse, productResponse, customerResponse] = await Promise.all([
     listQuotes({ page: 0, size: 10, sort: ["createdAt,desc"] }),
     listProducts({ page: 0, size: 100, sort: ["name"] }),
-    listCustomers({ page: 0, size: 100, sort: ["institution"] }),
+    listCustomers({ page: 0, size: 1000, sort: ["institution"] }),
   ]);
 
   const quotes: QuoteSummaryResponse[] =

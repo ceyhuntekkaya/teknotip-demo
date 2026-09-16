@@ -1,6 +1,8 @@
 import { isAuthPath, resolveApiUrl } from "./config";
 import { getServerAuth } from "./runtime-auth";
 
+const EXPIRE_SESSION_PATH = "/api/auth/expire-session";
+
 type FetchResult<T> = T & {
   data: unknown;
   status: number;
@@ -12,6 +14,8 @@ type RefreshResult = {
   /** Server-side refresh: cookie yazılamadığı için retry bu token ile yapılır. */
   accessToken?: string;
 };
+
+let loginRedirectStarted = false;
 
 export async function customFetch<T>(
   url: string,
@@ -29,11 +33,14 @@ async function request<T>(
   const init = await withAuthHeaders(options, accessOverride);
   const response = await fetch(resolveApiUrl(url), init);
 
-  if (response.status === 401 && !retried && !isAuthPath(url)) {
-    const refreshed = await refreshSession();
-    if (refreshed.ok) {
-      return request<T>(url, options, true, refreshed.accessToken);
+  if (response.status === 401 && !isAuthPath(url)) {
+    if (!retried) {
+      const refreshed = await refreshSession();
+      if (refreshed.ok) {
+        return request<T>(url, options, true, refreshed.accessToken);
+      }
     }
+    await redirectToLogin();
   }
 
   const body = [204, 205, 304].includes(response.status)
@@ -100,4 +107,18 @@ async function refreshSession(): Promise<RefreshResult> {
   const response = await fetch("/api/auth/refresh", { method: "POST" });
   // Cookie Route Handler'da güncellendi; retry proxy üzerinden yeni token'ı alır.
   return { ok: response.ok };
+}
+
+async function redirectToLogin(): Promise<never> {
+  if (typeof window !== "undefined") {
+    if (!loginRedirectStarted) {
+      loginRedirectStarted = true;
+      window.location.replace(EXPIRE_SESSION_PATH);
+    }
+    return new Promise(() => {}) as Promise<never>;
+  }
+  const { redirect } = await import("next/navigation");
+  redirect(EXPIRE_SESSION_PATH);
+  // redirect() throws; keep a never-returning path for TypeScript.
+  throw new Error("redirect");
 }

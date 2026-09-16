@@ -44,6 +44,8 @@ export interface CustomerResponse {
   greetingName?: string;
   /** Sabit telefon */
   phone?: string;
+  /** İş telefonu dahili numarası */
+  extension?: string;
   /** Cep telefonu */
   mobile?: string;
   /** Faks */

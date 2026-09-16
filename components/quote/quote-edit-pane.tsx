@@ -18,9 +18,13 @@ import {
 } from "@/components/catalog/fields";
 import { formatTry } from "@/lib/catalog/price";
 import {
+  addFreeLine,
   addProductLine,
   applyCustomer,
   catalogForLine,
+  isManualLine,
+  moveLine,
+  nextFreeCode,
   removeLine,
   replaceLine,
 } from "@/lib/quote/document-edit";
@@ -77,6 +81,7 @@ export function QuoteEditPane({
   customers: CustomerResponse[];
   onChange: (next: QuoteResponse) => void;
 }) {
+  const [freeOpen, setFreeOpen] = useState(false);
   const quoted = quote.quotedTo ?? {};
   const lines = quote.lines ?? [];
 
@@ -189,23 +194,42 @@ export function QuoteEditPane({
       <section className="grid gap-3">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h3 className="font-display text-lg tracking-wide">Satırlar</h3>
-          <Field label="Katalogdan ekle">
-            <Select
-              value=""
-              onChange={(event) => {
-                const product = products.find((item) => item.id === event.target.value);
-                if (product) onChange(addProductLine(quote, product));
-              }}
+          <div className="flex flex-wrap items-end gap-3">
+            <Field label="Katalogdan ekle">
+              <Select
+                value=""
+                onChange={(event) => {
+                  const product = products.find((item) => item.id === event.target.value);
+                  if (product) onChange(addProductLine(quote, product));
+                }}
+              >
+                <option value="">Ürün seç</option>
+                {products.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.code} · {product.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <ActionButton
+              tone={freeOpen ? "heat" : "default"}
+              onClick={() => setFreeOpen((open) => !open)}
             >
-              <option value="">Ürün seç</option>
-              {products.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.code} · {product.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
+              Serbest Ekle
+            </ActionButton>
+          </div>
         </div>
+
+        {freeOpen ? (
+          <FreeLineForm
+            nextNo={lines.length + 1}
+            suggestedCode={nextFreeCode(lines)}
+            onAdd={(input) => {
+              onChange(addFreeLine(quote, input));
+            }}
+            onCancel={() => setFreeOpen(false)}
+          />
+        ) : null}
 
         {lines.length === 0 ? (
           <p className="text-sm text-[var(--steel)]">Henüz satır yok.</p>
@@ -214,9 +238,20 @@ export function QuoteEditPane({
             <LineEditor
               key={line.id ?? `line-${index}`}
               line={line}
+              index={index}
+              total={lines.length}
               product={catalogForLine(products, line)}
               onChange={(next) => onChange(replaceLine(quote, index, next))}
               onRemove={() => onChange(removeLine(quote, index))}
+              onMove={(direction) => onChange(moveLine(quote, index, direction))}
+              onAutoCode={() =>
+                onChange(
+                  replaceLine(quote, index, {
+                    ...line,
+                    code: nextFreeCode(lines.filter((_, itemIndex) => itemIndex !== index)),
+                  }),
+                )
+              }
             />
           ))
         )}
@@ -225,55 +260,254 @@ export function QuoteEditPane({
   );
 }
 
+function FreeLineForm({
+  nextNo,
+  suggestedCode,
+  onAdd,
+  onCancel,
+}: {
+  nextNo: number;
+  suggestedCode: string;
+  onAdd: (input: { code?: string; name: string; quantity?: number; price?: number }) => void;
+  onCancel: () => void;
+}) {
+  const [code, setCode] = useState("");
+  const [name, setName] = useState("");
+  const [quantity, setQuantity] = useState("1");
+  const [unitPrice, setUnitPrice] = useState("0");
+  const [error, setError] = useState<string | null>(null);
+
+  const qty = Math.max(1, Math.trunc(Number(quantity)) || 1);
+  const unit = Number(unitPrice);
+  const total = (Number.isFinite(unit) && unit >= 0 ? unit : 0) * qty;
+
+  const submit = () => {
+    if (!name.trim()) {
+      setError("Ürün adı zorunludur.");
+      return;
+    }
+    onAdd({
+      code,
+      name,
+      quantity: qty,
+      price: Number.isFinite(unit) && unit >= 0 ? unit : 0,
+    });
+    setCode("");
+    setName("");
+    setQuantity("1");
+    setUnitPrice("0");
+    setError(null);
+  };
+
+  return (
+    <article className="grid gap-3 border border-[var(--heat)] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <h4 className="font-display text-lg tracking-wide">Serbest satır</h4>
+        <p className="font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
+          Katalog dışı
+        </p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field label="No">
+          <TextInput value={String(nextNo)} readOnly />
+        </Field>
+        <div className="sm:col-span-2">
+          <Field label="Ürün kodu">
+            <div className="flex gap-2">
+              <TextInput
+                value={code}
+                onChange={(event) => setCode(event.target.value)}
+                placeholder="Boş bırakılabilir"
+              />
+              <ActionButton
+                onClick={() => setCode(suggestedCode)}
+                className="shrink-0"
+              >
+                Otomatik ata
+              </ActionButton>
+            </div>
+          </Field>
+        </div>
+        <div className="sm:col-span-3">
+          <Field label="Ad">
+            <TextArea
+              value={name}
+              rows={5}
+              className="min-h-32"
+              placeholder="Ürün adı ve açıklaması"
+              onChange={(event) => {
+                setName(event.target.value);
+                if (error) setError(null);
+              }}
+            />
+          </Field>
+        </div>
+        <Field label="Adet">
+          <NumberInput
+            min={1}
+            value={quantity}
+            onChange={(event) => setQuantity(event.target.value)}
+          />
+        </Field>
+        <Field label="Birim fiyat">
+          <NumberInput
+            min={0}
+            step="0.01"
+            value={unitPrice}
+            onChange={(event) => setUnitPrice(event.target.value)}
+          />
+        </Field>
+        <Field label="Fiyat">
+          <NumberInput
+            min={0}
+            step="0.01"
+            value={Number.isFinite(total) ? String(total) : "0"}
+            onChange={(event) => {
+              const nextTotal = Number(event.target.value);
+              if (!Number.isFinite(nextTotal) || nextTotal < 0) return;
+              setUnitPrice(String(nextTotal / qty));
+            }}
+          />
+        </Field>
+      </div>
+      {error ? <p className="text-sm text-[#8f2d1f]">{error}</p> : null}
+      <div className="flex flex-wrap justify-end gap-2">
+        <ActionButton onClick={onCancel}>Vazgeç</ActionButton>
+        <ActionButton tone="heat" onClick={submit}>
+          Ekle
+        </ActionButton>
+      </div>
+    </article>
+  );
+}
+
 function LineEditor({
   line,
+  index,
+  total,
   product,
   onChange,
   onRemove,
+  onMove,
+  onAutoCode,
 }: {
   line: QuoteLineResponse;
+  index: number;
+  total: number;
   product?: ProductResponse;
   onChange: (line: QuoteLineResponse) => void;
   onRemove: () => void;
+  onMove: (direction: -1 | 1) => void;
+  onAutoCode: () => void;
 }) {
   const properties = line.properties ?? [];
   const accessories = line.accessories ?? [];
+  const manual = isManualLine(line);
+  const quantity = line.quantity ?? 1;
+  const unitPrice = line.price ?? line.basePrice ?? 0;
+  const lineTotal = line.lineTotal ?? unitPrice * quantity;
 
   return (
     <article className="grid gap-3 border border-[var(--rule)] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h4 className="font-display text-lg uppercase tracking-[0.08em]">
-            {line.name}
-          </h4>
-          <p className="font-mono text-xs text-[var(--steel)]">{line.code}</p>
+        <div className="flex items-start gap-2">
+          <ReorderButtons
+            index={index}
+            total={total}
+            onMove={onMove}
+          />
+          <div>
+            {manual ? (
+              <p className="font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
+                Elle eklenen · No {index + 1}
+              </p>
+            ) : (
+              <>
+                <h4 className="font-display text-lg uppercase tracking-[0.08em]">
+                  {index + 1}. {line.name}
+                </h4>
+                <p className="font-mono text-xs text-[var(--steel)]">{line.code}</p>
+              </>
+            )}
+          </div>
         </div>
         <ActionButton tone="danger" onClick={onRemove}>
           Satırı sil
         </ActionButton>
       </div>
+
+      {manual ? (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Field label="No">
+            <TextInput value={String(index + 1)} readOnly />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Ürün kodu">
+              <div className="flex gap-2">
+                <TextInput
+                  value={line.code ?? ""}
+                  onChange={(event) => onChange({ ...line, code: event.target.value })}
+                />
+                <ActionButton onClick={onAutoCode} className="shrink-0">
+                  Otomatik ata
+                </ActionButton>
+              </div>
+            </Field>
+          </div>
+          <div className="sm:col-span-3">
+            <Field label="Ad">
+              <TextArea
+                value={line.name ?? ""}
+                rows={5}
+                className="min-h-32"
+                onChange={(event) => onChange({ ...line, name: event.target.value })}
+              />
+            </Field>
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Adet">
           <NumberInput
             min={1}
-            value={line.quantity ?? 1}
+            value={quantity}
             onChange={(event) =>
-              onChange({ ...line, quantity: Math.max(1, Number(event.target.value) || 1) })
+              onChange({
+                ...line,
+                quantity: Math.max(1, Number(event.target.value) || 1),
+                lineTotal: undefined,
+              })
             }
           />
         </Field>
         <Field label="Birim fiyat">
           <PriceInput
-            value={line.price ?? line.basePrice ?? 0}
+            value={unitPrice}
             onCommit={(price) => onChange({ ...line, price, lineTotal: undefined })}
           />
         </Field>
-        <p className="self-end font-mono text-sm text-[var(--heat)]">
-          {formatTry(line.lineTotal ?? 0)}
-        </p>
+        {manual ? (
+          <Field label="Fiyat">
+            <PriceInput
+              value={lineTotal}
+              onCommit={(total) =>
+                onChange({
+                  ...line,
+                  price: total / Math.max(1, quantity),
+                  lineTotal: undefined,
+                })
+              }
+            />
+          </Field>
+        ) : (
+          <p className="self-end font-mono text-sm text-[var(--heat)]">
+            {formatTry(lineTotal)}
+          </p>
+        )}
       </div>
 
-      {properties.map((property, propertyIndex) => {
+      {!manual && properties.map((property, propertyIndex) => {
         const catalogProperty = product?.properties?.find(
           (item) => item.id === property.productPropertyId,
         );
@@ -322,6 +556,7 @@ function LineEditor({
         );
       })}
 
+      {!manual ? (
       <div className="grid gap-2">
         <div className="flex items-center justify-between">
           <p className="font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
@@ -395,6 +630,55 @@ function LineEditor({
           </div>
         ))}
       </div>
+      ) : null}
     </article>
+  );
+}
+
+function ReorderButtons({
+  index,
+  total,
+  onMove,
+}: {
+  index: number;
+  total: number;
+  onMove: (direction: -1 | 1) => void;
+}) {
+  return (
+    <div className="flex flex-col">
+      <button
+        type="button"
+        aria-label="Yukarı taşı"
+        disabled={index === 0}
+        onClick={() => onMove(-1)}
+        className="grid h-7 w-7 place-items-center border border-[var(--rule)] text-[var(--charcoal)] transition-colors hover:border-[var(--charcoal)] disabled:cursor-not-allowed disabled:opacity-30"
+      >
+        <ChevronIcon direction="up" />
+      </button>
+      <button
+        type="button"
+        aria-label="Aşağı taşı"
+        disabled={index === total - 1}
+        onClick={() => onMove(1)}
+        className="grid h-7 w-7 place-items-center border border-t-0 border-[var(--rule)] text-[var(--charcoal)] transition-colors hover:border-[var(--charcoal)] disabled:cursor-not-allowed disabled:opacity-30"
+      >
+        <ChevronIcon direction="down" />
+      </button>
+    </div>
+  );
+}
+
+function ChevronIcon({ direction }: { direction: "up" | "down" }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      aria-hidden="true"
+      className={`h-3.5 w-3.5 ${direction === "down" ? "rotate-180" : ""}`}
+    >
+      <path
+        d="M8 4.5 2.8 10.2h10.4L8 4.5Z"
+        fill="currentColor"
+      />
+    </svg>
   );
 }

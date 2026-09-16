@@ -101,10 +101,11 @@ export function QuoteBench({
 
   const persistQuote = useCallback(async (next: QuoteResponse) => {
     if (!next.id) return;
+    const quoteId = next.id;
     const run = async () => {
       setSaving(true);
       try {
-        const response = await updateQuote(next.id, quoteToRequest(next));
+        const response = await updateQuote(quoteId, quoteToRequest(next));
         if (response.status !== 200) {
           setError(apiErrorMessage(response.data, "Teklif kaydedilemedi."));
           return;

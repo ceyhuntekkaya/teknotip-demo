@@ -24,6 +24,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+# Runtime proxy (/backend) ve SSR doğrudan bu adresi kullanır.
+ARG API_URL=https://teklifapi.genixo.ai/api
+ENV API_URL=$API_URL
 
 # Security: non-root user oluştur
 RUN addgroup --system --gid 1001 nodejs

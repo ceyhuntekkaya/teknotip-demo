@@ -99,13 +99,19 @@ function ProductRow({
     }),
   ];
   const showImage = usableProductImage(line.image ?? "");
+  const nameLines = (line.name ?? "").split("\n");
+  const longName = nameLines.length > 1 || (line.name ?? "").length > 120;
 
   return (
-    <View style={s.tableRow} wrap={false}>
+    <View style={s.tableRow} wrap={longName}>
       <Text style={[s.cell, s.colNo]}>{index}</Text>
       <Text style={[s.cell, s.colCode]}>{line.code || "—"}</Text>
       <View style={s.colDesc}>
-        <Text style={s.cellBold}>{line.name}</Text>
+        {nameLines.map((part, nameIndex) => (
+          <Text key={`name-${nameIndex}`} style={s.cellBold}>
+            {part || " "}
+          </Text>
+        ))}
         {specs.map((item) => (
           <Text key={item} style={s.bullet}>
             {item}

@@ -31,6 +31,7 @@ function toRequest(customer: CustomerResponse): CustomerRequest {
     contactPerson: customer.contactPerson,
     title: customer.title,
     phone: customer.phone,
+    extension: customer.extension,
     mobile: customer.mobile,
     fax: customer.fax,
     email: customer.email,
@@ -245,6 +246,12 @@ export function CustomerEditor({
               <TextInput
                 value={draft.phone ?? ""}
                 onChange={(event) => patch({ phone: event.target.value })}
+              />
+            </Field>
+            <Field label="Dahili">
+              <TextInput
+                value={draft.extension ?? ""}
+                onChange={(event) => patch({ extension: event.target.value })}
               />
             </Field>
             <Field label="Cep">

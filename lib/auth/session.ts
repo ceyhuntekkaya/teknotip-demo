@@ -16,10 +16,14 @@ export async function setAuthCookies(tokens: {
 }): Promise<void> {
   const jar = await cookies();
   if (tokens.accessToken) {
+    const accessMaxAge =
+      tokens.expiresIn && tokens.expiresIn > 0
+        ? tokens.expiresIn
+        : ACCESS_MAX_AGE_SECONDS;
     jar.set(
       ACCESS_COOKIE,
       tokens.accessToken,
-      tokenCookieOptions(tokens.expiresIn ?? ACCESS_MAX_AGE_SECONDS),
+      tokenCookieOptions(accessMaxAge),
     );
   }
   if (tokens.refreshToken) {

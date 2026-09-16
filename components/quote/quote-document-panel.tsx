@@ -125,12 +125,19 @@ export function QuoteDocumentPanel({
                     className="border border-[var(--rule)]"
                   >
                     <div className="flex items-start justify-between gap-3 px-3 py-2.5">
-                      <div>
-                        <h3 className="font-display text-lg uppercase tracking-[0.08em]">
+                      <div className="min-w-0">
+                        <h3
+                          className={
+                            line.productId
+                              ? "font-display text-lg uppercase tracking-[0.08em]"
+                              : "whitespace-pre-wrap text-sm leading-snug"
+                          }
+                        >
                           {line.name}
                         </h3>
                         <p className="text-sm text-[var(--steel)]">
-                          {line.code} · {line.quantity ?? 1} adet
+                          {line.code || "—"} · {line.quantity ?? 1} adet
+                          {line.productId ? "" : " · Elle eklenen"}
                         </p>
                       </div>
                       <div className="text-right">

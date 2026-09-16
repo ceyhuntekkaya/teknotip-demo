@@ -5,6 +5,23 @@ import type {
   QuoteResponse,
 } from "@/lib/api/generated/model";
 
+export function isManualLine(line: QuoteLineResponse): boolean {
+  return !line.productId;
+}
+
+export function nextFreeCode(lines: QuoteLineResponse[] | undefined): string {
+  const used = new Set(
+    (lines ?? [])
+      .map((line) => (line.code ?? "").trim())
+      .filter((code) => code.length > 0),
+  );
+  let n = 1;
+  while (used.has(String(n)) || used.has(String(n).padStart(3, "0"))) {
+    n += 1;
+  }
+  return String(n).padStart(3, "0");
+}
+
 export function addProductLine(
   quote: QuoteResponse,
   product: ProductResponse,
@@ -28,6 +45,49 @@ export function addProductLine(
     accessories: [],
   };
   return { ...quote, lines: [...(quote.lines ?? []), line] };
+}
+
+export function addFreeLine(
+  quote: QuoteResponse,
+  input: {
+    code?: string;
+    name: string;
+    quantity?: number;
+    price?: number;
+  },
+): QuoteResponse {
+  const name = input.name.trim();
+  if (!name) return quote;
+  const quantity = Math.max(1, Math.trunc(input.quantity ?? 1) || 1);
+  const price = Number.isFinite(input.price) && (input.price ?? 0) >= 0 ? Number(input.price) : 0;
+  const code = input.code?.trim() || undefined;
+  const line: QuoteLineResponse = {
+    code,
+    name,
+    quantity,
+    price,
+    basePrice: price,
+    lineTotal: undefined,
+    properties: [],
+    accessories: [],
+  };
+  return { ...quote, lines: [...(quote.lines ?? []), line] };
+}
+
+export function moveLine(
+  quote: QuoteResponse,
+  index: number,
+  direction: -1 | 1,
+): QuoteResponse {
+  const lines = [...(quote.lines ?? [])];
+  const target = index + direction;
+  if (target < 0 || target >= lines.length) return quote;
+  const [item] = lines.splice(index, 1);
+  lines.splice(target, 0, item);
+  return {
+    ...quote,
+    lines: lines.map((line, sortOrder) => ({ ...line, sortOrder })),
+  };
 }
 
 export function replaceLine(

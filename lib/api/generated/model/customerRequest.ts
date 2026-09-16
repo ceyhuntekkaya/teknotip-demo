@@ -61,15 +61,21 @@ export interface CustomerRequest {
   /**
      * Sabit telefon
      * @minLength 0
-     * @maxLength 20
-     * @pattern ^$|^[0-9+()\-\s]{7,20}$
+     * @maxLength 50
+     * @pattern ^$|^[0-9+()\-\s]{7,50}$
      */
   phone?: string;
   /**
-     * Cep telefonu
+     * İş telefonu dahili numarası
      * @minLength 0
      * @maxLength 20
-     * @pattern ^$|^[0-9+()\-\s]{7,20}$
+     */
+  extension?: string;
+  /**
+     * Cep telefonu
+     * @minLength 0
+     * @maxLength 50
+     * @pattern ^$|^[0-9+()\-\s]{7,50}$
      */
   mobile?: string;
   /**

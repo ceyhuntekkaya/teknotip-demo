@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function MusterilerPage() {
   const response = await listCustomers({
     page: 0,
-    size: 100,
+    size: 1000,
     sort: ["institution"],
   });
   const customers: CustomerResponse[] =
