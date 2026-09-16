@@ -10,6 +10,16 @@ const nextConfig: NextConfig = {
         destination: "/products",
         permanent: true,
       },
+      {
+        source: "/musteriler",
+        destination: "/customers",
+        permanent: true,
+      },
+      {
+        source: "/musteriler/:path*",
+        destination: "/customers/:path*",
+        permanent: true,
+      },
     ];
   },
 };

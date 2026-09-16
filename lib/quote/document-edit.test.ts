@@ -3,9 +3,11 @@ import type { ProductResponse, QuoteResponse } from "@/lib/api/generated/model";
 import {
   addFreeLine,
   addProductLine,
+  greetingName,
   isManualLine,
   moveLine,
   nextFreeCode,
+  patchQuotedTo,
 } from "@/lib/quote/document-edit";
 
 const emptyQuote: QuoteResponse = { lines: [] };
@@ -58,5 +60,22 @@ describe("document-edit", () => {
     const quote = addFreeLine(emptyQuote, { name: "Tek" });
     expect(moveLine(quote, 0, -1)).toBe(quote);
     expect(moveLine(quote, 0, 1)).toBe(quote);
+  });
+
+  it("greetingName joins title and contact person", () => {
+    expect(greetingName("Prof.", "Ayşe Yılmaz")).toBe("Prof. Ayşe Yılmaz");
+    expect(greetingName(undefined, "Ayşe Yılmaz")).toBe("Ayşe Yılmaz");
+    expect(greetingName("  ", "  ")).toBeUndefined();
+  });
+
+  it("patchQuotedTo updates institution, person and greeting", () => {
+    const next = patchQuotedTo(emptyQuote, {
+      institution: "ODTÜ",
+      contactPerson: "Ayşe Yılmaz",
+      title: "Prof.",
+    });
+    expect(next.quotedTo?.institution).toBe("ODTÜ");
+    expect(next.quotedTo?.contactPerson).toBe("Ayşe Yılmaz");
+    expect(next.quotedTo?.greetingName).toBe("Prof. Ayşe Yılmaz");
   });
 });

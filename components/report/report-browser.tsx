@@ -1,0 +1,336 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { AppNav } from "@/components/layout/app-nav";
+import {
+  ActionButton,
+  Field,
+  Select,
+  TextInput,
+} from "@/components/catalog/fields";
+import { apiErrorMessage } from "@/lib/api/errors";
+import { getQuoteReport } from "@/lib/api/generated/endpoints/quotes/quotes";
+import type {
+  CustomerResponse,
+  ProductResponse,
+  QuoteReportProductResponse,
+  QuoteReportStatsResponse,
+  QuoteSummaryResponse,
+} from "@/lib/api/generated/model";
+import { formatTry } from "@/lib/catalog/price";
+import { displayQuotedDate } from "@/lib/pdf/format";
+
+type ConvertedFilter = "all" | "open" | "converted";
+type ViewMode = "quotes" | "products";
+
+const EMPTY_STATS: QuoteReportStatsResponse = {
+  quoteCount: 0,
+  convertedQuoteCount: 0,
+  totalAmount: 0,
+  convertedAmount: 0,
+};
+
+export function ReportBrowser({
+  products,
+  customers,
+}: {
+  products: ProductResponse[];
+  customers: CustomerResponse[];
+}) {
+  const [customerId, setCustomerId] = useState("");
+  const [query, setQuery] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [productId, setProductId] = useState("");
+  const [converted, setConverted] = useState<ConvertedFilter>("all");
+  const [view, setView] = useState<ViewMode>("quotes");
+  const [quotes, setQuotes] = useState<QuoteSummaryResponse[]>([]);
+  const [productRows, setProductRows] = useState<QuoteReportProductResponse[]>([]);
+  const [stats, setStats] = useState<QuoteReportStatsResponse>(EMPTY_STATS);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      void (async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const response = await getQuoteReport({
+            customerId: customerId || undefined,
+            q: query.trim() || undefined,
+            from: from || undefined,
+            to: to || undefined,
+            productId: productId || undefined,
+            converted:
+              converted === "all" ? undefined : converted === "converted",
+          });
+          if (response.status !== 200) {
+            setError(apiErrorMessage(response.data, "Rapor yüklenemedi."));
+            return;
+          }
+          setQuotes(response.data.quotes ?? []);
+          setProductRows(response.data.products ?? []);
+          setStats(response.data.stats ?? EMPTY_STATS);
+        } catch {
+          setError("Rapor yüklenemedi.");
+        } finally {
+          setLoading(false);
+        }
+      })();
+    }, 300);
+    return () => window.clearTimeout(handle);
+  }, [customerId, query, from, to, productId, converted]);
+
+  return (
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--rule)] px-5 py-3">
+        <div>
+          <p className="font-display text-[11px] uppercase tracking-[0.22em] text-[var(--steel)]">
+            TeknoTip · Raporlar
+          </p>
+          <h1 className="font-display text-2xl leading-none tracking-wide">Özet</h1>
+        </div>
+        <AppNav />
+      </header>
+
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-5">
+        <section className="grid gap-3 border border-[var(--rule)] bg-[var(--paper)] p-4 lg:grid-cols-4">
+          <Field label="Müşteri">
+            <Select
+              value={customerId}
+              onChange={(event) => setCustomerId(event.target.value)}
+            >
+              <option value="">Tümü</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.institution}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Müşteri yaz">
+            <TextInput
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Kurum veya yetkili"
+            />
+          </Field>
+          <Field label="Başlangıç">
+            <TextInput
+              type="date"
+              value={from}
+              onChange={(event) => setFrom(event.target.value)}
+            />
+          </Field>
+          <Field label="Bitiş">
+            <TextInput
+              type="date"
+              value={to}
+              onChange={(event) => setTo(event.target.value)}
+            />
+          </Field>
+          <Field label="Ürün">
+            <Select
+              value={productId}
+              onChange={(event) => setProductId(event.target.value)}
+            >
+              <option value="">Tümü</option>
+              {products.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.code} · {product.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <div className="grid gap-1.5 lg:col-span-2">
+            <span className="font-display text-[11px] uppercase tracking-[0.18em] text-[var(--steel)]">
+              Durum
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <FilterButton
+                active={converted === "open"}
+                onClick={() => setConverted("open")}
+              >
+                Teklifler
+              </FilterButton>
+              <FilterButton
+                active={converted === "converted"}
+                onClick={() => setConverted("converted")}
+              >
+                Satışa Dönüşenler
+              </FilterButton>
+              <FilterButton
+                active={converted === "all"}
+                onClick={() => setConverted("all")}
+              >
+                Tümü
+              </FilterButton>
+            </div>
+          </div>
+          <div className="grid gap-1.5">
+            <span className="font-display text-[11px] uppercase tracking-[0.18em] text-[var(--steel)]">
+              Görünüm
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <FilterButton
+                active={view === "quotes"}
+                onClick={() => setView("quotes")}
+              >
+                Teklif Bazlı
+              </FilterButton>
+              <FilterButton
+                active={view === "products"}
+                onClick={() => setView("products")}
+              >
+                Ürün Bazlı
+              </FilterButton>
+            </div>
+          </div>
+        </section>
+
+        {error ? <p className="text-sm text-[#8f2d1f]">{error}</p> : null}
+        <p className="text-xs text-[var(--steel)]">
+          {loading ? "Yükleniyor…" : `${stats.quoteCount ?? 0} teklif`}
+        </p>
+
+        {view === "quotes" ? (
+          <QuoteTable quotes={quotes} />
+        ) : (
+          <ProductTable rows={productRows} />
+        )}
+
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <StatBox label="Toplam tutar" value={formatTry(stats.totalAmount ?? 0)} />
+          <StatBox
+            label="Satışa dönüşen tutar"
+            value={formatTry(stats.convertedAmount ?? 0)}
+          />
+          <StatBox label="Teklif sayısı" value={String(stats.quoteCount ?? 0)} />
+          <StatBox
+            label="Satışa dönüşen teklif"
+            value={String(stats.convertedQuoteCount ?? 0)}
+          />
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function FilterButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <ActionButton tone={active ? "heat" : "default"} onClick={onClick}>
+      {children}
+    </ActionButton>
+  );
+}
+
+function QuoteTable({ quotes }: { quotes: QuoteSummaryResponse[] }) {
+  return (
+    <div className="overflow-x-auto border border-[var(--rule)] bg-[var(--paper)]">
+      <table className="w-full min-w-[40rem] text-left text-sm">
+        <thead className="border-b border-[var(--rule)] font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
+          <tr>
+            <th className="px-3 py-2 font-medium">Numara</th>
+            <th className="px-3 py-2 font-medium">Tarih</th>
+            <th className="px-3 py-2 font-medium">Kurum</th>
+            <th className="px-3 py-2 font-medium">Yetkili</th>
+            <th className="px-3 py-2 text-right font-medium">Tutar (KDV dahil)</th>
+            <th className="px-3 py-2 font-medium">Durum</th>
+          </tr>
+        </thead>
+        <tbody>
+          {quotes.length === 0 ? (
+            <tr>
+              <td colSpan={6} className="px-3 py-8 text-center text-[var(--steel)]">
+                Kayıt yok.
+              </td>
+            </tr>
+          ) : (
+            quotes.map((item) => (
+              <tr key={item.id} className="border-t border-[var(--rule)]">
+                <td className="px-3 py-2 font-mono text-xs">
+                  {item.quoteNumber || "—"}
+                  {(item.versionNumber ?? 1) > 1 ? ` · v${item.versionNumber}` : ""}
+                </td>
+                <td className="px-3 py-2">{displayQuotedDate(item.quotedDate)}</td>
+                <td className="px-3 py-2">{item.institution || "—"}</td>
+                <td className="px-3 py-2">{item.contactPerson || "—"}</td>
+                <td className="px-3 py-2 text-right font-mono">
+                  {formatTry(item.totalAfterTax ?? 0)}
+                </td>
+                <td className="px-3 py-2">
+                  {item.convertedToSale ? "Satış" : "Teklif"}
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ProductTable({ rows }: { rows: QuoteReportProductResponse[] }) {
+  return (
+    <div className="overflow-x-auto border border-[var(--rule)] bg-[var(--paper)]">
+      <table className="w-full min-w-[32rem] text-left text-sm">
+        <thead className="border-b border-[var(--rule)] font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
+          <tr>
+            <th className="px-3 py-2 font-medium">Ürün</th>
+            <th className="px-3 py-2 text-right font-medium">Adet</th>
+            <th className="px-3 py-2 text-right font-medium">
+              Satır toplamı (KDV hariç)
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={3} className="px-3 py-8 text-center text-[var(--steel)]">
+                Kayıt yok.
+              </td>
+            </tr>
+          ) : (
+            rows.map((row, index) => (
+              <tr
+                key={row.productId ?? `${row.name}-${index}`}
+                className="border-t border-[var(--rule)]"
+              >
+                <td className="px-3 py-2">
+                  <p>{row.name || "—"}</p>
+                  {row.code ? (
+                    <p className="font-mono text-xs text-[var(--steel)]">{row.code}</p>
+                  ) : null}
+                </td>
+                <td className="px-3 py-2 text-right font-mono">{row.quantity ?? 0}</td>
+                <td className="px-3 py-2 text-right font-mono">
+                  {formatTry(row.total ?? 0)}
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function StatBox({ label, value }: { label: string; value: string }) {
+  return (
+    <article className="border border-[var(--rule)] bg-[var(--paper)] px-4 py-3">
+      <p className="font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
+        {label}
+      </p>
+      <p className="font-mono text-xl text-[var(--heat)]">{value}</p>
+    </article>
+  );
+}

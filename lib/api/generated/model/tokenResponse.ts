@@ -32,7 +32,7 @@ export interface TokenResponse {
   refreshToken?: string;
   /** Token tipi */
   tokenType?: string;
-  /** Access token ömrü (saniye) */
+  /** Çerez ömrü (saniye). Access JWT süresiz olabilir. */
   expiresIn?: number;
   /** Giriş yapan kullanıcı */
   user?: UserResponse;

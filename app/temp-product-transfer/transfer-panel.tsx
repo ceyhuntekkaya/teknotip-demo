@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { LogoutButton } from "@/components/auth/logout-button";
+import { AppNav } from "@/components/layout/app-nav";
 
 type PendingItem = {
   id: string;
@@ -138,8 +137,8 @@ export function TransferPanel() {
   ).length;
 
   return (
-    <div className="grid min-h-full flex-1 grid-rows-[auto_1fr]">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--rule)] px-5 py-3">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--rule)] px-5 py-3">
         <div>
           <p className="font-display text-[11px] uppercase tracking-[0.22em] text-[var(--steel)]">
             TeknoTip · Geçici
@@ -148,18 +147,10 @@ export function TransferPanel() {
             Temp Product Transfer
           </h1>
         </div>
-        <nav className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/products"
-            className="inline-flex h-9 items-center px-3 font-display text-[13px] uppercase tracking-[0.12em] text-[var(--steel)] hover:text-[var(--charcoal)]"
-          >
-            Ürünler
-          </Link>
-          <LogoutButton />
-        </nav>
+        <AppNav />
       </header>
 
-      <section className="min-h-0 overflow-y-auto p-5">
+      <section className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5">
         <div className="mx-auto grid max-w-6xl gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-4 font-mono text-sm text-[var(--steel)]">

@@ -23,6 +23,7 @@
 import type { QuoteLineResponse } from './quoteLineResponse';
 import type { QuotePriceSummaryResponse } from './quotePriceSummaryResponse';
 import type { QuoteQuotedToResponse } from './quoteQuotedToResponse';
+import type { QuoteVersionResponse } from './quoteVersionResponse';
 
 /**
  * Teklif belgesinin detayı
@@ -54,6 +55,10 @@ export interface QuoteResponse {
   priceSummary?: QuotePriceSummaryResponse;
   /** Teklif satırları */
   lines?: QuoteLineResponse[];
+  /** Satışa dönüştü mü */
+  convertedToSale?: boolean;
+  /** Aynı teklif ailesindeki sürümler, oluşturma sırasıyla */
+  versions?: QuoteVersionResponse[];
   /** Kayıt aktif mi */
   active?: boolean;
   /** Oluşturulma zamanı */

@@ -20,8 +20,11 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/teklif") ||
     pathname.startsWith("/products") ||
     pathname.startsWith("/quotes") ||
+    pathname.startsWith("/reports") ||
     pathname.startsWith("/data-json") ||
+    pathname.startsWith("/customers") ||
     pathname.startsWith("/musteriler") ||
+    pathname.startsWith("/organized-products") ||
     pathname.startsWith("/temp-product-transfer");
 
   if (isPrivate && !authed) {
@@ -39,8 +42,13 @@ export const config = {
     "/teklif/:path*",
     "/products/:path*",
     "/quotes/:path*",
+    "/reports",
+    "/reports/:path*",
     "/data-json/:path*",
+    "/customers/:path*",
     "/musteriler/:path*",
+    "/organized-products",
+    "/organized-products/:path*",
     "/temp-product-transfer",
     "/temp-product-transfer/:path*",
     "/backend/:path*",

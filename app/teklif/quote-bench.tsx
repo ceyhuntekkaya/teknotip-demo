@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LogoutButton } from "@/components/auth/logout-button";
+import { useRouter } from "next/navigation";
+import { AppNav } from "@/components/layout/app-nav";
 import { ActionButton } from "@/components/catalog/fields";
 import { QuoteDocumentPanel } from "@/components/quote/quote-document-panel";
 import { VoiceLevel } from "@/components/teklif/voice-level";
@@ -10,7 +10,9 @@ import { apiErrorMessage } from "@/lib/api/errors";
 import {
   chatWithQuote,
   createQuote,
+  createQuoteVersion,
   getQuoteById,
+  setQuoteConverted,
   updateQuote,
 } from "@/lib/api/generated/endpoints/quotes/quotes";
 import type {
@@ -41,10 +43,15 @@ import { isUsableTranscript } from "@/lib/stt/vad";
 export function QuoteBench({
   products,
   customers,
+  initialQuoteId,
+  openInEdit = false,
 }: {
   products: ProductResponse[];
   customers: CustomerResponse[];
+  initialQuoteId?: string;
+  openInEdit?: boolean;
 }) {
+  const router = useRouter();
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -142,14 +149,93 @@ export function QuoteBench({
     }, 600);
   };
 
+  const createVersion = async () => {
+    await flushPersist();
+    const current = quoteRef.current;
+    if (!current?.id) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await createQuoteVersion(current.id);
+      if (response.status !== 201) {
+        setError(apiErrorMessage(response.data, "Versiyon üretilemedi."));
+        return;
+      }
+      setQuote(response.data);
+      setMessages([]);
+      saveQuoteWorkspace({
+        version: 3,
+        quoteId: response.data.id ?? null,
+        messages: [],
+      });
+      if (response.data.id) {
+        router.replace(`/teklif?quoteId=${encodeURIComponent(response.data.id)}`);
+      }
+    } catch {
+      setError("Versiyon üretilemedi.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const selectVersion = async (id: string) => {
+    if (id === quoteRef.current?.id) return;
+    await flushPersist();
+    setError(null);
+    const response = await getQuoteById(id);
+    if (response.status !== 200) {
+      setError(apiErrorMessage(response.data, "Teklif yüklenemedi."));
+      return;
+    }
+    setQuote(response.data);
+    saveQuoteWorkspace({
+      version: 3,
+      quoteId: response.data.id ?? null,
+      messages: messagesRef.current,
+    });
+  };
+
+  const toggleConverted = async () => {
+    const current = quoteRef.current;
+    if (!current?.id) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await setQuoteConverted(current.id, {
+        converted: !current.convertedToSale,
+      });
+      if (response.status !== 200) {
+        setError(apiErrorMessage(response.data, "Satış durumu güncellenemedi."));
+        return;
+      }
+      setQuote(response.data);
+    } catch {
+      setError("Satış durumu güncellenemedi.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   useEffect(() => {
     const workspace = loadQuoteWorkspace();
-    setMessages(workspace.messages);
+    const fromQuotes = Boolean(initialQuoteId);
+    const targetId = initialQuoteId ?? workspace.quoteId;
+    const nextMessages = fromQuotes ? [] : workspace.messages;
+    setMessages(nextMessages);
     void (async () => {
-      if (workspace.quoteId) {
-        const existing = await getQuoteById(workspace.quoteId);
+      if (targetId) {
+        const existing = await getQuoteById(targetId);
         if (existing.status === 200) {
           setQuote(existing.data);
+          saveQuoteWorkspace({
+            version: 3,
+            quoteId: existing.data.id ?? null,
+            messages: nextMessages,
+          });
+          return;
+        }
+        if (fromQuotes) {
+          setError(apiErrorMessage(existing.data, "Teklif yüklenemedi."));
           return;
         }
       }
@@ -159,13 +245,13 @@ export function QuoteBench({
         saveQuoteWorkspace({
           version: 3,
           quoteId: created.data.id ?? null,
-          messages: workspace.messages,
+          messages: nextMessages,
         });
       } else {
         setError(apiErrorMessage(created.data, "Teklif açılamadı."));
       }
     })();
-  }, []);
+  }, [initialQuoteId]);
 
   useEffect(() => {
     if (skipSave.current) {
@@ -398,27 +484,7 @@ export function QuoteBench({
           </p>
           <h1 className="font-display text-3xl leading-none tracking-wide">Teklif</h1>
         </div>
-        <nav className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/products"
-            className="inline-flex h-9 items-center justify-center border border-transparent px-3 font-display text-[13px] uppercase tracking-[0.12em] text-[var(--steel)] hover:text-[var(--charcoal)]"
-          >
-            Katalog
-          </Link>
-          <Link
-            href="/musteriler"
-            className="inline-flex h-9 items-center justify-center border border-transparent px-3 font-display text-[13px] uppercase tracking-[0.12em] text-[var(--steel)] hover:text-[var(--charcoal)]"
-          >
-            Müşteriler
-          </Link>
-          <Link
-            href="/quotes"
-            className="inline-flex h-9 items-center justify-center border border-transparent px-3 font-display text-[13px] uppercase tracking-[0.12em] text-[var(--steel)] hover:text-[var(--charcoal)]"
-          >
-            Teklifler
-          </Link>
-          <LogoutButton />
-        </nav>
+        <AppNav />
       </header>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto p-3 lg:grid-cols-[minmax(0,22rem)_1fr] lg:overflow-hidden xl:grid-cols-[minmax(0,28rem)_1fr]">
@@ -529,8 +595,12 @@ export function QuoteBench({
           products={products}
           customers={customers}
           saving={saving}
+          defaultView={openInEdit ? "edit" : "quote"}
           emptyHint="Düzenlemeden ürün ekleyin veya soldan bir istek yazın."
           onChange={schedulePersist}
+          onCreateVersion={() => void createVersion()}
+          onSelectVersion={(id) => void selectVersion(id)}
+          onToggleConverted={() => void toggleConverted()}
         />
       </div>
     </div>

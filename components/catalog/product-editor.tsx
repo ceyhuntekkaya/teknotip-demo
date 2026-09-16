@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import {
   createProduct,
   deleteProduct,
@@ -15,7 +14,7 @@ import type {
 import { ProductPropertyRequestType } from "@/lib/api/generated/model";
 import { apiErrorMessage, isSuccessStatus } from "@/lib/api/errors";
 import { emptyProductDraft, productToRequest } from "@/lib/api/map";
-import { LogoutButton } from "@/components/auth/logout-button";
+import { SplitWorkspace } from "@/components/layout/split-workspace";
 import {
   ActionButton,
   Field,
@@ -117,221 +116,141 @@ export function ProductEditor({ initialProducts }: { initialProducts: ProductRes
   };
 
   return (
-    <div className="grid min-h-full flex-1 grid-rows-[auto_1fr]">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--rule)] px-5 py-3">
-        <div>
-          <p className="font-display text-[11px] uppercase tracking-[0.22em] text-[var(--steel)]">
-            TeknoTip · Katalog
+    <SplitWorkspace
+      eyebrow="TeknoTip · Katalog"
+      title="Ürünler"
+      listHeader={
+        <div className="flex items-center justify-between px-4 py-3">
+          <p className="font-display text-[11px] uppercase tracking-[0.18em] text-[var(--steel)]">
+            Liste
           </p>
-          <h1 className="font-display text-2xl leading-none tracking-wide">Ürünler</h1>
+          <ActionButton tone="heat" onClick={() => selectProduct(null)}>
+            Yeni
+          </ActionButton>
         </div>
-        <nav className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/musteriler"
-            className="inline-flex h-9 items-center px-3 font-display text-[13px] uppercase tracking-[0.12em] text-[var(--steel)] hover:text-[var(--charcoal)]"
-          >
-            Müşteriler
-          </Link>
-          <Link
-            href="/quotes"
-            className="inline-flex h-9 items-center px-3 font-display text-[13px] uppercase tracking-[0.12em] text-[var(--steel)] hover:text-[var(--charcoal)]"
-          >
-            Teklifler
-          </Link>
-          <Link
-            href="/teklif"
-            className="inline-flex h-9 items-center px-3 font-display text-[13px] uppercase tracking-[0.12em] text-[var(--steel)] hover:text-[var(--charcoal)]"
-          >
-            Teklif
-          </Link>
-          <LogoutButton />
-        </nav>
-      </header>
+      }
+      list={
+        <ul>
+          {products.map((product) => (
+            <li key={product.id}>
+              <button
+                type="button"
+                onClick={() => selectProduct(product)}
+                className={`flex w-full flex-col items-start gap-0.5 border-t border-[var(--rule)] px-4 py-3 text-left text-sm ${
+                  selectedId === product.id
+                    ? "bg-[var(--mist)] text-[var(--charcoal)]"
+                    : "text-[var(--steel)] hover:text-[var(--charcoal)]"
+                }`}
+              >
+                <span>{product.name}</span>
+                <span className="font-mono text-xs">{product.code}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      }
+    >
+      <div className="mx-auto grid max-w-3xl gap-6">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Kod">
+            <TextInput
+              value={draft.code}
+              onChange={(event) => patch({ code: event.target.value })}
+              required
+            />
+          </Field>
+          <Field label="Ad">
+            <TextInput
+              value={draft.name}
+              onChange={(event) => patch({ name: event.target.value })}
+              required
+            />
+          </Field>
+          <Field label="Fiyat">
+            <NumberInput
+              min={0}
+              step="0.01"
+              value={draft.price}
+              onChange={(event) => patch({ price: Number(event.target.value) || 0 })}
+            />
+          </Field>
+          <Field label="Kategori">
+            <TextInput
+              value={draft.category ?? ""}
+              onChange={(event) => patch({ category: event.target.value })}
+            />
+          </Field>
+          <Field label="Görsel URL">
+            <TextInput
+              value={draft.image ?? ""}
+              onChange={(event) => patch({ image: event.target.value })}
+            />
+          </Field>
+        </div>
+        <Field label="Açıklama">
+          <TextArea
+            value={draft.description ?? ""}
+            onChange={(event) => patch({ description: event.target.value })}
+          />
+        </Field>
 
-      <div className="grid min-h-0 grid-cols-1 lg:grid-cols-[16rem_1fr]">
-        <aside className="min-h-0 overflow-y-auto border-b border-[var(--rule)] lg:border-b-0 lg:border-r">
-          <div className="flex items-center justify-between px-4 py-3">
-            <p className="font-display text-[11px] uppercase tracking-[0.18em] text-[var(--steel)]">
-              Liste
-            </p>
-            <ActionButton tone="heat" onClick={() => selectProduct(null)}>
-              Yeni
+        <div className="grid gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-lg tracking-wide">Özellikler</h2>
+            <ActionButton
+              onClick={() =>
+                patch({
+                  properties: [
+                    ...(draft.properties ?? []),
+                    {
+                      name: "",
+                      type: ProductPropertyRequestType.SINGLE_CHOICE,
+                      values: [""],
+                    },
+                  ],
+                })
+              }
+            >
+              Özellik ekle
             </ActionButton>
           </div>
-          <ul className="grid">
-            {products.map((product) => (
-              <li key={product.id}>
-                <button
-                  type="button"
-                  onClick={() => selectProduct(product)}
-                  className={`flex w-full flex-col items-start gap-0.5 border-t border-[var(--rule)] px-4 py-3 text-left text-sm ${
-                    selectedId === product.id
-                      ? "bg-[var(--mist)] text-[var(--charcoal)]"
-                      : "text-[var(--steel)] hover:text-[var(--charcoal)]"
-                  }`}
-                >
-                  <span>{product.name}</span>
-                  <span className="font-mono text-xs">{product.code}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </aside>
-
-        <section className="min-h-0 overflow-y-auto p-5">
-          <div className="mx-auto grid max-w-3xl gap-6">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Kod">
-                <TextInput
-                  value={draft.code}
-                  onChange={(event) => patch({ code: event.target.value })}
-                  required
-                />
-              </Field>
-              <Field label="Ad">
-                <TextInput
-                  value={draft.name}
-                  onChange={(event) => patch({ name: event.target.value })}
-                  required
-                />
-              </Field>
-              <Field label="Fiyat">
-                <NumberInput
-                  min={0}
-                  step="0.01"
-                  value={draft.price}
-                  onChange={(event) => patch({ price: Number(event.target.value) || 0 })}
-                />
-              </Field>
-              <Field label="Kategori">
-                <TextInput
-                  value={draft.category ?? ""}
-                  onChange={(event) => patch({ category: event.target.value })}
-                />
-              </Field>
-              <Field label="Görsel URL">
-                <TextInput
-                  value={draft.image ?? ""}
-                  onChange={(event) => patch({ image: event.target.value })}
-                />
-              </Field>
-            </div>
-            <Field label="Açıklama">
-              <TextArea
-                value={draft.description ?? ""}
-                onChange={(event) => patch({ description: event.target.value })}
-              />
-            </Field>
-
-            <div className="grid gap-3">
-              <div className="flex items-center justify-between">
-                <h2 className="font-display text-lg tracking-wide">Özellikler</h2>
-                <ActionButton
-                  onClick={() =>
-                    patch({
-                      properties: [
-                        ...(draft.properties ?? []),
-                        {
-                          name: "",
-                          type: ProductPropertyRequestType.SINGLE_CHOICE,
-                          values: [""],
-                        },
-                      ],
-                    })
-                  }
-                >
-                  Özellik ekle
-                </ActionButton>
-              </div>
-              {(draft.properties ?? []).map((property, index) => (
-                <article
-                  key={`property-${index}`}
-                  className="grid gap-3 border border-[var(--rule)] p-4"
-                >
-                  <div className="grid gap-3 sm:grid-cols-[1fr_10rem_auto]">
-                    <Field label="Ad">
-                      <TextInput
-                        value={property.name}
-                        onChange={(event) =>
-                          patchProperty(index, { name: event.target.value })
-                        }
-                      />
-                    </Field>
-                    <Field label="Tip">
-                      <Select
-                        value={property.type}
-                        onChange={(event) =>
-                          patchProperty(index, {
-                            type: event.target.value as ProductPropertyRequest["type"],
-                          })
-                        }
-                      >
-                        <option value={ProductPropertyRequestType.SINGLE_CHOICE}>
-                          Tek seçim
-                        </option>
-                        <option value={ProductPropertyRequestType.MULTIPLE_CHOICE}>
-                          Çoklu seçim
-                        </option>
-                      </Select>
-                    </Field>
-                    <div className="flex items-end">
-                      <ActionButton
-                        tone="danger"
-                        onClick={() =>
-                          patch({
-                            properties: (draft.properties ?? []).filter(
-                              (_, itemIndex) => itemIndex !== index,
-                            ),
-                          })
-                        }
-                      >
-                        Sil
-                      </ActionButton>
-                    </div>
-                  </div>
-                  <Field label="Değerler (satır satır)">
-                    <TextArea
-                      value={(property.values ?? []).join("\n")}
-                      onChange={(event) =>
-                        patchProperty(index, {
-                          values: event.target.value.split("\n"),
-                        })
-                      }
-                    />
-                  </Field>
-                </article>
-              ))}
-            </div>
-
-            <div className="grid gap-3">
-              <div className="flex items-center justify-between">
-                <h2 className="font-display text-lg tracking-wide">Aksesuarlar</h2>
-                <ActionButton
-                  onClick={() =>
-                    patch({
-                      accessories: [...(draft.accessories ?? []), { name: "" }],
-                    })
-                  }
-                >
-                  Aksesuar ekle
-                </ActionButton>
-              </div>
-              {(draft.accessories ?? []).map((accessory, index) => (
-                <div key={`acc-${index}`} className="flex gap-3">
+          {(draft.properties ?? []).map((property, index) => (
+            <article
+              key={`property-${index}`}
+              className="grid gap-3 border border-[var(--rule)] p-4"
+            >
+              <div className="grid gap-3 sm:grid-cols-[1fr_10rem_auto]">
+                <Field label="Ad">
                   <TextInput
-                    value={accessory.name}
-                    placeholder="Aksesuar adı"
-                    onChange={(event) => {
-                      const accessories = [...(draft.accessories ?? [])];
-                      accessories[index] = { name: event.target.value };
-                      patch({ accessories });
-                    }}
+                    value={property.name}
+                    onChange={(event) =>
+                      patchProperty(index, { name: event.target.value })
+                    }
                   />
+                </Field>
+                <Field label="Tip">
+                  <Select
+                    value={property.type}
+                    onChange={(event) =>
+                      patchProperty(index, {
+                        type: event.target.value as ProductPropertyRequest["type"],
+                      })
+                    }
+                  >
+                    <option value={ProductPropertyRequestType.SINGLE_CHOICE}>
+                      Tek seçim
+                    </option>
+                    <option value={ProductPropertyRequestType.MULTIPLE_CHOICE}>
+                      Çoklu seçim
+                    </option>
+                  </Select>
+                </Field>
+                <div className="flex items-end">
                   <ActionButton
                     tone="danger"
                     onClick={() =>
                       patch({
-                        accessories: (draft.accessories ?? []).filter(
+                        properties: (draft.properties ?? []).filter(
                           (_, itemIndex) => itemIndex !== index,
                         ),
                       })
@@ -340,31 +259,81 @@ export function ProductEditor({ initialProducts }: { initialProducts: ProductRes
                     Sil
                   </ActionButton>
                 </div>
-              ))}
-            </div>
+              </div>
+              <Field label="Değerler (satır satır)">
+                <TextArea
+                  value={(property.values ?? []).join("\n")}
+                  onChange={(event) =>
+                    patchProperty(index, {
+                      values: event.target.value.split("\n"),
+                    })
+                  }
+                />
+              </Field>
+            </article>
+          ))}
+        </div>
 
-            {error ? <p className="text-sm text-[#8f2d1f]">{error}</p> : null}
-            {status === "saved" ? (
-              <p className="text-sm text-[var(--steel)]">Kaydedildi.</p>
-            ) : null}
-            <div className="flex flex-wrap gap-2">
-              <ActionButton tone="heat" disabled={status === "saving"} onClick={() => void save()}>
-                Kaydet
-              </ActionButton>
-              {selectedId && selectedId !== "new" ? (
-                <ActionButton tone="danger" onClick={() => void remove()}>
-                  Sil
-                </ActionButton>
-              ) : null}
-            </div>
-            {selected?.updatedAt ? (
-              <p className="text-xs text-[var(--steel)]">
-                Son güncelleme: {selected.updatedAt}
-              </p>
-            ) : null}
+        <div className="grid gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-lg tracking-wide">Aksesuarlar</h2>
+            <ActionButton
+              onClick={() =>
+                patch({
+                  accessories: [...(draft.accessories ?? []), { name: "" }],
+                })
+              }
+            >
+              Aksesuar ekle
+            </ActionButton>
           </div>
-        </section>
+          {(draft.accessories ?? []).map((accessory, index) => (
+            <div key={`acc-${index}`} className="flex gap-3">
+              <TextInput
+                value={accessory.name}
+                placeholder="Aksesuar adı"
+                onChange={(event) => {
+                  const accessories = [...(draft.accessories ?? [])];
+                  accessories[index] = { name: event.target.value };
+                  patch({ accessories });
+                }}
+              />
+              <ActionButton
+                tone="danger"
+                onClick={() =>
+                  patch({
+                    accessories: (draft.accessories ?? []).filter(
+                      (_, itemIndex) => itemIndex !== index,
+                    ),
+                  })
+                }
+              >
+                Sil
+              </ActionButton>
+            </div>
+          ))}
+        </div>
+
+        {error ? <p className="text-sm text-[#8f2d1f]">{error}</p> : null}
+        {status === "saved" ? (
+          <p className="text-sm text-[var(--steel)]">Kaydedildi.</p>
+        ) : null}
+        <div className="flex flex-wrap gap-2">
+          <ActionButton tone="heat" disabled={status === "saving"} onClick={() => void save()}>
+            Kaydet
+          </ActionButton>
+          {selectedId && selectedId !== "new" ? (
+            <ActionButton tone="danger" onClick={() => void remove()}>
+              Sil
+            </ActionButton>
+          ) : null}
+        </div>
+        {selected?.updatedAt ? (
+          <p className="text-xs text-[var(--steel)]">
+            Son güncelleme: {selected.updatedAt}
+          </p>
+        ) : null}
       </div>
-    </div>
+    </SplitWorkspace>
   );
 }

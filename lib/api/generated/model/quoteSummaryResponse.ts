@@ -39,6 +39,8 @@ export interface QuoteSummaryResponse {
   totalAfterTax?: number;
   /** Sürüm numarası */
   versionNumber?: number;
+  /** Satışa dönüştü mü */
+  convertedToSale?: boolean;
   /** Kayıt aktif mi */
   active?: boolean;
   /** Son güncelleme zamanı */

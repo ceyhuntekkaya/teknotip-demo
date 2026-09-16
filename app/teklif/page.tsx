@@ -4,7 +4,12 @@ import { QuoteBench } from "./quote-bench";
 
 export const dynamic = "force-dynamic";
 
-export default async function TeklifPage() {
+export default async function TeklifPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ quoteId?: string; edit?: string }>;
+}) {
+  const params = await searchParams;
   const [productResponse, customerResponse] = await Promise.all([
     listProducts({ page: 0, size: 100, sort: ["name"] }),
     listCustomers({ page: 0, size: 1000, sort: ["institution"] }),
@@ -14,5 +19,12 @@ export default async function TeklifPage() {
   const customers: CustomerResponse[] =
     customerResponse.status === 200 ? (customerResponse.data.content ?? []) : [];
 
-  return <QuoteBench products={products} customers={customers} />;
+  return (
+    <QuoteBench
+      products={products}
+      customers={customers}
+      initialQuoteId={params.quoteId}
+      openInEdit={params.edit === "1"}
+    />
+  );
 }

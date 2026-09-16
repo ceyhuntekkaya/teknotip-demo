@@ -107,6 +107,17 @@ export function removeLine(quote: QuoteResponse, index: number): QuoteResponse {
   };
 }
 
+export function greetingName(
+  title?: string,
+  contactPerson?: string,
+): string | undefined {
+  const value = [title, contactPerson]
+    .map((part) => part?.trim())
+    .filter((part) => part)
+    .join(" ");
+  return value || undefined;
+}
+
 export function applyCustomer(
   quote: QuoteResponse,
   customer: CustomerResponse | null,
@@ -133,7 +144,22 @@ export function applyCustomer(
       address: customer.address,
       taxOffice: customer.taxOffice,
       taxNumber: customer.taxNumber,
-      greetingName: customer.greetingName,
+      greetingName:
+        customer.greetingName ?? greetingName(customer.title, customer.contactPerson),
+    },
+  };
+}
+
+export function patchQuotedTo(
+  quote: QuoteResponse,
+  patch: Partial<NonNullable<QuoteResponse["quotedTo"]>>,
+): QuoteResponse {
+  const quoted = { ...quote.quotedTo, ...patch };
+  return {
+    ...quote,
+    quotedTo: {
+      ...quoted,
+      greetingName: greetingName(quoted.title, quoted.contactPerson),
     },
   };
 }

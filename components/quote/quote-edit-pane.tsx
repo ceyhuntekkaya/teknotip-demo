@@ -25,6 +25,7 @@ import {
   isManualLine,
   moveLine,
   nextFreeCode,
+  patchQuotedTo,
   removeLine,
   replaceLine,
 } from "@/lib/quote/document-edit";
@@ -86,12 +87,24 @@ export function QuoteEditPane({
   const lines = quote.lines ?? [];
 
   const patchQuoted = (patch: Partial<NonNullable<QuoteResponse["quotedTo"]>>) => {
-    onChange({ ...quote, quotedTo: { ...quoted, ...patch } });
+    onChange(patchQuotedTo(quote, patch));
   };
 
   return (
     <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain p-4">
       <section className="grid gap-3 sm:grid-cols-2">
+        <Field label="Teklif tarihi">
+          <TextInput
+            type="date"
+            value={quote.quotedDate ?? ""}
+            onChange={(event) =>
+              onChange({
+                ...quote,
+                quotedDate: event.target.value || undefined,
+              })
+            }
+          />
+        </Field>
         <Field label="Müşteri kaydı">
           <Select
             value={quoted.customerId ?? ""}
@@ -109,13 +122,13 @@ export function QuoteEditPane({
             ))}
           </Select>
         </Field>
-        <Field label="Kurum">
+        <Field label="Teklif verilen kurum">
           <TextInput
             value={quoted.institution ?? ""}
             onChange={(event) => patchQuoted({ institution: event.target.value })}
           />
         </Field>
-        <Field label="Yetkili">
+        <Field label="İlgili kişi">
           <TextInput
             value={quoted.contactPerson ?? ""}
             onChange={(event) => patchQuoted({ contactPerson: event.target.value })}

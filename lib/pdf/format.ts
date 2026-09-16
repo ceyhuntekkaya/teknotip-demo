@@ -14,6 +14,11 @@ export function formatQuoteDate(iso: string): string {
   return `${day}.${month}.${date.getFullYear()}`;
 }
 
+export function displayQuotedDate(iso?: string): string {
+  if (!iso?.trim()) return "—";
+  return formatQuoteDate(iso);
+}
+
 export function addDaysFormatted(iso: string, days: number): string {
   const date = iso.trim() ? parseIsoDate(iso) : new Date();
   date.setDate(date.getDate() + days);

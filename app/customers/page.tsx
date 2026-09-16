@@ -4,7 +4,7 @@ import { listCustomers } from "@/lib/api/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function MusterilerPage() {
+export default async function CustomersPage() {
   const response = await listCustomers({
     page: 0,
     size: 1000,

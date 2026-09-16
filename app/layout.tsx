@@ -29,10 +29,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="tr"
-      className={`${plexSans.variable} ${plexMono.variable} ${barlow.variable} h-full antialiased`}
+      className={`${plexSans.variable} ${plexMono.variable} ${barlow.variable} h-dvh overflow-hidden antialiased`}
       suppressHydrationWarning
     >
-      <body className="kiln-bench min-h-full flex flex-col" suppressHydrationWarning>
+      <body className="kiln-bench flex h-dvh flex-col overflow-hidden" suppressHydrationWarning>
         {children}
       </body>
     </html>

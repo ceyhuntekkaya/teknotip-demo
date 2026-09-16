@@ -22,11 +22,14 @@
  */
 import type {
   ApiError,
+  GetQuoteReportParams,
   ListQuotesParams,
   MessageResponse,
   PageQuoteSummaryResponse,
   QuoteChatRequest,
   QuoteChatResponse,
+  QuoteConvertedRequest,
+  QuoteReportResponse,
   QuoteRequest,
   QuoteResponse
 } from '../../model';
@@ -442,6 +445,79 @@ return customFetch<createQuoteResponse>(getCreateQuoteUrl(),
 );}
 
 
+export type createQuoteVersionResponse201 = {
+  data: QuoteResponse
+  status: 201
+}
+
+export type createQuoteVersionResponse400 = {
+  data: ApiError
+  status: 400
+}
+
+export type createQuoteVersionResponse401 = {
+  data: ApiError
+  status: 401
+}
+
+export type createQuoteVersionResponse403 = {
+  data: ApiError
+  status: 403
+}
+
+export type createQuoteVersionResponse404 = {
+  data: ApiError
+  status: 404
+}
+
+export type createQuoteVersionResponse409 = {
+  data: ApiError
+  status: 409
+}
+
+export type createQuoteVersionResponse422 = {
+  data: ApiError
+  status: 422
+}
+
+export type createQuoteVersionResponse500 = {
+  data: ApiError
+  status: 500
+}
+
+export type createQuoteVersionResponseSuccess = (createQuoteVersionResponse201) & {
+  headers: Headers;
+};
+export type createQuoteVersionResponseError = (createQuoteVersionResponse400 | createQuoteVersionResponse401 | createQuoteVersionResponse403 | createQuoteVersionResponse404 | createQuoteVersionResponse409 | createQuoteVersionResponse422 | createQuoteVersionResponse500) & {
+  headers: Headers;
+};
+
+export type createQuoteVersionResponse = (createQuoteVersionResponseSuccess | createQuoteVersionResponseError)
+
+export const getCreateQuoteVersionUrl = (id: string,) => {
+
+
+
+
+  return `/backend/v1/quotes/${id}/versions`
+}
+
+/**
+ * Seçili teklifin içeriğini yeni bir sürüme kopyalar. Aynı teklif numarasını paylaşır.
+ * @summary Teklif sürümü üret
+ */
+export const createQuoteVersion = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<createQuoteVersionResponse> => {
+
+  return customFetch<createQuoteVersionResponse>(getCreateQuoteVersionUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
 export type chatWithQuoteResponse200 = {
   data: QuoteChatResponse
   status: 200
@@ -525,6 +601,174 @@ return customFetch<chatWithQuoteResponse>(getChatWithQuoteUrl(),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(quoteChatRequest)
+  }
+);}
+
+
+export type setQuoteConvertedResponse200 = {
+  data: QuoteResponse
+  status: 200
+}
+
+export type setQuoteConvertedResponse400 = {
+  data: ApiError
+  status: 400
+}
+
+export type setQuoteConvertedResponse401 = {
+  data: ApiError
+  status: 401
+}
+
+export type setQuoteConvertedResponse403 = {
+  data: ApiError
+  status: 403
+}
+
+export type setQuoteConvertedResponse404 = {
+  data: ApiError
+  status: 404
+}
+
+export type setQuoteConvertedResponse409 = {
+  data: ApiError
+  status: 409
+}
+
+export type setQuoteConvertedResponse422 = {
+  data: ApiError
+  status: 422
+}
+
+export type setQuoteConvertedResponse500 = {
+  data: ApiError
+  status: 500
+}
+
+export type setQuoteConvertedResponseSuccess = (setQuoteConvertedResponse200) & {
+  headers: Headers;
+};
+export type setQuoteConvertedResponseError = (setQuoteConvertedResponse400 | setQuoteConvertedResponse401 | setQuoteConvertedResponse403 | setQuoteConvertedResponse404 | setQuoteConvertedResponse409 | setQuoteConvertedResponse422 | setQuoteConvertedResponse500) & {
+  headers: Headers;
+};
+
+export type setQuoteConvertedResponse = (setQuoteConvertedResponseSuccess | setQuoteConvertedResponseError)
+
+export const getSetQuoteConvertedUrl = (id: string,) => {
+
+
+
+
+  return `/backend/v1/quotes/${id}/converted`
+}
+
+/**
+ * Teklifi satışa dönüştü veya satıştan çıkar olarak işaretler.
+ * @summary Satışa dönüşüm
+ */
+export const setQuoteConverted = async (id: string,
+    quoteConvertedRequest: QuoteConvertedRequest, options?: Parameters<typeof customFetch>[1]): Promise<setQuoteConvertedResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<setQuoteConvertedResponse>(getSetQuoteConvertedUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(quoteConvertedRequest)
+  }
+);}
+
+
+export type getQuoteReportResponse200 = {
+  data: QuoteReportResponse
+  status: 200
+}
+
+export type getQuoteReportResponse400 = {
+  data: ApiError
+  status: 400
+}
+
+export type getQuoteReportResponse401 = {
+  data: ApiError
+  status: 401
+}
+
+export type getQuoteReportResponse403 = {
+  data: ApiError
+  status: 403
+}
+
+export type getQuoteReportResponse404 = {
+  data: ApiError
+  status: 404
+}
+
+export type getQuoteReportResponse409 = {
+  data: ApiError
+  status: 409
+}
+
+export type getQuoteReportResponse422 = {
+  data: ApiError
+  status: 422
+}
+
+export type getQuoteReportResponse500 = {
+  data: ApiError
+  status: 500
+}
+
+export type getQuoteReportResponseSuccess = (getQuoteReportResponse200) & {
+  headers: Headers;
+};
+export type getQuoteReportResponseError = (getQuoteReportResponse400 | getQuoteReportResponse401 | getQuoteReportResponse403 | getQuoteReportResponse404 | getQuoteReportResponse409 | getQuoteReportResponse422 | getQuoteReportResponse500) & {
+  headers: Headers;
+};
+
+export type getQuoteReportResponse = (getQuoteReportResponseSuccess | getQuoteReportResponseError)
+
+export const getGetQuoteReportUrl = (params?: GetQuoteReportParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/backend/v1/quotes/report?${stringifiedParams}` : `/backend/v1/quotes/report`
+}
+
+/**
+ * Müşteri, tarih, ürün ve satışa dönüşüm filtreleriyle teklif ve ürün kırılımı. İstatistikler dönen kümeye aittir.
+ * @summary Teklif raporu
+ */
+export const getQuoteReport = async (params?: GetQuoteReportParams, options?: Parameters<typeof customFetch>[1]): Promise<getQuoteReportResponse> => {
+
+  return customFetch<getQuoteReportResponse>(getGetQuoteReportUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
   }
 );}
 
