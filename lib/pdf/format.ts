@@ -1,3 +1,6 @@
+import { productImageSrc } from "@/lib/files/product-image";
+import { formatDocumentAmount } from "@/lib/money";
+
 export function parseIsoDate(iso: string): Date {
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso.trim());
   if (!match) return new Date();
@@ -27,11 +30,8 @@ export function addDaysFormatted(iso: string, days: number): string {
   return `${day}.${month}.${date.getFullYear()}`;
 }
 
-export function formatTl(value: number): string {
-  const [intPart, frac = "00"] = Math.abs(value).toFixed(2).split(".");
-  const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  const sign = value < 0 ? "-" : "";
-  return `${sign}${grouped},${frac} TL`;
+export function formatTl(value: number, currency?: string | null): string {
+  return formatDocumentAmount(value, currency);
 }
 
 export function dashed(value: string, fallback = "..........................."): string {
@@ -47,8 +47,5 @@ export function assetUrl(origin: string, path: string): string {
 }
 
 export function usableProductImage(url: string): boolean {
-  const trimmed = url.trim();
-  if (!trimmed) return false;
-  if (trimmed.includes("placeholder")) return false;
-  return /^(https?:\/\/|\/)/i.test(trimmed);
+  return productImageSrc(url) !== null;
 }

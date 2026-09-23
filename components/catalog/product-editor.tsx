@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createProduct,
   deleteProduct,
@@ -14,7 +14,11 @@ import type {
 import { ProductPropertyRequestType } from "@/lib/api/generated/model";
 import { apiErrorMessage, isSuccessStatus } from "@/lib/api/errors";
 import { emptyProductDraft, productToRequest } from "@/lib/api/map";
+import { matchesQuery, productSearchValues } from "@/lib/search/matches-query";
 import { SplitWorkspace } from "@/components/layout/split-workspace";
+import { ListSearchInput } from "@/components/layout/list-search-input";
+import { RelatedQuotesPanel } from "@/components/quote/related-quotes-panel";
+import { ProductImageField } from "@/components/catalog/product-image-field";
 import {
   ActionButton,
   Field,
@@ -36,10 +40,19 @@ export function ProductEditor({ initialProducts }: { initialProducts: ProductRes
   );
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [imageSaving, setImageSaving] = useState(false);
+  const selectedIdRef = useRef(selectedId);
+  selectedIdRef.current = selectedId;
+  const [query, setQuery] = useState("");
 
   const selected = useMemo(
     () => products.find((item) => item.id === selectedId) ?? null,
     [products, selectedId],
+  );
+  const filteredProducts = useMemo(
+    () =>
+      products.filter((item) => matchesQuery(productSearchValues(item), query)),
+    [products, query],
   );
 
   const selectProduct = (product: ProductResponse | null) => {
@@ -54,9 +67,51 @@ export function ProductEditor({ initialProducts }: { initialProducts: ProductRes
     setError(null);
   };
 
+  useEffect(() => {
+    if (selectedId === "new" || selectedId === null) return;
+    if (filteredProducts.some((item) => item.id === selectedId)) return;
+    if (filteredProducts[0]) selectProduct(filteredProducts[0]);
+  }, [filteredProducts, selectedId]);
+
   const patch = (next: Partial<ProductRequest>) => {
     setDraft((current) => ({ ...current, ...next }));
     setStatus("idle");
+  };
+
+  const applyImage = async (image: string) => {
+    patch({ image });
+    if (!selectedId || selectedId === "new") return;
+    const productId = selectedId;
+    const current = products.find((item) => item.id === productId);
+    if (!current) return;
+    setProducts((list) =>
+      list.map((item) => (item.id === productId ? { ...item, image } : item)),
+    );
+    setImageSaving(true);
+    const response = await updateProduct(productId, {
+      ...productToRequest(current),
+      image,
+    });
+    setImageSaving(false);
+    if (!isSuccessStatus(response.status)) {
+      setProducts((list) =>
+        list.map((item) =>
+          item.id === productId ? { ...item, image: current.image ?? "" } : item,
+        ),
+      );
+      if (selectedIdRef.current === productId) {
+        setDraft((item) => ({ ...item, image: current.image ?? "" }));
+        setError(apiErrorMessage(response.data));
+        setStatus("error");
+      }
+      return;
+    }
+    const saved = response.data as ProductResponse;
+    setProducts((list) =>
+      list.map((item) =>
+        item.id === saved.id ? { ...item, image: saved.image ?? "" } : item,
+      ),
+    );
   };
 
   const patchProperty = (index: number, next: Partial<ProductPropertyRequest>) => {
@@ -120,18 +175,26 @@ export function ProductEditor({ initialProducts }: { initialProducts: ProductRes
       eyebrow="TeknoTip · Katalog"
       title="Ürünler"
       listHeader={
-        <div className="flex items-center justify-between px-4 py-3">
-          <p className="font-display text-[11px] uppercase tracking-[0.18em] text-[var(--steel)]">
-            Liste
-          </p>
-          <ActionButton tone="heat" onClick={() => selectProduct(null)}>
-            Yeni
-          </ActionButton>
+        <div className="grid gap-2 border-b border-[var(--rule)] px-4 py-3">
+          <div className="flex items-center justify-between">
+            <p className="font-display text-[11px] uppercase tracking-[0.18em] text-[var(--steel)]">
+              Liste
+            </p>
+            <ActionButton tone="heat" onClick={() => selectProduct(null)}>
+              Yeni
+            </ActionButton>
+          </div>
+          <ListSearchInput value={query} onChange={setQuery} />
         </div>
       }
       list={
         <ul>
-          {products.map((product) => (
+          {filteredProducts.length === 0 ? (
+            <li className="px-4 py-6 text-sm text-[var(--steel)]">
+              Kayıt bulunamadı.
+            </li>
+          ) : (
+            filteredProducts.map((product) => (
             <li key={product.id}>
               <button
                 type="button"
@@ -146,11 +209,13 @@ export function ProductEditor({ initialProducts }: { initialProducts: ProductRes
                 <span className="font-mono text-xs">{product.code}</span>
               </button>
             </li>
-          ))}
+            ))
+          )}
         </ul>
       }
     >
-      <div className="mx-auto grid max-w-3xl gap-6">
+      <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-2">
+      <div className="grid gap-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Kod">
             <TextInput
@@ -180,12 +245,11 @@ export function ProductEditor({ initialProducts }: { initialProducts: ProductRes
               onChange={(event) => patch({ category: event.target.value })}
             />
           </Field>
-          <Field label="Görsel URL">
-            <TextInput
-              value={draft.image ?? ""}
-              onChange={(event) => patch({ image: event.target.value })}
-            />
-          </Field>
+          <ProductImageField
+            image={draft.image}
+            pendingProduct={selectedId === "new"}
+            onChange={(image) => void applyImage(image)}
+          />
         </div>
         <Field label="Açıklama">
           <TextArea
@@ -319,7 +383,11 @@ export function ProductEditor({ initialProducts }: { initialProducts: ProductRes
           <p className="text-sm text-[var(--steel)]">Kaydedildi.</p>
         ) : null}
         <div className="flex flex-wrap gap-2">
-          <ActionButton tone="heat" disabled={status === "saving"} onClick={() => void save()}>
+          <ActionButton
+            tone="heat"
+            disabled={status === "saving" || imageSaving}
+            onClick={() => void save()}
+          >
             Kaydet
           </ActionButton>
           {selectedId && selectedId !== "new" ? (
@@ -333,6 +401,10 @@ export function ProductEditor({ initialProducts }: { initialProducts: ProductRes
             Son güncelleme: {selected.updatedAt}
           </p>
         ) : null}
+      </div>
+        <RelatedQuotesPanel
+          productId={selectedId !== "new" ? selected?.id : undefined}
+        />
       </div>
     </SplitWorkspace>
   );

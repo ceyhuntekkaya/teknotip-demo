@@ -9,6 +9,7 @@ type SplitWorkspaceProps = {
   children: ReactNode;
   listWidthClassName?: string;
   detailClassName?: string;
+  actions?: ReactNode;
 };
 
 export function SplitWorkspace({
@@ -19,6 +20,7 @@ export function SplitWorkspace({
   children,
   listWidthClassName = "lg:w-64",
   detailClassName = "overflow-y-auto p-5",
+  actions,
 }: SplitWorkspaceProps) {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
@@ -29,7 +31,10 @@ export function SplitWorkspace({
           </p>
           <h1 className="font-display text-2xl leading-none tracking-wide">{title}</h1>
         </div>
-        <AppNav />
+        <div className="flex flex-wrap items-center gap-2">
+          {actions}
+          <AppNav />
+        </div>
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">

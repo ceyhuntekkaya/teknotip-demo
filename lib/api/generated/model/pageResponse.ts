@@ -20,14 +20,14 @@
  *
  * OpenAPI spec version: v1
  */
-import type { ReminderResponse } from './reminderResponse';
+import type { UserResponse } from './userResponse';
 
 /**
  * Sayfalı liste yanıtı
  */
 export interface PageResponse {
   /** Bu sayfadaki kayıtlar */
-  content?: ReminderResponse[];
+  content?: UserResponse[];
   /** Sayfa numarası (0 tabanlı) */
   page?: number;
   /** Sayfa boyutu */

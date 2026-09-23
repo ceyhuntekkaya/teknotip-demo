@@ -1,13 +1,13 @@
 import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
 import { amountInWords } from "@/lib/pdf/amount-in-words";
 import { companyTemplate, type CompanyTemplate } from "@/lib/pdf/company";
+import { productImageSrc } from "@/lib/files/product-image";
 import {
   addDaysFormatted,
   assetUrl,
   dashed,
   formatQuoteDate,
   formatTl,
-  usableProductImage,
 } from "@/lib/pdf/format";
 import { pdfStyles as s } from "@/lib/pdf/styles";
 import type { QuoteLineResponse, QuoteResponse } from "@/lib/api/generated/model";
@@ -84,10 +84,14 @@ function ProductRow({
   line,
   index,
   origin,
+  currency,
+  showLinePrices,
 }: {
   line: QuoteLineResponse;
   index: number;
   origin: string;
+  currency?: string;
+  showLinePrices: boolean;
 }) {
   const specs = [
     ...(line.properties ?? [])
@@ -98,7 +102,7 @@ function ProductRow({
       return `· ${accessory.name}${qty}`;
     }),
   ];
-  const showImage = usableProductImage(line.image ?? "");
+  const imageSrc = productImageSrc(line.image ?? "");
   const nameLines = (line.name ?? "").split("\n");
   const longName = nameLines.length > 1 || (line.name ?? "").length > 120;
 
@@ -106,7 +110,7 @@ function ProductRow({
     <View style={s.tableRow} wrap={longName}>
       <Text style={[s.cell, s.colNo]}>{index}</Text>
       <Text style={[s.cell, s.colCode]}>{line.code || "—"}</Text>
-      <View style={s.colDesc}>
+      <View style={showLinePrices ? s.colDesc : s.colDescWide}>
         {nameLines.map((part, nameIndex) => (
           <Text key={`name-${nameIndex}`} style={s.cellBold}>
             {part || " "}
@@ -117,16 +121,20 @@ function ProductRow({
             {item}
           </Text>
         ))}
-        {showImage ? (
+        {imageSrc ? (
           <Image
-            src={assetUrl(origin, line.image ?? "")}
+            src={assetUrl(origin, imageSrc)}
             style={s.productImage}
           />
         ) : null}
       </View>
       <Text style={[s.cell, s.colQty]}>{line.quantity ?? 1}</Text>
-      <Text style={[s.cell, s.colUnit]}>{formatTl(line.price ?? 0)}</Text>
-      <Text style={[s.cell, s.colPrice]}>{formatTl(line.lineTotal ?? 0)}</Text>
+      {showLinePrices ? (
+        <>
+          <Text style={[s.cell, s.colUnit]}>{formatTl(line.price ?? 0, currency)}</Text>
+          <Text style={[s.cell, s.colPrice]}>{formatTl(line.lineTotal ?? 0, currency)}</Text>
+        </>
+      ) : null}
     </View>
   );
 }
@@ -140,13 +148,14 @@ function Totals({
 }) {
   const { texts } = template;
   const priceSummary = quote.priceSummary;
+  const currency = quote.currency;
   const taxLabel = `${texts.totals.tax} (% ${priceSummary?.taxRatePercent ?? 20})`;
   const rows = [
-    { label: texts.totals.gross, value: formatTl(priceSummary?.subtotal ?? 0) },
-    { label: texts.totals.discount, value: formatTl(priceSummary?.discount ?? 0) },
-    { label: texts.totals.net, value: formatTl(priceSummary?.totalAfterDiscount ?? 0) },
-    { label: taxLabel, value: formatTl(priceSummary?.tax ?? 0) },
-    { label: texts.totals.grand, value: formatTl(priceSummary?.totalAfterTax ?? 0) },
+    { label: texts.totals.gross, value: formatTl(priceSummary?.subtotal ?? 0, currency) },
+    { label: texts.totals.discount, value: formatTl(priceSummary?.discount ?? 0, currency) },
+    { label: texts.totals.net, value: formatTl(priceSummary?.totalAfterDiscount ?? 0, currency) },
+    { label: taxLabel, value: formatTl(priceSummary?.tax ?? 0, currency) },
+    { label: texts.totals.grand, value: formatTl(priceSummary?.totalAfterTax ?? 0, currency) },
   ];
 
   return (
@@ -170,9 +179,12 @@ export function QuotePdfDocument({
   const dateIso = quote.quotedDate ?? "";
   const dateLabel = formatQuoteDate(dateIso);
   const validityDate = addDaysFormatted(dateIso, terms.validityDays);
-  const words = amountInWords(quote.priceSummary?.totalAfterTax ?? 0);
+  const taxRate = quote.priceSummary?.taxRatePercent ?? 20;
+  const vatIncluded = texts.vatIncluded.replaceAll("{rate}", String(taxRate));
+  const words = amountInWords(quote.priceSummary?.totalAfterTax ?? 0, quote.currency);
   const quoted = quote.quotedTo ?? {};
   const lines = quote.lines ?? [];
+  const showLinePrices = quote.priceDetails !== false;
 
   return (
     <Document
@@ -226,10 +238,16 @@ export function QuotePdfDocument({
         <View style={s.tableHeader} wrap={false}>
           <Text style={[s.tableHeaderCell, s.colNo]}>{texts.table.no}</Text>
           <Text style={[s.tableHeaderCell, s.colCode]}>{texts.table.code}</Text>
-          <Text style={[s.tableHeaderCell, s.colDesc]}>{texts.table.description}</Text>
+          <Text style={[s.tableHeaderCell, showLinePrices ? s.colDesc : s.colDescWide]}>
+            {texts.table.description}
+          </Text>
           <Text style={[s.tableHeaderCell, s.colQty]}>{texts.table.quantity}</Text>
-          <Text style={[s.tableHeaderCell, s.colUnit]}>{texts.table.unitPrice}</Text>
-          <Text style={[s.tableHeaderCell, s.colPrice]}>{texts.table.price}</Text>
+          {showLinePrices ? (
+            <>
+              <Text style={[s.tableHeaderCell, s.colUnit]}>{texts.table.unitPrice}</Text>
+              <Text style={[s.tableHeaderCell, s.colPrice]}>{texts.table.price}</Text>
+            </>
+          ) : null}
         </View>
         {lines.map((line, index) => (
           <ProductRow
@@ -237,6 +255,8 @@ export function QuotePdfDocument({
             line={line}
             index={index + 1}
             origin={origin}
+            currency={quote.currency}
+            showLinePrices={showLinePrices}
           />
         ))}
 
@@ -251,7 +271,7 @@ export function QuotePdfDocument({
             <Text style={s.onlyLine}>
               {texts.totals.only} {words}
             </Text>
-            <Text style={s.vatNote}>{texts.vatIncluded}</Text>
+            <Text style={s.vatNote}>{vatIncluded}</Text>
           </View>
         </View>
 
@@ -264,7 +284,7 @@ export function QuotePdfDocument({
               {index + 1}. {condition.title}
             </Text>
             <Text style={s.conditionBody}>
-              {condition.body.replace("{date}", validityDate)}
+              {condition.body.replaceAll("{date}", validityDate).replaceAll("{rate}", String(taxRate))}
             </Text>
           </View>
         ))}

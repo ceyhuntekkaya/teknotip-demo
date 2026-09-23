@@ -17,10 +17,12 @@ import {
 } from "@/lib/api/generated/endpoints/quotes/quotes";
 import type {
   CustomerResponse,
+  InstitutionResponse,
   ProductResponse,
   QuoteResponse,
 } from "@/lib/api/generated/model";
 import { quoteToRequest } from "@/lib/api/map";
+import { isQuoteActionReady } from "@/lib/quote/action-ready";
 import {
   clearQuoteWorkspace,
   loadQuoteWorkspace,
@@ -33,6 +35,7 @@ import {
   createListenSession,
   destroyListenSession,
   listenSessionLive,
+  shouldSubmitUtterance,
   type ListenSession,
   type UtteranceHandle,
   type UtteranceResult,
@@ -43,11 +46,13 @@ import { isUsableTranscript } from "@/lib/stt/vad";
 export function QuoteBench({
   products,
   customers,
+  institutions,
   initialQuoteId,
   openInEdit = false,
 }: {
   products: ProductResponse[];
   customers: CustomerResponse[];
+  institutions: InstitutionResponse[];
   initialQuoteId?: string;
   openInEdit?: boolean;
 }) {
@@ -152,7 +157,7 @@ export function QuoteBench({
   const createVersion = async () => {
     await flushPersist();
     const current = quoteRef.current;
-    if (!current?.id) return;
+    if (!current?.id || !isQuoteActionReady(current)) return;
     setSaving(true);
     setError(null);
     try {
@@ -198,6 +203,7 @@ export function QuoteBench({
   const toggleConverted = async () => {
     const current = quoteRef.current;
     if (!current?.id) return;
+    if (!current.convertedToSale && !isQuoteActionReady(current)) return;
     setSaving(true);
     setError(null);
     try {
@@ -274,7 +280,7 @@ export function QuoteBench({
     return () => {
       aliveRef.current = false;
       voiceSessionRef.current = false;
-      utteranceRef.current?.stopManual();
+      utteranceRef.current?.discard();
       destroyListenSession(listenSessionRef.current);
       listenSessionRef.current = null;
       if (persistTimer.current) window.clearTimeout(persistTimer.current);
@@ -286,7 +292,7 @@ export function QuoteBench({
     setError(null);
     if (inputRef.current) inputRef.current.value = "";
     setSessionOpen(false);
-    utteranceRef.current?.stopManual();
+    utteranceRef.current?.discard();
     destroyListen();
     clearQuoteWorkspace();
     const created = await createQuote({});
@@ -310,7 +316,7 @@ export function QuoteBench({
 
     if (source === "typed") {
       setSessionOpen(false);
-      utteranceRef.current?.stopManual();
+      utteranceRef.current?.discard();
       destroyListen();
       if (inputRef.current) inputRef.current.value = "";
     }
@@ -411,15 +417,15 @@ export function QuoteBench({
     recordingRef.current = false;
     setRecording(false);
     setVoiceLevel(0);
-    if (!aliveRef.current) return;
+    if (!aliveRef.current || result.reason === "discard") return;
 
     if (result.reason === "manual") {
       setSessionOpen(false);
       destroyListen();
     }
 
-    if (!result.speechSeen || result.blob.size === 0) {
-      if (result.speechSeen && result.blob.size === 0) {
+    if (!shouldSubmitUtterance(result)) {
+      if (result.blob.size === 0 && (result.speechSeen || result.reason === "manual")) {
         setError("Ses kaydı boş.");
       }
       if (shouldResumeVoice()) void startListening();
@@ -561,8 +567,8 @@ export function QuoteBench({
             <p className="text-xs text-[var(--steel)]">
               {recording
                 ? speechHeard
-                  ? `Konuşma alındı. ${voiceSettings.silenceSeconds} sn sessizlikte gönderilir; Durdur oturumu kapatır.`
-                  : `Dinleniyor. Konuşunca ${voiceSettings.silenceSeconds} sn sessizlikte gönderilir; Durdur oturumu kapatır.`
+                  ? `Konuşma alındı. ${voiceSettings.silenceSeconds} sn sessizlikte gönderilir. Durdur, o ana kadarki sesi sohbete yollar.`
+                  : `Dinleniyor. Konuşunca ${voiceSettings.silenceSeconds} sn sessizlikte gönderilir. Durdur, o ana kadarki sesi sohbete yollar.`
                 : transcribing
                   ? "Ses yazıya çevriliyor…"
                   : loading && voiceSession
@@ -594,6 +600,7 @@ export function QuoteBench({
           quote={quote}
           products={products}
           customers={customers}
+          institutions={institutions}
           saving={saving}
           defaultView={openInEdit ? "edit" : "quote"}
           emptyHint="Düzenlemeden ürün ekleyin veya soldan bir istek yazın."

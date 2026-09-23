@@ -20,14 +20,26 @@
  *
  * OpenAPI spec version: v1
  */
+import type { InstitutionResponse } from './institutionResponse';
 
 /**
- * Müşteri türü
+ * Sayfalı liste yanıtı — InstitutionResponse
  */
-export type CustomerResponseType = typeof CustomerResponseType[keyof typeof CustomerResponseType];
-
-
-export const CustomerResponseType = {
-  CORPORATE: 'CORPORATE',
-  INDIVIDUAL: 'INDIVIDUAL',
-} as const;
+export interface PageInstitutionResponse {
+  /** Bu sayfadaki kayıtlar */
+  content?: InstitutionResponse[];
+  /** Sayfa numarası (0 tabanlı) */
+  page?: number;
+  /** Sayfa boyutu */
+  size?: number;
+  /** Toplam kayıt sayısı */
+  totalElements?: number;
+  /** Toplam sayfa sayısı */
+  totalPages?: number;
+  /** İlk sayfa mı */
+  first?: boolean;
+  /** Son sayfa mı */
+  last?: boolean;
+  /** Sonuç boş mu */
+  empty?: boolean;
+}

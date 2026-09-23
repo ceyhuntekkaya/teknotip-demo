@@ -32,4 +32,11 @@ describe("amountInWords", () => {
       "ON İKİ BİN ÜÇ YÜZ KIRK BEŞ TL ALTMIŞ YEDİ KR",
     );
   });
+
+  it("uses the quote currency", () => {
+    expect(amountInWords(19000, "USD")).toBe("ON DOKUZ BİN USD");
+    expect(amountInWords(12345.67, "USD")).toBe(
+      "ON İKİ BİN ÜÇ YÜZ KIRK BEŞ USD ALTMIŞ YEDİ CENT",
+    );
+  });
 });

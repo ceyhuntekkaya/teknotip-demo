@@ -149,6 +149,7 @@ export const pdfStyles = StyleSheet.create({
   colNo: { width: "7%" },
   colCode: { width: "16%" },
   colDesc: { width: "41%" },
+  colDescWide: { width: "69%" },
   colQty: { width: "8%", textAlign: "center" },
   colUnit: { width: "14%", textAlign: "right" },
   colPrice: { width: "14%", textAlign: "right" },

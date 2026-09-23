@@ -76,6 +76,7 @@ export function ActionButton({
   disabled,
   type = "button",
   className = "",
+  title,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
@@ -83,6 +84,7 @@ export function ActionButton({
   disabled?: boolean;
   type?: "button" | "submit";
   className?: string;
+  title?: string;
 }) {
   const tones = {
     default:
@@ -98,6 +100,7 @@ export function ActionButton({
     <button
       type={type}
       disabled={disabled}
+      title={title}
       onClick={onClick}
       className={`inline-flex h-9 items-center justify-center gap-1.5 border px-3 font-display text-[13px] uppercase tracking-[0.12em] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${tones[tone]} ${className}`}
     >

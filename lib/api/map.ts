@@ -44,6 +44,7 @@ export function quoteToRequest(quote: QuoteResponse): QuoteRequest {
   const quotedTo: QuoteQuotedToRequest | undefined = quoted
     ? {
         customerId: quoted.customerId,
+        institutionId: quoted.institutionId,
         institution: quoted.institution,
         contactPerson: quoted.contactPerson,
         title: quoted.title,

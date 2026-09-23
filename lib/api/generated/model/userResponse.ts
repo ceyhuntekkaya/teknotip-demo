@@ -22,7 +22,7 @@
  */
 
 /**
- * Giriş yapmış kullanıcının temel bilgileri
+ * Kullanıcı kaydının temel bilgileri
  */
 export interface UserResponse {
   /** Kullanıcı kimliği */
@@ -39,4 +39,6 @@ export interface UserResponse {
   phone?: string;
   /** Son başarılı giriş zamanı */
   lastLoginAt?: string;
+  /** Hesap aktif mi */
+  active?: boolean;
 }

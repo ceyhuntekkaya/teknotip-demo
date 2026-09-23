@@ -23,7 +23,7 @@
 
 export type ListCustomersParams = {
 /**
- * Kod, kurum, yetkili veya il araması
+ * Kurum kodu, kurum adı, yetkili veya il araması
  */
 q?: string;
 /**
@@ -35,7 +35,7 @@ page?: number;
  */
 size?: number;
 /**
- * Sıralama, örn. institution,asc
+ * Sıralama, örn. institution.name,asc
  */
 sort?: string[];
 };

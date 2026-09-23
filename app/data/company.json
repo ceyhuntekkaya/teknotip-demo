@@ -53,7 +53,7 @@
       "only": "Yalnız"
     },
     "closing": "SAYGILARIMIZLA",
-    "vatIncluded": "%20 KDV DAHİLDİR.",
+    "vatIncluded": "%{rate} KDV DAHİLDİR.",
     "salesConditionsTitle": "GENEL SATIŞ KOŞULLARI",
     "bankTitle": "BANKA BİLGİLERİ:",
     "customerApprovalTitle": "MÜŞTERİ ONAYI KAŞE VE İMZA",
@@ -68,7 +68,7 @@
       },
       {
         "title": "KDV ve KUR",
-        "body": "%20 KDV DAHİLDİR."
+        "body": "%{rate} KDV DAHİLDİR."
       },
       {
         "title": "GARANTİ",

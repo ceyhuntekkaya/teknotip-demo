@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createOrganizedProduct,
   deleteOrganizedProduct,
@@ -15,7 +15,13 @@ import {
   organizedProductToRequest,
 } from "@/lib/api/organized-map";
 import { apiErrorMessage, isSuccessStatus } from "@/lib/api/errors";
+import {
+  matchesQuery,
+  organizedProductSearchValues,
+} from "@/lib/search/matches-query";
 import { SplitWorkspace } from "@/components/layout/split-workspace";
+import { ListSearchInput } from "@/components/layout/list-search-input";
+import { ProductImageField } from "@/components/catalog/product-image-field";
 import {
   ActionButton,
   Field,
@@ -43,10 +49,21 @@ export function OrganizedProductEditor({
   );
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [imageSaving, setImageSaving] = useState(false);
+  const selectedIdRef = useRef(selectedId);
+  selectedIdRef.current = selectedId;
+  const [query, setQuery] = useState("");
 
   const selected = useMemo(
     () => products.find((item) => item.id === selectedId) ?? null,
     [products, selectedId],
+  );
+  const filteredProducts = useMemo(
+    () =>
+      products.filter((item) =>
+        matchesQuery(organizedProductSearchValues(item), query),
+      ),
+    [products, query],
   );
   const transferred = Boolean(selected?.transferred);
 
@@ -64,9 +81,51 @@ export function OrganizedProductEditor({
     setError(null);
   };
 
+  useEffect(() => {
+    if (selectedId === "new" || selectedId === null) return;
+    if (filteredProducts.some((item) => item.id === selectedId)) return;
+    if (filteredProducts[0]) selectProduct(filteredProducts[0]);
+  }, [filteredProducts, selectedId]);
+
   const patch = (next: Partial<OrganizedProductRequest>) => {
     setDraft((current) => ({ ...current, ...next }));
     setStatus("idle");
+  };
+
+  const applyImage = async (image: string) => {
+    patch({ image });
+    if (!selectedId || selectedId === "new") return;
+    const productId = selectedId;
+    const current = products.find((item) => item.id === productId);
+    if (!current) return;
+    setProducts((list) =>
+      list.map((item) => (item.id === productId ? { ...item, image } : item)),
+    );
+    setImageSaving(true);
+    const response = await updateOrganizedProduct(productId, {
+      ...organizedProductToRequest(current),
+      image,
+    });
+    setImageSaving(false);
+    if (!isSuccessStatus(response.status)) {
+      setProducts((list) =>
+        list.map((item) =>
+          item.id === productId ? { ...item, image: current.image ?? "" } : item,
+        ),
+      );
+      if (selectedIdRef.current === productId) {
+        setDraft((item) => ({ ...item, image: current.image ?? "" }));
+        setError(apiErrorMessage(response.data));
+        setStatus("error");
+      }
+      return;
+    }
+    const saved = response.data as OrganizedProductResponse;
+    setProducts((list) =>
+      list.map((item) =>
+        item.id === saved.id ? { ...item, image: saved.image ?? "" } : item,
+      ),
+    );
   };
 
   const patchProperty = (
@@ -172,18 +231,26 @@ export function OrganizedProductEditor({
       eyebrow="TeknoTip · Geçici"
       title="Geçici Ürünler"
       listHeader={
-        <div className="flex items-center justify-between px-4 py-3">
-          <p className="font-display text-[11px] uppercase tracking-[0.18em] text-[var(--steel)]">
-            Liste
-          </p>
-          <ActionButton tone="heat" onClick={() => selectProduct(null)}>
-            Yeni
-          </ActionButton>
+        <div className="grid gap-2 border-b border-[var(--rule)] px-4 py-3">
+          <div className="flex items-center justify-between">
+            <p className="font-display text-[11px] uppercase tracking-[0.18em] text-[var(--steel)]">
+              Liste
+            </p>
+            <ActionButton tone="heat" onClick={() => selectProduct(null)}>
+              Yeni
+            </ActionButton>
+          </div>
+          <ListSearchInput value={query} onChange={setQuery} />
         </div>
       }
       list={
         <ul>
-          {products.map((product) => (
+          {filteredProducts.length === 0 ? (
+            <li className="px-4 py-6 text-sm text-[var(--steel)]">
+              Kayıt bulunamadı.
+            </li>
+          ) : (
+            filteredProducts.map((product) => (
             <li key={product.id}>
               <button
                 type="button"
@@ -195,9 +262,12 @@ export function OrganizedProductEditor({
                 }`}
               >
                 <span className="flex w-full items-center justify-between gap-2">
-                  <span>{product.name}</span>
+                  <span className="flex min-w-0 items-center gap-2">
+                    {product.transferred ? <TransferredMark /> : null}
+                    <span className="truncate">{product.name}</span>
+                  </span>
                   {product.transferred ? (
-                    <span className="font-display text-[10px] uppercase tracking-[0.14em] text-[var(--heat)]">
+                    <span className="shrink-0 font-display text-[10px] uppercase tracking-[0.14em] text-[var(--heat)]">
                       Aktarıldı
                     </span>
                   ) : null}
@@ -205,7 +275,8 @@ export function OrganizedProductEditor({
                 <span className="font-mono text-xs">{product.code || "—"}</span>
               </button>
             </li>
-          ))}
+            ))
+          )}
         </ul>
       }
     >
@@ -240,12 +311,11 @@ export function OrganizedProductEditor({
               onChange={(event) => patch({ category: event.target.value })}
             />
           </Field>
-          <Field label="Görsel URL">
-            <TextInput
-              value={draft.image ?? ""}
-              onChange={(event) => patch({ image: event.target.value })}
-            />
-          </Field>
+          <ProductImageField
+            image={draft.image}
+            pendingProduct={selectedId === "new"}
+            onChange={(image) => void applyImage(image)}
+          />
         </div>
         <Field label="Açıklama">
           <TextArea
@@ -386,7 +456,7 @@ export function OrganizedProductEditor({
         <div className="flex flex-wrap gap-2">
           <ActionButton
             tone="heat"
-            disabled={status === "saving" || status === "transferring"}
+            disabled={status === "saving" || status === "transferring" || imageSaving}
             onClick={() => void save()}
           >
             Kaydet
@@ -398,7 +468,8 @@ export function OrganizedProductEditor({
                 disabled={
                   transferred ||
                   status === "saving" ||
-                  status === "transferring"
+                  status === "transferring" ||
+                  imageSaving
                 }
                 onClick={() => void transfer()}
               >
@@ -417,5 +488,26 @@ export function OrganizedProductEditor({
         ) : null}
       </div>
     </SplitWorkspace>
+  );
+}
+
+function TransferredMark() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      className="h-3.5 w-3.5 shrink-0 text-[var(--heat)]"
+      aria-label="Aktarıldı"
+      role="img"
+    >
+      <circle cx="8" cy="8" r="7" fill="currentColor" />
+      <path
+        d="M4.6 8.2 6.8 10.4 11.4 5.6"
+        fill="none"
+        stroke="var(--paper)"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

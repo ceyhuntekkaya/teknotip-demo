@@ -20,26 +20,13 @@
  *
  * OpenAPI spec version: v1
  */
-import type { CustomerRequestType } from './customerRequestType';
 
 /**
- * Müşteri oluşturma veya güncelleme
+ * Kontak kişi oluşturma veya güncelleme
  */
 export interface CustomerRequest {
-  /**
-     * Müşteri kodu
-     * @minLength 0
-     * @maxLength 64
-     */
-  code?: string;
-  /** Müşteri türü */
-  type: CustomerRequestType;
-  /**
-     * Kurum veya kişi adı
-     * @minLength 0
-     * @maxLength 255
-     */
-  institution: string;
+  /** Bağlı kurum kimliği */
+  institutionId: string;
   /**
      * Birim / departman
      * @minLength 0
@@ -90,48 +77,6 @@ export interface CustomerRequest {
      * @maxLength 255
      */
   email?: string;
-  /**
-     * Adres
-     * @minLength 0
-     * @maxLength 500
-     */
-  address?: string;
-  /**
-     * İlçe
-     * @minLength 0
-     * @maxLength 100
-     */
-  district?: string;
-  /**
-     * İl
-     * @minLength 0
-     * @maxLength 100
-     */
-  city?: string;
-  /**
-     * Posta kodu
-     * @minLength 0
-     * @maxLength 20
-     */
-  postalCode?: string;
-  /**
-     * Ülke kodu (ISO 3166-1 alpha-2)
-     * @minLength 2
-     * @maxLength 2
-     */
-  country?: string;
-  /**
-     * Vergi dairesi
-     * @minLength 0
-     * @maxLength 255
-     */
-  taxOffice?: string;
-  /**
-     * Vergi numarası veya TCKN
-     * @minLength 0
-     * @maxLength 11
-     */
-  taxNumber?: string;
   /** İç not */
   notes?: string;
 }

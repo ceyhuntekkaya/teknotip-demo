@@ -27,6 +27,8 @@
 export interface QuoteQuotedToResponse {
   /** Katalogdaki müşteri kimliği; belgede yalnızca snapshot varsa boştur */
   customerId?: string;
+  /** Katalogdaki kurum kimliği; kurum kataloğa bağlı değilse boştur */
+  institutionId?: string;
   /** Kurum veya kişi adı */
   institution?: string;
   /** Yetkili adı soyadı */

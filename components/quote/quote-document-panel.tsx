@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/components/catalog/fields";
 import {
@@ -11,16 +11,22 @@ import { QuoteEditPane } from "@/components/quote/quote-edit-pane";
 import { QuoteReminderForm } from "@/components/quote/quote-reminder-form";
 import type {
   CustomerResponse,
+  InstitutionResponse,
   ProductResponse,
   QuoteResponse,
 } from "@/lib/api/generated/model";
-import { formatAddOn, formatTry } from "@/lib/catalog/price";
+import { formatQuoteAddOn, formatQuoteAmount } from "@/lib/money";
 import { displayQuotedDate } from "@/lib/pdf/format";
+import {
+  isQuoteActionReady,
+  QUOTE_ACTION_READY_HINT,
+} from "@/lib/quote/action-ready";
 
 export function QuoteDocumentPanel({
   quote,
   products,
   customers,
+  institutions,
   saving = false,
   emptyHint = "Düzenlemeden ürün ekleyin veya soldan bir teklif seçin.",
   defaultView = "quote",
@@ -29,10 +35,12 @@ export function QuoteDocumentPanel({
   onCreateVersion,
   onSelectVersion,
   onToggleConverted,
+  onDelete,
 }: {
   quote: QuoteResponse | null;
   products: ProductResponse[];
   customers: CustomerResponse[];
+  institutions: InstitutionResponse[];
   saving?: boolean;
   emptyHint?: string;
   defaultView?: "quote" | "edit";
@@ -41,6 +49,7 @@ export function QuoteDocumentPanel({
   onCreateVersion?: () => void;
   onSelectVersion?: (id: string) => void;
   onToggleConverted?: () => void;
+  onDelete?: () => void;
 }) {
   const router = useRouter();
   const [pdfQuote, setPdfQuote] = useState<QuoteResponse | null>(null);
@@ -51,8 +60,22 @@ export function QuoteDocumentPanel({
   const showingPdf = pdfQuote !== null;
   const editing = rightView === "edit";
   const canEdit = Boolean(onChange || editHref);
+  const detailedPrices = quote?.priceDetails !== false;
+
+  const setPriceMode = (detailed: boolean) => {
+    if (!quote || !onChange || detailedPrices === detailed) return;
+    const next = { ...quote, priceDetails: detailed };
+    onChange(next);
+    setPdfQuote((current) => (current ? next : current));
+  };
   const lines = quote?.lines ?? [];
   const summary = quote?.priceSummary;
+  const actionReady = isQuoteActionReady(quote);
+  const actionHint = actionReady ? undefined : QUOTE_ACTION_READY_HINT;
+
+  useEffect(() => {
+    if (!actionReady) setRemindOpen(false);
+  }, [actionReady]);
 
   const handlePdfUrl = useCallback((url: string | null) => {
     setPdfUrl(url);
@@ -73,6 +96,33 @@ export function QuoteDocumentPanel({
           <h2 className="font-display text-2xl leading-none tracking-wide">
             {editing ? "Düzenleme" : "Teklif"}
           </h2>
+          {quote && onChange ? (
+            <div className="flex" role="group" aria-label="PDF fiyat görünümü">
+              {(
+                [
+                  { detailed: false, label: "Tek Fiyat" },
+                  { detailed: true, label: "Detaylı Fiyat" },
+                ] as const
+              ).map((option) => {
+                const active = detailedPrices === option.detailed;
+                return (
+                  <button
+                    key={option.label}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setPriceMode(option.detailed)}
+                    className={`h-8 border px-2.5 font-display text-[12px] uppercase tracking-[0.12em] ${
+                      active
+                        ? "border-[var(--heat)] bg-[var(--heat)] text-[var(--paper)]"
+                        : "border-[var(--rule)] text-[var(--charcoal)] hover:border-[var(--charcoal)]"
+                    } ${option.detailed ? "" : "border-r-0"}`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
           {(quote?.versions?.length ?? 0) > 1 ? (
             <div className="flex flex-wrap gap-1">
               {(quote?.versions ?? []).map((version) => {
@@ -122,6 +172,8 @@ export function QuoteDocumentPanel({
                 <ActionButton
                   type="button"
                   tone={remindOpen ? "heat" : "default"}
+                  disabled={!actionReady}
+                  title={actionHint}
                   onClick={() => setRemindOpen((open) => !open)}
                 >
                   Hatırlat
@@ -130,7 +182,16 @@ export function QuoteDocumentPanel({
               {onToggleConverted ? (
                 <ActionButton
                   type="button"
-                  disabled={!quote || saving}
+                  disabled={
+                    !quote ||
+                    saving ||
+                    (!quote.convertedToSale && !actionReady)
+                  }
+                  title={
+                    quote?.convertedToSale || actionReady
+                      ? undefined
+                      : QUOTE_ACTION_READY_HINT
+                  }
                   onClick={onToggleConverted}
                 >
                   {quote?.convertedToSale ? "Satıştan Çıkar" : "Satışa Dönüştü"}
@@ -139,7 +200,8 @@ export function QuoteDocumentPanel({
               {onCreateVersion ? (
                 <ActionButton
                   type="button"
-                  disabled={!quote || saving}
+                  disabled={!quote || saving || !actionReady}
+                  title={actionHint}
                   onClick={onCreateVersion}
                 >
                   Versiyon Üret
@@ -162,6 +224,16 @@ export function QuoteDocumentPanel({
                   ? "Teklif Görünümü"
                   : "Düzenleme Görünümü"}
               </ActionButton>
+              {onDelete ? (
+                <ActionButton
+                  type="button"
+                  tone="danger"
+                  disabled={saving}
+                  onClick={onDelete}
+                >
+                  Sil
+                </ActionButton>
+              ) : null}
               <ActionButton
                 tone="heat"
                 type="button"
@@ -175,7 +247,7 @@ export function QuoteDocumentPanel({
         </div>
       </header>
 
-      {remindOpen && quote?.id && !showingPdf ? (
+      {remindOpen && quote?.id && actionReady && !showingPdf ? (
         <QuoteReminderForm key={quote.id} quoteId={quote.id} />
       ) : null}
 
@@ -186,6 +258,7 @@ export function QuoteDocumentPanel({
           quote={quote}
           products={products}
           customers={customers}
+          institutions={institutions}
           onChange={onChange}
         />
       ) : (
@@ -229,10 +302,10 @@ export function QuoteDocumentPanel({
                           Birim
                         </p>
                         <p className="font-mono text-sm text-[var(--heat)]">
-                          {formatTry(line.price ?? line.basePrice ?? 0)}
+                          {formatQuoteAmount(line.price ?? line.basePrice ?? 0, quote.currency)}
                         </p>
                         <p className="font-mono text-xs text-[var(--steel)]">
-                          {formatTry(line.lineTotal ?? 0)}
+                          {formatQuoteAmount(line.lineTotal ?? 0, quote.currency)}
                         </p>
                       </div>
                     </div>
@@ -249,7 +322,7 @@ export function QuoteDocumentPanel({
                               </span>
                               {property.price ? (
                                 <span className="font-mono text-[11px] text-[var(--heat)]">
-                                  {formatAddOn(property.price)}
+                                  {formatQuoteAddOn(property.price, quote.currency)}
                                 </span>
                               ) : null}
                             </li>
@@ -270,7 +343,7 @@ export function QuoteDocumentPanel({
                               </span>
                               {accessory.price ? (
                                 <span className="font-mono text-[11px] text-[var(--heat)]">
-                                  {formatAddOn(accessory.price)}
+                                  {formatQuoteAddOn(accessory.price, quote.currency)}
                                 </span>
                               ) : null}
                             </li>
@@ -287,9 +360,10 @@ export function QuoteDocumentPanel({
 
           <footer className="grid shrink-0 grid-cols-[1fr_auto] items-end gap-4 bg-[var(--soot)] px-4 py-3 text-[var(--paper)]">
             <div className="grid gap-1 text-[11px] uppercase tracking-[0.16em] text-[var(--heat-soft)]">
-              <span>Ara {formatTry(summary?.subtotal ?? 0)}</span>
+              <span>Ara {formatQuoteAmount(summary?.subtotal ?? 0, quote?.currency)}</span>
               <span>
-                KDV %{summary?.taxRatePercent ?? 20} {formatTry(summary?.tax ?? 0)}
+                KDV %{summary?.taxRatePercent ?? 20}{" "}
+                {formatQuoteAmount(summary?.tax ?? 0, quote?.currency)}
               </span>
             </div>
             <div className="text-right">
@@ -297,7 +371,7 @@ export function QuoteDocumentPanel({
                 Genel toplam
               </p>
               <p className="kiln-readout font-mono text-3xl leading-none text-[var(--heat-soft)]">
-                {formatTry(summary?.totalAfterTax ?? 0)}
+                {formatQuoteAmount(summary?.totalAfterTax ?? 0, quote?.currency)}
               </p>
             </div>
           </footer>

@@ -20,20 +20,16 @@
  *
  * OpenAPI spec version: v1
  */
-import type { CustomerResponseType } from './customerResponseType';
+import type { InstitutionResponse } from './institutionResponse';
 
 /**
- * Müşteri kaydının detayı
+ * Kontak kişi kaydının detayı
  */
 export interface CustomerResponse {
   /** Müşteri kimliği */
   id?: string;
-  /** Müşteri kodu */
-  code?: string;
-  /** Müşteri türü */
-  type?: CustomerResponseType;
-  /** Kurum veya kişi adı */
-  institution?: string;
+  /** Bağlı kurum */
+  institution?: InstitutionResponse;
   /** Birim / departman */
   department?: string;
   /** Yetkili adı soyadı */
@@ -52,20 +48,6 @@ export interface CustomerResponse {
   fax?: string;
   /** E-posta */
   email?: string;
-  /** Adres */
-  address?: string;
-  /** İlçe */
-  district?: string;
-  /** İl */
-  city?: string;
-  /** Posta kodu */
-  postalCode?: string;
-  /** Ülke kodu (ISO 3166-1 alpha-2) */
-  country?: string;
-  /** Vergi dairesi */
-  taxOffice?: string;
-  /** Vergi numarası veya TCKN */
-  taxNumber?: string;
   /** İç not */
   notes?: string;
   /** Kayıt aktif mi */

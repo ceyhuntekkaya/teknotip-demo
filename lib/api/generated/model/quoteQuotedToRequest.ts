@@ -27,6 +27,8 @@
 export interface QuoteQuotedToRequest {
   /** Katalogdaki müşteri kimliği */
   customerId?: string;
+  /** Katalogdaki kurum kimliği; müşteri verildiyse onun kurumu kullanılır */
+  institutionId?: string;
   /**
      * Kurum veya kişi adı
      * @minLength 0

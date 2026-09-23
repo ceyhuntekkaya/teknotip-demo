@@ -3,23 +3,30 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SplitWorkspace } from "@/components/layout/split-workspace";
-import { TextInput } from "@/components/catalog/fields";
+import { ActionButton, TextInput } from "@/components/catalog/fields";
 import { QuoteDocumentPanel } from "@/components/quote/quote-document-panel";
-import { apiErrorMessage } from "@/lib/api/errors";
+import { apiErrorMessage, isSuccessStatus } from "@/lib/api/errors";
 import {
   createQuoteVersion,
+  deleteQuote,
   getQuoteById,
   listQuotes,
   setQuoteConverted,
 } from "@/lib/api/generated/endpoints/quotes/quotes";
 import type {
   CustomerResponse,
+  InstitutionResponse,
   ProductResponse,
   QuoteResponse,
   QuoteSummaryResponse,
 } from "@/lib/api/generated/model";
 import { formatTry } from "@/lib/catalog/price";
+import {
+  downloadQuotesExcel,
+  fetchAllQuoteSummaries,
+} from "@/lib/export/quote-excel";
 import { displayQuotedDate } from "@/lib/pdf/format";
+import { isQuoteActionReady } from "@/lib/quote/action-ready";
 import { saveQuoteWorkspace } from "@/lib/quote/workspace";
 
 const PAGE_SIZE = 10;
@@ -46,15 +53,18 @@ export function QuoteBrowser({
   initialQuotes,
   products,
   customers,
+  institutions,
 }: {
   initialQuotes: QuoteSummaryResponse[];
   products: ProductResponse[];
   customers: CustomerResponse[];
+  institutions: InstitutionResponse[];
 }) {
   const router = useRouter();
   const [quotes, setQuotes] = useState(initialQuotes);
   const [query, setQuery] = useState("");
   const [listing, setListing] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [loadingQuote, setLoadingQuote] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,7 +149,7 @@ export function QuoteBrowser({
   };
 
   const createVersion = async () => {
-    if (!quote?.id) return;
+    if (!quote?.id || !isQuoteActionReady(quote)) return;
     setSaving(true);
     setError(null);
     try {
@@ -161,6 +171,7 @@ export function QuoteBrowser({
 
   const toggleConverted = async () => {
     if (!quote?.id) return;
+    if (!quote.convertedToSale && !isQuoteActionReady(quote)) return;
     setSaving(true);
     setError(null);
     try {
@@ -179,12 +190,57 @@ export function QuoteBrowser({
     }
   };
 
+  const remove = async () => {
+    if (!selectedId) return;
+    if (!window.confirm("Bu teklifi silmek istiyor musunuz?")) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await deleteQuote(selectedId);
+      if (!isSuccessStatus(response.status)) {
+        setError(apiErrorMessage(response.data, "Teklif silinemedi."));
+        return;
+      }
+      const remaining = quotes.filter((item) => item.id !== selectedId);
+      setQuotes(remaining);
+      setQuote(null);
+      setSelectedId(remaining[0]?.id ?? null);
+    } catch {
+      setError("Teklif silinemedi.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const exportExcel = async () => {
+    setExporting(true);
+    setError(null);
+    try {
+      const all = await fetchAllQuoteSummaries();
+      await downloadQuotesExcel(all);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Excel indirilemedi.",
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <SplitWorkspace
       eyebrow="TeknoTip · Teklifler"
       title="Kayıtlar"
       listWidthClassName="lg:w-72"
       detailClassName="overflow-hidden p-3 lg:p-4"
+      actions={
+        <ActionButton
+          disabled={exporting}
+          onClick={() => void exportExcel()}
+        >
+          {exporting ? "Excel…" : "Excel"}
+        </ActionButton>
+      }
       listHeader={
         <div className="grid gap-2 border-b border-[var(--rule)] px-4 py-3">
           <p className="font-display text-[11px] uppercase tracking-[0.18em] text-[var(--steel)]">
@@ -193,8 +249,8 @@ export function QuoteBrowser({
           <TextInput
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Müşteri adı ile ara"
-            aria-label="Müşteri adı ile ara"
+            placeholder="Numara, kurum veya yetkili"
+            aria-label="Numara, kurum veya yetkili"
           />
           <p className="text-xs text-[var(--steel)]">
             {listing
@@ -251,6 +307,7 @@ export function QuoteBrowser({
           quote={quote}
           products={products}
           customers={customers}
+          institutions={institutions}
           saving={saving}
           emptyHint={
             selectedId
@@ -265,6 +322,7 @@ export function QuoteBrowser({
           onCreateVersion={() => void createVersion()}
           onSelectVersion={setSelectedId}
           onToggleConverted={() => void toggleConverted()}
+          onDelete={selectedId ? () => void remove() : undefined}
         />
       )}
     </SplitWorkspace>

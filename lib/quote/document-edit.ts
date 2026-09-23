@@ -1,5 +1,6 @@
 import type {
   CustomerResponse,
+  InstitutionResponse,
   ProductResponse,
   QuoteLineResponse,
   QuoteResponse,
@@ -135,19 +136,59 @@ export function applyCustomer(
     ...quote,
     quotedTo: {
       customerId: customer.id,
-      institution: customer.institution,
+      institutionId: customer.institution?.id,
+      institution: customer.institution?.name,
       contactPerson: customer.contactPerson,
       title: customer.title,
       department: customer.department,
       phone: customer.phone,
       email: customer.email,
-      address: customer.address,
-      taxOffice: customer.taxOffice,
-      taxNumber: customer.taxNumber,
+      address: customer.institution?.address,
+      taxOffice: customer.institution?.taxOffice,
+      taxNumber: customer.institution?.taxNumber,
       greetingName:
         customer.greetingName ?? greetingName(customer.title, customer.contactPerson),
     },
   };
+}
+
+export function applyInstitution(
+  quote: QuoteResponse,
+  institution: InstitutionResponse | null,
+): QuoteResponse {
+  if (!institution) {
+    return {
+      ...quote,
+      quotedTo: {
+        ...quote.quotedTo,
+        institutionId: undefined,
+        customerId: undefined,
+      },
+    };
+  }
+  const sameInstitution = quote.quotedTo?.institutionId === institution.id;
+  return {
+    ...quote,
+    quotedTo: {
+      ...quote.quotedTo,
+      // Kurum değişince o kuruma ait olmayan kişi ve adres/vergi bilgisi taşınmaz.
+      customerId: sameInstitution ? quote.quotedTo?.customerId : undefined,
+      institutionId: institution.id,
+      institution: institution.name,
+      address: institution.address,
+      taxOffice: institution.taxOffice,
+      taxNumber: institution.taxNumber,
+    },
+  };
+}
+
+export type CustomerLinkState = "contact" | "institution" | "none";
+
+/** Teklifin katalogla ne kadar eşleştiği; raporlarda bulunabilmesi buna bağlı. */
+export function customerLinkState(quote: QuoteResponse): CustomerLinkState {
+  if (quote.quotedTo?.customerId) return "contact";
+  if (quote.quotedTo?.institutionId) return "institution";
+  return "none";
 }
 
 export function patchQuotedTo(

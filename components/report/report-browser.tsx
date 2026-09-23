@@ -12,12 +12,15 @@ import { apiErrorMessage } from "@/lib/api/errors";
 import { getQuoteReport } from "@/lib/api/generated/endpoints/quotes/quotes";
 import type {
   CustomerResponse,
+  InstitutionResponse,
   ProductResponse,
   QuoteReportProductResponse,
   QuoteReportStatsResponse,
   QuoteSummaryResponse,
 } from "@/lib/api/generated/model";
 import { formatTry } from "@/lib/catalog/price";
+import { customerLabel } from "@/lib/customer/display";
+import { downloadReportExcel } from "@/lib/export/quote-excel";
 import { displayQuotedDate } from "@/lib/pdf/format";
 
 type ConvertedFilter = "all" | "open" | "converted";
@@ -33,10 +36,13 @@ const EMPTY_STATS: QuoteReportStatsResponse = {
 export function ReportBrowser({
   products,
   customers,
+  institutions,
 }: {
   products: ProductResponse[];
   customers: CustomerResponse[];
+  institutions: InstitutionResponse[];
 }) {
+  const [institutionId, setInstitutionId] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [query, setQuery] = useState("");
   const [from, setFrom] = useState("");
@@ -48,6 +54,7 @@ export function ReportBrowser({
   const [productRows, setProductRows] = useState<QuoteReportProductResponse[]>([]);
   const [stats, setStats] = useState<QuoteReportStatsResponse>(EMPTY_STATS);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,6 +65,7 @@ export function ReportBrowser({
         try {
           const response = await getQuoteReport({
             customerId: customerId || undefined,
+            institutionId: institutionId || undefined,
             q: query.trim() || undefined,
             from: from || undefined,
             to: to || undefined,
@@ -80,7 +88,23 @@ export function ReportBrowser({
       })();
     }, 300);
     return () => window.clearTimeout(handle);
-  }, [customerId, query, from, to, productId, converted]);
+  }, [customerId, institutionId, query, from, to, productId, converted]);
+
+  const contactOptions = institutionId
+    ? customers.filter((customer) => customer.institution?.id === institutionId)
+    : customers;
+
+  const exportExcel = async () => {
+    setExporting(true);
+    setError(null);
+    try {
+      await downloadReportExcel({ quotes, products: productRows, stats });
+    } catch {
+      setError("Excel indirilemedi.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
@@ -91,20 +115,44 @@ export function ReportBrowser({
           </p>
           <h1 className="font-display text-2xl leading-none tracking-wide">Özet</h1>
         </div>
-        <AppNav />
+        <div className="flex flex-wrap items-center gap-2">
+          <ActionButton
+            disabled={exporting}
+            onClick={() => void exportExcel()}
+          >
+            {exporting ? "Excel…" : "Excel"}
+          </ActionButton>
+          <AppNav />
+        </div>
       </header>
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-5">
         <section className="grid gap-3 border border-[var(--rule)] bg-[var(--paper)] p-4 lg:grid-cols-4">
-          <Field label="Müşteri">
+          <Field label="Kurum">
+            <Select
+              value={institutionId}
+              onChange={(event) => {
+                setInstitutionId(event.target.value);
+                setCustomerId("");
+              }}
+            >
+              <option value="">Tümü</option>
+              {institutions.map((institution) => (
+                <option key={institution.id} value={institution.id}>
+                  {institution.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="İrtibat kişisi">
             <Select
               value={customerId}
               onChange={(event) => setCustomerId(event.target.value)}
             >
               <option value="">Tümü</option>
-              {customers.map((customer) => (
+              {contactOptions.map((customer) => (
                 <option key={customer.id} value={customer.id}>
-                  {customer.institution}
+                  {customerLabel(customer)}
                 </option>
               ))}
             </Select>

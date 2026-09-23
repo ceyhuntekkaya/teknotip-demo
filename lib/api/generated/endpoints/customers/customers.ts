@@ -339,7 +339,7 @@ export const getListCustomersUrl = (params?: ListCustomersParams,) => {
 }
 
 /**
- * Sayfalı müşteri listesi. `q` kod, kurum, yetkili ve ilde arar.
+ * Sayfalı kontak listesi. `q` kurum kodu, kurum adı, yetkili ve ilde arar.
  * @summary Müşteri listesi
  */
 export const listCustomers = async (params?: ListCustomersParams, options?: Parameters<typeof customFetch>[1]): Promise<listCustomersResponse> => {
@@ -412,7 +412,7 @@ export const getCreateCustomerUrl = () => {
 }
 
 /**
- * Yeni müşteri kaydı ekler. Kod verilmişse benzersiz olmalıdır.
+ * Yeni kontak kişi ekler. `institutionId` zorunludur.
  * @summary Müşteri oluştur
  */
 export const createCustomer = async (customerRequest: CustomerRequest, options?: Parameters<typeof customFetch>[1]): Promise<createCustomerResponse> => {

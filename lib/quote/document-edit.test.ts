@@ -3,6 +3,9 @@ import type { ProductResponse, QuoteResponse } from "@/lib/api/generated/model";
 import {
   addFreeLine,
   addProductLine,
+  applyCustomer,
+  applyInstitution,
+  customerLinkState,
   greetingName,
   isManualLine,
   moveLine,
@@ -77,5 +80,92 @@ describe("document-edit", () => {
     expect(next.quotedTo?.institution).toBe("ODTÜ");
     expect(next.quotedTo?.contactPerson).toBe("Ayşe Yılmaz");
     expect(next.quotedTo?.greetingName).toBe("Prof. Ayşe Yılmaz");
+  });
+
+  it("applyCustomer copies nested institution fields into quotedTo", () => {
+    const next = applyCustomer(emptyQuote, {
+      id: "c1",
+      contactPerson: "Ayşe Yılmaz",
+      title: "Prof.",
+      department: "Lab",
+      phone: "3120000000",
+      email: "ayse@example.com",
+      greetingName: "Prof. Ayşe Yılmaz",
+      institution: {
+        id: "i1",
+        name: "ODTÜ",
+        address: "Ankara",
+        taxOffice: "Çankaya",
+        taxNumber: "1234567890",
+      },
+    });
+    expect(next.quotedTo).toMatchObject({
+      customerId: "c1",
+      institution: "ODTÜ",
+      contactPerson: "Ayşe Yılmaz",
+      title: "Prof.",
+      department: "Lab",
+      phone: "3120000000",
+      email: "ayse@example.com",
+      address: "Ankara",
+      taxOffice: "Çankaya",
+      taxNumber: "1234567890",
+      greetingName: "Prof. Ayşe Yılmaz",
+    });
+  });
+
+  it("applyCustomer links the institution so reports can find the quote", () => {
+    const next = applyCustomer(emptyQuote, {
+      id: "c1",
+      contactPerson: "Ayşe Yılmaz",
+      institution: { id: "i1", name: "ODTÜ" },
+    });
+    expect(next.quotedTo?.institutionId).toBe("i1");
+    expect(customerLinkState(next)).toBe("contact");
+  });
+
+  it("applyInstitution links the institution without a contact", () => {
+    const next = applyInstitution(emptyQuote, {
+      id: "i1",
+      name: "ODTÜ",
+      address: "Ankara",
+      taxOffice: "Çankaya",
+      taxNumber: "1234567890",
+    });
+    expect(next.quotedTo).toMatchObject({
+      institutionId: "i1",
+      institution: "ODTÜ",
+      address: "Ankara",
+      taxOffice: "Çankaya",
+      taxNumber: "1234567890",
+    });
+    expect(next.quotedTo?.customerId).toBeUndefined();
+    expect(customerLinkState(next)).toBe("institution");
+  });
+
+  it("applyInstitution drops a contact that belongs to another institution", () => {
+    const linked = applyCustomer(emptyQuote, {
+      id: "c1",
+      contactPerson: "Ayşe Yılmaz",
+      institution: { id: "i1", name: "ODTÜ" },
+    });
+    const moved = applyInstitution(linked, { id: "i2", name: "Gazi Üniversitesi" });
+    expect(moved.quotedTo?.customerId).toBeUndefined();
+    expect(moved.quotedTo?.institutionId).toBe("i2");
+  });
+
+  it("applyInstitution keeps the contact when the institution is unchanged", () => {
+    const linked = applyCustomer(emptyQuote, {
+      id: "c1",
+      contactPerson: "Ayşe Yılmaz",
+      institution: { id: "i1", name: "ODTÜ" },
+    });
+    const same = applyInstitution(linked, { id: "i1", name: "ODTÜ" });
+    expect(same.quotedTo?.customerId).toBe("c1");
+  });
+
+  it("customerLinkState reports free-text quotes as unlinked", () => {
+    const freeText = patchQuotedTo(emptyQuote, { institution: "Kayıtsız Kurum" });
+    expect(customerLinkState(freeText)).toBe("none");
   });
 });

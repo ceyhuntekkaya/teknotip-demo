@@ -24,7 +24,7 @@ export type ListenSession = {
   timeData: Uint8Array;
 };
 
-export type StopReason = "silence" | "max" | "manual";
+export type StopReason = "silence" | "max" | "manual" | "discard";
 
 export type UtteranceResult = {
   blob: Blob;
@@ -34,8 +34,18 @@ export type UtteranceResult = {
 };
 
 export type UtteranceHandle = {
+  /** Flush audio captured so far and hand it to the caller. */
   stopManual: () => void;
+  /** Drop the recording. Used when leaving the page or starting a new quote. */
+  discard: () => void;
 };
+
+/** Durdur submits whatever was captured. Silence still waits for VAD. */
+export function shouldSubmitUtterance(result: UtteranceResult): boolean {
+  if (result.reason === "discard" || result.blob.size === 0) return false;
+  if (result.reason === "manual") return true;
+  return result.speechSeen;
+}
 
 export function byteBuffersEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
@@ -202,11 +212,6 @@ export function beginUtterance(
     window.clearInterval(intervalId);
     if (recorder.state === "recording" || recorder.state === "paused") {
       try {
-        if (recorder.state === "recording") recorder.requestData();
-      } catch {
-        /* Safari: requestData is not always available */
-      }
-      try {
         recorder.stop();
       } catch {
         deliver();
@@ -221,8 +226,10 @@ export function beginUtterance(
   recorder.ondataavailable = (event) => {
     if (event.data.size > 0) chunks.push(event.data);
   };
+  // stop() already emits a final dataavailable. Deliver on the next turn so
+  // that chunk is in `chunks` before the blob is built.
   recorder.onstop = () => {
-    deliver();
+    window.setTimeout(deliver, 0);
   };
   recorder.onerror = () => {
     if (!finishing) reason = "silence";
@@ -233,7 +240,7 @@ export function beginUtterance(
     recorder.start(TIMESLICE_MS);
   } catch {
     deliver();
-    return { stopManual: () => deliver() };
+    return { stopManual: () => deliver(), discard: () => deliver() };
   }
 
   intervalId = window.setInterval(() => {
@@ -263,5 +270,8 @@ export function beginUtterance(
     if (tick.decision !== "continue") stopRecorder(tick.decision);
   }, TICK_MS);
 
-  return { stopManual: () => stopRecorder("manual") };
+  return {
+    stopManual: () => stopRecorder("manual"),
+    discard: () => stopRecorder("discard"),
+  };
 }

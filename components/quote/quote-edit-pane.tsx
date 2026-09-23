@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type {
   CustomerResponse,
+  InstitutionResponse,
   ProductResponse,
   QuoteLineAccessoryResponse,
   QuoteLineResponse,
@@ -16,12 +17,15 @@ import {
   TextArea,
   TextInput,
 } from "@/components/catalog/fields";
-import { formatTry } from "@/lib/catalog/price";
+import { formatQuoteAmount } from "@/lib/money";
+import { customerLabel } from "@/lib/customer/display";
 import {
   addFreeLine,
   addProductLine,
   applyCustomer,
+  applyInstitution,
   catalogForLine,
+  customerLinkState,
   isManualLine,
   moveLine,
   nextFreeCode,
@@ -29,6 +33,24 @@ import {
   removeLine,
   replaceLine,
 } from "@/lib/quote/document-edit";
+
+const LINK_BADGE = {
+  contact: { label: "Kayıtlı müşteriye bağlı", tone: "bg-emerald-50 text-emerald-700" },
+  institution: { label: "Kurum bağlı, kişi kayıtsız", tone: "bg-amber-50 text-amber-700" },
+  none: { label: "Kayıt dışı", tone: "bg-neutral-100 text-neutral-600" },
+} as const;
+
+function CustomerLinkBadge({ quote }: { quote: QuoteResponse }) {
+  const badge = LINK_BADGE[customerLinkState(quote)];
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${badge.tone}`}
+      title="Teklifin müşteri raporlarında bulunabilmesi bu bağlantıya göredir."
+    >
+      {badge.label}
+    </span>
+  );
+}
 
 function PriceInput({
   value,
@@ -75,16 +97,22 @@ export function QuoteEditPane({
   quote,
   products,
   customers,
+  institutions,
   onChange,
 }: {
   quote: QuoteResponse;
   products: ProductResponse[];
   customers: CustomerResponse[];
+  institutions: InstitutionResponse[];
   onChange: (next: QuoteResponse) => void;
 }) {
   const [freeOpen, setFreeOpen] = useState(false);
   const quoted = quote.quotedTo ?? {};
   const lines = quote.lines ?? [];
+  // Kurum seçiliyse yalnızca o kurumun kişileri; başka kurumun kişisi bağlanamaz.
+  const contactOptions = quoted.institutionId
+    ? customers.filter((customer) => customer.institution?.id === quoted.institutionId)
+    : customers;
 
   const patchQuoted = (patch: Partial<NonNullable<QuoteResponse["quotedTo"]>>) => {
     onChange(patchQuotedTo(quote, patch));
@@ -105,7 +133,27 @@ export function QuoteEditPane({
             }
           />
         </Field>
-        <Field label="Müşteri kaydı">
+        <div className="flex items-center justify-end sm:justify-start">
+          <CustomerLinkBadge quote={quote} />
+        </div>
+        <Field label="Kurum kaydı">
+          <Select
+            value={quoted.institutionId ?? ""}
+            onChange={(event) => {
+              const id = event.target.value;
+              const institution = institutions.find((item) => item.id === id) ?? null;
+              onChange(applyInstitution(quote, institution));
+            }}
+          >
+            <option value="">Elle gir</option>
+            {institutions.map((institution) => (
+              <option key={institution.id} value={institution.id}>
+                {institution.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="İrtibat kişisi kaydı">
           <Select
             value={quoted.customerId ?? ""}
             onChange={(event) => {
@@ -115,9 +163,9 @@ export function QuoteEditPane({
             }}
           >
             <option value="">Elle gir</option>
-            {customers.map((customer) => (
+            {contactOptions.map((customer) => (
               <option key={customer.id} value={customer.id}>
-                {customer.institution}
+                {customerLabel(customer)}
               </option>
             ))}
           </Select>
@@ -253,6 +301,7 @@ export function QuoteEditPane({
               line={line}
               index={index}
               total={lines.length}
+              currency={quote.currency}
               product={catalogForLine(products, line)}
               onChange={(next) => onChange(replaceLine(quote, index, next))}
               onRemove={() => onChange(removeLine(quote, index))}
@@ -398,6 +447,7 @@ function LineEditor({
   line,
   index,
   total,
+  currency,
   product,
   onChange,
   onRemove,
@@ -407,6 +457,7 @@ function LineEditor({
   line: QuoteLineResponse;
   index: number;
   total: number;
+  currency?: string;
   product?: ProductResponse;
   onChange: (line: QuoteLineResponse) => void;
   onRemove: () => void;
@@ -515,7 +566,7 @@ function LineEditor({
           </Field>
         ) : (
           <p className="self-end font-mono text-sm text-[var(--heat)]">
-            {formatTry(lineTotal)}
+            {formatQuoteAmount(lineTotal, currency)}
           </p>
         )}
       </div>

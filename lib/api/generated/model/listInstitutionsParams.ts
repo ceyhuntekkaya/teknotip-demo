@@ -21,13 +21,21 @@
  * OpenAPI spec version: v1
  */
 
+export type ListInstitutionsParams = {
 /**
- * Müşteri türü
+ * Kod, ad, il veya vergi no araması
  */
-export type CustomerRequestType = typeof CustomerRequestType[keyof typeof CustomerRequestType];
-
-
-export const CustomerRequestType = {
-  CORPORATE: 'CORPORATE',
-  INDIVIDUAL: 'INDIVIDUAL',
-} as const;
+q?: string;
+/**
+ * Sayfa numarası (0 tabanlı)
+ */
+page?: number;
+/**
+ * Sayfa boyutu
+ */
+size?: number;
+/**
+ * Sıralama, örn. name,asc
+ */
+sort?: string[];
+};

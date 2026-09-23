@@ -27,6 +27,10 @@ export type GetQuoteReportParams = {
  */
 customerId?: string;
 /**
+ * Kurum kimliği
+ */
+institutionId?: string;
+/**
  * Kurum veya yetkili araması
  */
 q?: string;

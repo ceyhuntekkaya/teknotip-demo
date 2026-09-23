@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function OrganizedProductsPage() {
   const response = await listOrganizedProducts({
     page: 0,
-    size: 500,
+    size: 1000,
     sort: ["name"],
   });
   const products: OrganizedProductResponse[] =

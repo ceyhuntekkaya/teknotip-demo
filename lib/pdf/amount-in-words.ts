@@ -1,3 +1,5 @@
+import { moneyUnit } from "@/lib/money";
+
 const ONES = [
   "",
   "BİR",
@@ -58,12 +60,13 @@ export function integerToWords(n: number): string {
   return parts.join(" ").replace(/\s+/g, " ").trim();
 }
 
-export function amountInWords(value: number): string {
+export function amountInWords(value: number, currency?: string | null): string {
+  const unit = moneyUnit(currency);
   const rounded = Math.round(Math.abs(value) * 100);
-  const tl = Math.floor(rounded / 100);
-  const kr = rounded % 100;
+  const major = Math.floor(rounded / 100);
+  const minor = rounded % 100;
   const prefix = value < 0 ? "EKSİ " : "";
-  const tlWords = integerToWords(tl);
-  if (kr === 0) return `${prefix}${tlWords} TL`;
-  return `${prefix}${tlWords} TL ${integerToWords(kr)} KR`;
+  const majorWords = integerToWords(major);
+  if (minor === 0) return `${prefix}${majorWords} ${unit.label}`;
+  return `${prefix}${majorWords} ${unit.label} ${integerToWords(minor)} ${unit.minor}`;
 }
