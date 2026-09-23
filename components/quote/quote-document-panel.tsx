@@ -56,6 +56,7 @@ export function QuoteDocumentPanel({
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [rightView, setRightView] = useState<"quote" | "edit">(defaultView);
   const [remindOpen, setRemindOpen] = useState(false);
+  const [showImages, setShowImages] = useState(false);
 
   const showingPdf = pdfQuote !== null;
   const editing = rightView === "edit";
@@ -96,31 +97,60 @@ export function QuoteDocumentPanel({
           <h2 className="font-display text-2xl leading-none tracking-wide">
             {editing ? "Düzenleme" : "Teklif"}
           </h2>
-          {quote && onChange ? (
-            <div className="flex" role="group" aria-label="PDF fiyat görünümü">
-              {(
-                [
-                  { detailed: false, label: "Tek Fiyat" },
-                  { detailed: true, label: "Detaylı Fiyat" },
-                ] as const
-              ).map((option) => {
-                const active = detailedPrices === option.detailed;
-                return (
-                  <button
-                    key={option.label}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => setPriceMode(option.detailed)}
-                    className={`h-8 border px-2.5 font-display text-[12px] uppercase tracking-[0.12em] ${
-                      active
-                        ? "border-[var(--heat)] bg-[var(--heat)] text-[var(--paper)]"
-                        : "border-[var(--rule)] text-[var(--charcoal)] hover:border-[var(--charcoal)]"
-                    } ${option.detailed ? "" : "border-r-0"}`}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
+          {quote ? (
+            <div className="flex flex-wrap gap-2">
+              {onChange ? (
+                <div className="flex" role="group" aria-label="PDF fiyat görünümü">
+                  {(
+                    [
+                      { detailed: false, label: "Tek Fiyat" },
+                      { detailed: true, label: "Detaylı Fiyat" },
+                    ] as const
+                  ).map((option) => {
+                    const active = detailedPrices === option.detailed;
+                    return (
+                      <button
+                        key={option.label}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setPriceMode(option.detailed)}
+                        className={`h-8 border px-2.5 font-display text-[12px] uppercase tracking-[0.12em] ${
+                          active
+                            ? "border-[var(--heat)] bg-[var(--heat)] text-[var(--paper)]"
+                            : "border-[var(--rule)] text-[var(--charcoal)] hover:border-[var(--charcoal)]"
+                        } ${option.detailed ? "" : "border-r-0"}`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+              <div className="flex" role="group" aria-label="PDF görsel görünümü">
+                {(
+                  [
+                    { images: false, label: "Görselsiz" },
+                    { images: true, label: "Görselli" },
+                  ] as const
+                ).map((option) => {
+                  const active = showImages === option.images;
+                  return (
+                    <button
+                      key={option.label}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setShowImages(option.images)}
+                      className={`h-8 border px-2.5 font-display text-[12px] uppercase tracking-[0.12em] ${
+                        active
+                          ? "border-[var(--heat)] bg-[var(--heat)] text-[var(--paper)]"
+                          : "border-[var(--rule)] text-[var(--charcoal)] hover:border-[var(--charcoal)]"
+                      } ${option.images ? "" : "border-r-0"}`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           ) : null}
           {(quote?.versions?.length ?? 0) > 1 ? (
@@ -252,7 +282,12 @@ export function QuoteDocumentPanel({
       ) : null}
 
       {showingPdf && pdfQuote ? (
-        <QuotePdfPanel quote={pdfQuote} onUrl={handlePdfUrl} />
+        <QuotePdfPanel
+          quote={pdfQuote}
+          products={products}
+          showImages={showImages}
+          onUrl={handlePdfUrl}
+        />
       ) : editing && quote && onChange ? (
         <QuoteEditPane
           quote={quote}

@@ -1,7 +1,6 @@
 import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
 import { amountInWords } from "@/lib/pdf/amount-in-words";
 import { companyTemplate, type CompanyTemplate } from "@/lib/pdf/company";
-import { productImageSrc } from "@/lib/files/product-image";
 import {
   addDaysFormatted,
   assetUrl,
@@ -9,6 +8,7 @@ import {
   formatQuoteDate,
   formatTl,
 } from "@/lib/pdf/format";
+import { lineImageKey } from "@/lib/pdf/product-images";
 import { pdfStyles as s } from "@/lib/pdf/styles";
 import type { QuoteLineResponse, QuoteResponse } from "@/lib/api/generated/model";
 
@@ -16,6 +16,10 @@ type Props = {
   quote: QuoteResponse;
   origin: string;
   template?: CompanyTemplate;
+  /** When false (default), product images are omitted from the PDF. */
+  showImages?: boolean;
+  /** Prefetched data URLs keyed by lineImageKey (auth-safe for /backend files). */
+  imageDataUrls?: Record<string, string>;
 };
 
 function Header({
@@ -83,15 +87,15 @@ function Footer({ template }: { template: CompanyTemplate }) {
 function ProductRow({
   line,
   index,
-  origin,
   currency,
   showLinePrices,
+  imageDataUrl,
 }: {
   line: QuoteLineResponse;
   index: number;
-  origin: string;
   currency?: string;
   showLinePrices: boolean;
+  imageDataUrl?: string;
 }) {
   const specs = [
     ...(line.properties ?? [])
@@ -102,7 +106,6 @@ function ProductRow({
       return `· ${accessory.name}${qty}`;
     }),
   ];
-  const imageSrc = productImageSrc(line.image ?? "");
   const nameLines = (line.name ?? "").split("\n");
   const longName = nameLines.length > 1 || (line.name ?? "").length > 120;
 
@@ -121,11 +124,8 @@ function ProductRow({
             {item}
           </Text>
         ))}
-        {imageSrc ? (
-          <Image
-            src={assetUrl(origin, imageSrc)}
-            style={s.productImage}
-          />
+        {imageDataUrl ? (
+          <Image src={imageDataUrl} style={s.productImage} />
         ) : null}
       </View>
       <Text style={[s.cell, s.colQty]}>{line.quantity ?? 1}</Text>
@@ -174,6 +174,8 @@ export function QuotePdfDocument({
   quote,
   origin,
   template = companyTemplate,
+  showImages = false,
+  imageDataUrls = {},
 }: Props) {
   const { company, bank, texts, terms } = template;
   const dateIso = quote.quotedDate ?? "";
@@ -254,9 +256,11 @@ export function QuotePdfDocument({
             key={line.id ?? `line-${index}`}
             line={line}
             index={index + 1}
-            origin={origin}
             currency={quote.currency}
             showLinePrices={showLinePrices}
+            imageDataUrl={
+              showImages ? imageDataUrls[lineImageKey(line, index)] : undefined
+            }
           />
         ))}
 

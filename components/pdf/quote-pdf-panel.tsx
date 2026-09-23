@@ -4,13 +4,18 @@ import { pdf } from "@react-pdf/renderer";
 import { useEffect, useState } from "react";
 import { QuotePdfDocument } from "@/components/pdf/quote-document";
 import { registerPdfFonts } from "@/lib/pdf/fonts";
-import type { QuoteResponse } from "@/lib/api/generated/model";
+import { prefetchQuoteImages } from "@/lib/pdf/product-images";
+import type { ProductResponse, QuoteResponse } from "@/lib/api/generated/model";
 
 export function QuotePdfPanel({
   quote,
+  products = [],
+  showImages = false,
   onUrl,
 }: {
   quote: QuoteResponse;
+  products?: ProductResponse[];
+  showImages?: boolean;
   onUrl?: (url: string | null) => void;
 }) {
   const [url, setUrl] = useState<string | null>(null);
@@ -27,8 +32,17 @@ export function QuotePdfPanel({
       onUrl?.(null);
       try {
         registerPdfFonts(window.location.origin);
+        const imageDataUrls = showImages
+          ? await prefetchQuoteImages(quote, products, window.location.origin)
+          : {};
+        if (cancelled) return;
         const blob = await pdf(
-          <QuotePdfDocument quote={quote} origin={window.location.origin} />,
+          <QuotePdfDocument
+            quote={quote}
+            origin={window.location.origin}
+            showImages={showImages}
+            imageDataUrls={imageDataUrls}
+          />,
         ).toBlob();
         objectUrl = URL.createObjectURL(blob);
         if (cancelled) {
@@ -52,7 +66,7 @@ export function QuotePdfPanel({
       if (objectUrl) URL.revokeObjectURL(objectUrl);
       onUrl?.(null);
     };
-  }, [quote, onUrl]);
+  }, [quote, products, showImages, onUrl]);
 
   if (loading) {
     return (
