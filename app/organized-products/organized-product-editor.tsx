@@ -228,7 +228,7 @@ export function OrganizedProductEditor({
 
   return (
     <SplitWorkspace
-      eyebrow="TeknoTip · Geçici"
+      section="Geçici"
       title="Geçici Ürünler"
       listHeader={
         <div className="grid gap-2 border-b border-[var(--rule)] px-4 py-3">

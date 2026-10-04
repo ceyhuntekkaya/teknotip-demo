@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppNav } from "@/components/layout/app-nav";
+import { AppHeader } from "@/components/layout/app-header";
 
 type PendingItem = {
   id: string;
@@ -138,17 +138,7 @@ export function TransferPanel() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--rule)] px-5 py-3">
-        <div>
-          <p className="font-display text-[11px] uppercase tracking-[0.22em] text-[var(--steel)]">
-            TeknoTip · Geçici
-          </p>
-          <h1 className="font-display text-2xl leading-none tracking-wide">
-            Temp Product Transfer
-          </h1>
-        </div>
-        <AppNav />
-      </header>
+      <AppHeader section="Geçici" title="Temp Product Transfer" />
 
       <section className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5">
         <div className="mx-auto grid max-w-6xl gap-4">

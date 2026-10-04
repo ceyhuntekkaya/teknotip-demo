@@ -5,6 +5,7 @@ import type {
   QuoteReportStatsResponse,
   QuoteSummaryResponse,
 } from "@/lib/api/generated/model";
+import { brandLabel } from "@/lib/brand/brands";
 import { downloadWorkbook, exportFilename, type ExcelColumn } from "@/lib/export/excel";
 import { parseIsoDate } from "@/lib/pdf/format";
 
@@ -12,6 +13,7 @@ const QUOTE_PAGE_SIZE = 200;
 
 const quoteColumns: ExcelColumn[] = [
   { header: "Numara", key: "quoteNumber", width: 16 },
+  { header: "Marka", key: "brand", width: 14 },
   { header: "Versiyon", key: "versionNumber", width: 12 },
   { header: "Tarih", key: "quotedDate", width: 14, numFmt: "dd.mm.yyyy" },
   { header: "Kurum", key: "institution", width: 28 },
@@ -50,6 +52,7 @@ function quoteDate(value?: string): Date | string {
 function quoteRows(quotes: QuoteSummaryResponse[]) {
   return quotes.map((item) => ({
     quoteNumber: item.quoteNumber ?? "",
+    brand: brandLabel(item.brand),
     versionNumber: item.versionNumber ?? 1,
     quotedDate: quoteDate(item.quotedDate),
     institution: item.institution ?? "",

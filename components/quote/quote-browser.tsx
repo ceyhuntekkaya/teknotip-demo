@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useBrand } from "@/components/brand/brand-provider";
 import { SplitWorkspace } from "@/components/layout/split-workspace";
 import { ActionButton, TextInput } from "@/components/catalog/fields";
 import { QuoteDocumentPanel } from "@/components/quote/quote-document-panel";
@@ -22,6 +23,7 @@ import type {
   QuoteSummaryResponse,
 } from "@/lib/api/generated/model";
 import { quoteToRequest } from "@/lib/api/map";
+import { DEFAULT_BRAND, isBrandId, type BrandId } from "@/lib/brand/brands";
 import { formatTry } from "@/lib/catalog/price";
 import {
   downloadQuotesExcel,
@@ -41,6 +43,7 @@ function patchSummary(
   return {
     ...item,
     quoteNumber: quote.quoteNumber,
+    brand: quote.brand,
     quotedDate: quote.quotedDate,
     institution: quote.quotedTo?.institution,
     contactPerson: quote.quotedTo?.contactPerson,
@@ -63,6 +66,7 @@ export function QuoteBrowser({
   institutions: InstitutionResponse[];
 }) {
   const router = useRouter();
+  const { setBrand } = useBrand();
   const [quotes, setQuotes] = useState(initialQuotes);
   const [query, setQuery] = useState("");
   const [listing, setListing] = useState(false);
@@ -74,8 +78,20 @@ export function QuoteBrowser({
     initialQuotes[0]?.id ?? null,
   );
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
+  const quoteRef = useRef<QuoteResponse | null>(null);
   const requestId = useRef(0);
   const skipInitialList = useRef(true);
+  quoteRef.current = quote;
+
+  const applyLoadedQuote = useCallback(
+    (next: QuoteResponse) => {
+      setQuote(next);
+      quoteRef.current = next;
+      const nextBrand = isBrandId(next.brand) ? next.brand : DEFAULT_BRAND;
+      setBrand(nextBrand, { silent: true });
+    },
+    [setBrand],
+  );
 
   const loadQuote = useCallback(async (id: string) => {
     const ticket = ++requestId.current;
@@ -89,7 +105,7 @@ export function QuoteBrowser({
         setError(apiErrorMessage(response.data, "Teklif yüklenemedi."));
         return;
       }
-      setQuote(response.data);
+      applyLoadedQuote(response.data);
     } catch {
       if (ticket !== requestId.current) return;
       setQuote(null);
@@ -97,7 +113,7 @@ export function QuoteBrowser({
     } finally {
       if (ticket === requestId.current) setLoadingQuote(false);
     }
-  }, []);
+  }, [applyLoadedQuote]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -147,10 +163,11 @@ export function QuoteBrowser({
 
   const applyQuote = (next: QuoteResponse) => {
     setQuote(next);
+    quoteRef.current = next;
     setQuotes((current) => current.map((item) => patchSummary(item, next)));
   };
 
-  const persistQuote = async (next: QuoteResponse) => {
+  const persistQuote = useCallback(async (next: QuoteResponse) => {
     if (!next.id) return;
     setSaving(true);
     setError(null);
@@ -166,7 +183,21 @@ export function QuoteBrowser({
     } finally {
       setSaving(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const onBrandChange = (event: Event) => {
+      const nextBrand = (event as CustomEvent<BrandId>).detail;
+      if (!isBrandId(nextBrand)) return;
+      const current = quoteRef.current;
+      if (!current || current.brand === nextBrand) return;
+      void persistQuote({ ...current, brand: nextBrand });
+    };
+    window.addEventListener("teknotip:brand-change", onBrandChange);
+    return () => {
+      window.removeEventListener("teknotip:brand-change", onBrandChange);
+    };
+  }, [persistQuote]);
 
   const createVersion = async () => {
     if (!quote?.id || !isQuoteActionReady(quote)) return;
@@ -249,7 +280,7 @@ export function QuoteBrowser({
 
   return (
     <SplitWorkspace
-      eyebrow="TeknoTip · Teklifler"
+      section="Teklifler"
       title="Kayıtlar"
       listWidthClassName="lg:w-72"
       detailClassName="overflow-hidden p-3 lg:p-4"

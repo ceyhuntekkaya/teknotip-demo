@@ -1,0 +1,37 @@
+{
+  "company": {
+    "legalName": "OPTOSENSE LLC",
+    "logo": "/brand/optosense/logo.png",
+    "addressLines": ["941 W. Morse Blvd. Suite 100 Winterpark FL 32789"],
+    "phone": "407 360 84 84/85",
+    "email": "info@optosense.us"
+  },
+  "texts": {
+    "documentTitle": "QUOTATION",
+    "nameAddressLabel": "NAME/ADDRESS:",
+    "attnLabel": "Attn.",
+    "quoteNoLabel": "QUOTE NO:",
+    "dateLabel": "DATE:",
+    "table": {
+      "no": "NO",
+      "code": "CODE",
+      "description": "DESCRIPTION",
+      "quantity": "QTY",
+      "unitPrice": "UNIT PRICE",
+      "total": "TOTAL"
+    },
+    "subtotal": "Subtotal",
+    "total": "TOTAL",
+    "optionLabel": "Option",
+    "footer": {
+      "deliveryTitle": "DELIVERY TERMS",
+      "paymentTitle": "PAYMENT TERMS",
+      "validationTitle": "VALIDATION",
+      "termsTitle": "TERMS",
+      "delivery": "10-12 weeks order approval",
+      "payment": "%90 Before Shipment, 10% After acceptance",
+      "validation": "30 days",
+      "terms": "EXW USA"
+    }
+  }
+}

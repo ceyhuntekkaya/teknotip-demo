@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Barlow_Condensed, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { AppProviders } from "@/components/brand/providers";
 import "./globals.css";
 
 const plexSans = IBM_Plex_Sans({
@@ -33,7 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
     >
       <body className="kiln-bench flex h-dvh flex-col overflow-hidden" suppressHydrationWarning>
-        {children}
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

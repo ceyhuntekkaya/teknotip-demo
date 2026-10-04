@@ -21,9 +21,19 @@ describe("quoteToRequest", () => {
     const request = quoteToRequest(quote);
     expect(request.quotedTo?.customerId).toBe("c1");
     expect(request.quotedTo?.institutionId).toBe("i1");
+    expect(request.brand).toBe("TEKNOTIP");
   });
 
   it("leaves quotedTo out when the quote has no recipient", () => {
     expect(quoteToRequest({ id: "q1", lines: [] }).quotedTo).toBeUndefined();
+  });
+
+  it("keeps the quote brand when saving", () => {
+    const request = quoteToRequest({
+      id: "q1",
+      brand: "OPTOSENSE",
+      lines: [],
+    });
+    expect(request.brand).toBe("OPTOSENSE");
   });
 });

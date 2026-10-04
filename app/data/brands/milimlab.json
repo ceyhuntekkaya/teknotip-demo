@@ -1,0 +1,65 @@
+{
+  "company": {
+    "legalNameLines": [
+      "MİLİM LABORATUVAR CİHAZLARI İTHALAT İHRACAT",
+      "OTOMOBİL ALIM SATIM VE KİRALAMA LİMİTED ŞİRKETİ"
+    ],
+    "logo": "/brand/milimlab/logo.png",
+    "addressLines": [
+      "Çukurambar Mahallesi 1480. Sokak No:2A İç Kapı No:37 Çankaya/ANKARA"
+    ],
+    "phone": "0 312 213 20 50",
+    "fax": "0 312 213 20 50",
+    "email": "sales@milimlab.com",
+    "web": "www.milimlab.com",
+    "taxOffice": "Çankaya V.D.",
+    "taxNumber": "6440368562",
+    "mersis": "0644036856200015",
+    "tradeRegistry": "374624"
+  },
+  "texts": {
+    "quoteNoLabel": "Teklif No",
+    "dateLabel": "Tarih",
+    "validityLabel": "Geçerlilik",
+    "validitySuffix": "TARİHİNE KADAR",
+    "institutionLabel": "Kurum",
+    "addressLabel": "Adres",
+    "phoneLabel": "Telefon",
+    "faxLabel": "Faks",
+    "emailLabel": "E-posta",
+    "contactLabel": "İlgili Kişi / Bölüm",
+    "table": {
+      "no": "Sıra",
+      "description": "Açıklama",
+      "unitPrice": "Birim Fiyat",
+      "quantity": "Miktar",
+      "subtotal": "Ara Toplam",
+      "discount": "İsk.",
+      "total": "Toplam Tutar"
+    },
+    "quantityUnit": "ADET",
+    "totals": {
+      "subtotal": "Fatura Alt Toplamı",
+      "tax": "KDV Tutarı",
+      "grand": "Toplam"
+    },
+    "deliveryTitle": "Teslimat",
+    "deliveryTimeLabel": "Teslimat Süresi",
+    "deliveryTime": "12-14 HAFTA",
+    "deliveryModeLabel": "Teslimat Şekli",
+    "deliveryMode": "FİRMAMIZ YETKİLİ SERVİSİ TARAFINDAN GÖNDERİM",
+    "commercialTitle": "Ticari Koşullar",
+    "commercialBody": "%{rate} KDV DAHİL DEĞİLDİR.",
+    "paymentTitle": "Ödeme Koşulu",
+    "paymentBody": "TESLİMATTAN SONRA PEŞİN",
+    "generalTitle": "Genel Hükümler",
+    "notes": [
+      "• SİPARİŞİNİZ YAZILI OLARAK VE e-MAIL YOLUYLA TEYİT EDİLDİĞİNDE İŞLEME KONUR. KATİ SİPARİŞTEN SONRA SİPARİŞ İPTAL EDİLEMEZ. (İptal durumda yurtdışından ithal edilecek ürünler için sipariş iptali sipariş teyidinden sonra ilk 3 gün bedelsiz olacaktır. 3 gün sonra edilmesi durumunda mal bedelinin %25’i, bir ay sonra iptal edilmesi durumunda mal bedelinin %50 si cezai olarak ödenecektir.)",
+      "• MÜCBİR (NAKLİYE, TSE, GÜMRÜK, SEL, VB.) SEBEPLERDEN KAYNAKLANAN GECİKMELERDEN FİRMAMIZ SORUMLU OLMAYACAKTIR.",
+      "• STOK OLARAK BELİRTİLEN ÜRÜNLERİMİZDE OPSİYON 5 GÜNDÜR."
+    ]
+  },
+  "terms": {
+    "validityDays": 30
+  }
+}

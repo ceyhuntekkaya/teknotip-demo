@@ -70,6 +70,7 @@ export * from './productPropertyResponse';
 export * from './productPropertyResponseType';
 export * from './productRequest';
 export * from './productResponse';
+export * from './quoteBrand';
 export * from './quoteChatRequest';
 export * from './quoteChatResponse';
 export * from './quoteConvertedRequest';

@@ -17,6 +17,37 @@ export function formatQuoteDate(iso: string): string {
   return `${day}.${month}.${date.getFullYear()}`;
 }
 
+const EN_MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+/** OptoSense sample style: `18-Sep-2026`. */
+export function formatQuoteDateEn(iso: string): string {
+  const date = iso.trim() ? parseIsoDate(iso) : new Date();
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${day}-${EN_MONTHS[date.getMonth()]}-${date.getFullYear()}`;
+}
+
+/** MilimLab sample style: `23/09/2026`. */
+export function formatQuoteDateSlash(iso: string): string {
+  const date = iso.trim() ? parseIsoDate(iso) : new Date();
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${day}/${month}/${date.getFullYear()}`;
+}
+
+
 export function displayQuotedDate(iso?: string): string {
   if (!iso?.trim()) return "—";
   return formatQuoteDate(iso);

@@ -172,7 +172,7 @@ export function ProductEditor({ initialProducts }: { initialProducts: ProductRes
 
   return (
     <SplitWorkspace
-      eyebrow="TeknoTip · Katalog"
+      section="Katalog"
       title="Ürünler"
       listHeader={
         <div className="grid gap-2 border-b border-[var(--rule)] px-4 py-3">

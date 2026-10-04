@@ -21,6 +21,8 @@
  * OpenAPI spec version: v1
  */
 
+import type { QuoteBrand } from './quoteBrand';
+
 export type GetQuoteReportParams = {
 /**
  * Müşteri kimliği
@@ -50,4 +52,8 @@ productId?: string;
  * true: satışa dönüşenler, false: dönüşmeyenler, boş: tümü
  */
 converted?: boolean;
+/**
+ * Antet markası
+ */
+brand?: QuoteBrand;
 };

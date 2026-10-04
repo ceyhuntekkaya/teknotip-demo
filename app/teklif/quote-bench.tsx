@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AppNav } from "@/components/layout/app-nav";
+import { useBrand } from "@/components/brand/brand-provider";
 import { ActionButton } from "@/components/catalog/fields";
+import { AppHeader } from "@/components/layout/app-header";
 import { QuoteDocumentPanel } from "@/components/quote/quote-document-panel";
 import { VoiceLevel } from "@/components/teklif/voice-level";
 import { apiErrorMessage } from "@/lib/api/errors";
@@ -22,6 +23,7 @@ import type {
   QuoteResponse,
 } from "@/lib/api/generated/model";
 import { quoteToRequest } from "@/lib/api/map";
+import { DEFAULT_BRAND, isBrandId, type BrandId } from "@/lib/brand/brands";
 import { isQuoteActionReady } from "@/lib/quote/action-ready";
 import {
   clearQuoteWorkspace,
@@ -61,6 +63,9 @@ export function QuoteBench({
   voiceDebug?: boolean;
 }) {
   const router = useRouter();
+  const { brand, setBrand } = useBrand();
+  const brandRef = useRef(brand);
+  brandRef.current = brand;
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -164,13 +169,23 @@ export function QuoteBench({
     await persistInFlight.current;
   }, [persistQuote]);
 
-  const schedulePersist = (next: QuoteResponse) => {
+  const schedulePersist = useCallback((next: QuoteResponse) => {
     setQuote(next);
     if (persistTimer.current) window.clearTimeout(persistTimer.current);
     persistTimer.current = window.setTimeout(() => {
       void persistQuote(next);
     }, 600);
-  };
+  }, [persistQuote]);
+
+  const applyLoadedQuote = useCallback(
+    (next: QuoteResponse) => {
+      setQuote(next);
+      quoteRef.current = next;
+      const nextBrand = isBrandId(next.brand) ? next.brand : DEFAULT_BRAND;
+      setBrand(nextBrand, { silent: true });
+    },
+    [setBrand],
+  );
 
   const createVersion = async () => {
     await flushPersist();
@@ -184,7 +199,7 @@ export function QuoteBench({
         setError(apiErrorMessage(response.data, "Versiyon üretilemedi."));
         return;
       }
-      setQuote(response.data);
+      applyLoadedQuote(response.data);
       setMessages([]);
       saveQuoteWorkspace({
         version: 3,
@@ -210,7 +225,7 @@ export function QuoteBench({
       setError(apiErrorMessage(response.data, "Teklif yüklenemedi."));
       return;
     }
-    setQuote(response.data);
+    applyLoadedQuote(response.data);
     saveQuoteWorkspace({
       version: 3,
       quoteId: response.data.id ?? null,
@@ -250,7 +265,7 @@ export function QuoteBench({
       if (targetId) {
         const existing = await getQuoteById(targetId);
         if (existing.status === 200) {
-          setQuote(existing.data);
+          applyLoadedQuote(existing.data);
           saveQuoteWorkspace({
             version: 3,
             quoteId: existing.data.id ?? null,
@@ -263,9 +278,9 @@ export function QuoteBench({
           return;
         }
       }
-      const created = await createQuote({});
+      const created = await createQuote({ brand: brandRef.current });
       if (created.status === 201) {
-        setQuote(created.data);
+        applyLoadedQuote(created.data);
         saveQuoteWorkspace({
           version: 3,
           quoteId: created.data.id ?? null,
@@ -275,7 +290,21 @@ export function QuoteBench({
         setError(apiErrorMessage(created.data, "Teklif açılamadı."));
       }
     })();
-  }, [initialQuoteId]);
+  }, [initialQuoteId, applyLoadedQuote]);
+
+  useEffect(() => {
+    const onBrandChange = (event: Event) => {
+      const nextBrand = (event as CustomEvent<BrandId>).detail;
+      if (!isBrandId(nextBrand)) return;
+      const current = quoteRef.current;
+      if (!current || current.brand === nextBrand) return;
+      schedulePersist({ ...current, brand: nextBrand });
+    };
+    window.addEventListener("teknotip:brand-change", onBrandChange);
+    return () => {
+      window.removeEventListener("teknotip:brand-change", onBrandChange);
+    };
+  }, [schedulePersist]);
 
   useEffect(() => {
     if (skipSave.current) {
@@ -313,9 +342,9 @@ export function QuoteBench({
     utteranceRef.current?.discard();
     destroyListen();
     clearQuoteWorkspace();
-    const created = await createQuote({});
+    const created = await createQuote({ brand });
     if (created.status === 201) {
-      setQuote(created.data);
+      applyLoadedQuote(created.data);
       saveQuoteWorkspace({
         version: 3,
         quoteId: created.data.id ?? null,
@@ -513,15 +542,7 @@ export function QuoteBench({
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--rule)] px-4 py-3">
-        <div>
-          <p className="font-display text-[11px] uppercase tracking-[0.22em] text-[var(--steel)]">
-            TeknoTip · Genixo
-          </p>
-          <h1 className="font-display text-3xl leading-none tracking-wide">Teklif</h1>
-        </div>
-        <AppNav />
-      </header>
+      <AppHeader section="Genixo" title="Teklif" compact />
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto p-3 lg:grid-cols-[minmax(0,22rem)_1fr] lg:overflow-hidden xl:grid-cols-[minmax(0,28rem)_1fr]">
         <section className="flex h-[min(70dvh,40rem)] min-h-0 flex-col overflow-hidden border border-[var(--rule)] bg-[var(--paper)] lg:h-full">

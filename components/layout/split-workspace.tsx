@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import { AppNav } from "@/components/layout/app-nav";
+import { AppHeader } from "@/components/layout/app-header";
 
 type SplitWorkspaceProps = {
-  eyebrow: string;
+  section: string;
   title: string;
   listHeader: ReactNode;
   list: ReactNode;
@@ -13,7 +13,7 @@ type SplitWorkspaceProps = {
 };
 
 export function SplitWorkspace({
-  eyebrow,
+  section,
   title,
   listHeader,
   list,
@@ -24,18 +24,7 @@ export function SplitWorkspace({
 }: SplitWorkspaceProps) {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--rule)] px-5 py-3">
-        <div>
-          <p className="font-display text-[11px] uppercase tracking-[0.22em] text-[var(--steel)]">
-            {eyebrow}
-          </p>
-          <h1 className="font-display text-2xl leading-none tracking-wide">{title}</h1>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {actions}
-          <AppNav />
-        </div>
-      </header>
+      <AppHeader section={section} title={title} actions={actions} />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
         <aside

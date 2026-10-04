@@ -1,0 +1,215 @@
+import { StyleSheet } from "@react-pdf/renderer";
+
+/** MilimLab brand colors sampled from the original teklif PDF. */
+export const milimColors = {
+  red: "#F01613",
+  dark: "#404040",
+  light: "#F5F5F5",
+  white: "#FFFFFF",
+  text: "#111111",
+  muted: "#333333",
+  border: "#C8C8C8",
+} as const;
+
+export const milimStyles = StyleSheet.create({
+  page: {
+    fontFamily: "IBM Plex Sans",
+    fontSize: 8,
+    color: milimColors.text,
+    paddingTop: 24,
+    paddingBottom: 28,
+    paddingHorizontal: 24,
+  },
+  logo: {
+    width: 168,
+    height: 34,
+    objectFit: "contain",
+    marginBottom: 10,
+  },
+  infoBar: {
+    flexDirection: "row",
+    marginBottom: 10,
+  },
+  companyBar: {
+    flex: 1,
+    backgroundColor: milimColors.dark,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  companyTitle: {
+    color: milimColors.white,
+    fontSize: 7.5,
+    fontWeight: 700,
+    lineHeight: 1.25,
+    marginBottom: 6,
+    textTransform: "uppercase",
+  },
+  companyGrid: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  companyCol: {
+    flex: 1,
+  },
+  companyLine: {
+    color: milimColors.white,
+    fontSize: 6.5,
+    lineHeight: 1.3,
+  },
+  metaBar: {
+    width: 158,
+    backgroundColor: milimColors.red,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    justifyContent: "center",
+  },
+  metaRow: {
+    flexDirection: "row",
+    marginBottom: 4,
+  },
+  metaLabel: {
+    color: milimColors.white,
+    fontSize: 8,
+    fontWeight: 700,
+    width: 58,
+  },
+  metaColon: {
+    color: milimColors.white,
+    fontSize: 8,
+    fontWeight: 700,
+    width: 8,
+  },
+  metaValue: {
+    color: milimColors.white,
+    fontSize: 8,
+    fontWeight: 700,
+    flex: 1,
+  },
+  recipientBox: {
+    backgroundColor: milimColors.light,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginBottom: 12,
+  },
+  recipientRow: {
+    flexDirection: "row",
+    marginBottom: 4,
+    gap: 8,
+  },
+  recipientField: {
+    flexDirection: "row",
+    flex: 1,
+  },
+  recipientLabel: {
+    fontSize: 8,
+    fontWeight: 700,
+    color: milimColors.text,
+  },
+  recipientValue: {
+    fontSize: 8,
+    color: milimColors.text,
+    flex: 1,
+  },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: milimColors.red,
+    paddingVertical: 5,
+    paddingHorizontal: 3,
+  },
+  tableHeaderCell: {
+    fontSize: 7,
+    fontWeight: 700,
+    color: milimColors.white,
+    textAlign: "center",
+  },
+  tableRow: {
+    flexDirection: "row",
+    borderLeftWidth: 0.6,
+    borderRightWidth: 0.6,
+    borderBottomWidth: 0.6,
+    borderColor: milimColors.border,
+    paddingVertical: 5,
+    paddingHorizontal: 3,
+    backgroundColor: milimColors.white,
+  },
+  colNo: { width: "6%", textAlign: "center" },
+  colDesc: { width: "34%" },
+  colUnit: { width: "14%", textAlign: "right" },
+  colQty: { width: "12%", textAlign: "center" },
+  colSub: { width: "12%", textAlign: "right" },
+  colDisc: { width: "10%", textAlign: "right" },
+  colTotal: { width: "12%", textAlign: "right" },
+  cell: { fontSize: 7.5, lineHeight: 1.3, color: milimColors.text },
+  cellBold: {
+    fontSize: 7.5,
+    fontWeight: 700,
+    lineHeight: 1.3,
+    color: milimColors.text,
+  },
+  bullet: {
+    fontSize: 7.5,
+    lineHeight: 1.3,
+    marginTop: 1,
+    color: milimColors.muted,
+  },
+  totalsBlock: {
+    marginTop: 12,
+    alignItems: "flex-end",
+  },
+  totalRow: {
+    flexDirection: "row",
+    width: 230,
+    justifyContent: "space-between",
+    marginBottom: 3,
+  },
+  totalLabel: {
+    fontSize: 8,
+    textAlign: "right",
+    width: 120,
+    color: milimColors.text,
+  },
+  totalValue: {
+    fontSize: 8,
+    fontWeight: 700,
+    textAlign: "right",
+    width: 100,
+    color: milimColors.text,
+  },
+  sectionTitle: {
+    fontSize: 9,
+    fontWeight: 700,
+    marginTop: 14,
+    marginBottom: 4,
+    color: milimColors.text,
+  },
+  sectionRow: {
+    flexDirection: "row",
+    marginBottom: 3,
+  },
+  sectionLabel: {
+    width: 100,
+    fontSize: 8,
+    color: milimColors.text,
+  },
+  sectionColon: {
+    width: 10,
+    fontSize: 8,
+    color: milimColors.text,
+  },
+  sectionValue: {
+    flex: 1,
+    fontSize: 8,
+    color: milimColors.text,
+  },
+  commercialBody: {
+    fontSize: 8,
+    marginBottom: 2,
+    color: milimColors.text,
+  },
+  note: {
+    fontSize: 7.5,
+    lineHeight: 1.35,
+    marginBottom: 4,
+    color: milimColors.text,
+  },
+});

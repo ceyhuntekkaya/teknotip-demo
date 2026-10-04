@@ -1,23 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AppNav } from "@/components/layout/app-nav";
 import {
   ActionButton,
   Field,
   Select,
   TextInput,
 } from "@/components/catalog/fields";
+import { AppHeader } from "@/components/layout/app-header";
 import { apiErrorMessage } from "@/lib/api/errors";
 import { getQuoteReport } from "@/lib/api/generated/endpoints/quotes/quotes";
 import type {
   CustomerResponse,
   InstitutionResponse,
   ProductResponse,
+  QuoteBrand,
   QuoteReportProductResponse,
   QuoteReportStatsResponse,
   QuoteSummaryResponse,
 } from "@/lib/api/generated/model";
+import { BRANDS, brandLabel, isBrandId } from "@/lib/brand/brands";
 import { formatTry } from "@/lib/catalog/price";
 import { customerLabel } from "@/lib/customer/display";
 import { downloadReportExcel } from "@/lib/export/quote-excel";
@@ -25,6 +27,7 @@ import { displayQuotedDate } from "@/lib/pdf/format";
 
 type ConvertedFilter = "all" | "open" | "converted";
 type ViewMode = "quotes" | "products";
+type BrandFilter = "" | QuoteBrand;
 
 const EMPTY_STATS: QuoteReportStatsResponse = {
   quoteCount: 0,
@@ -48,6 +51,7 @@ export function ReportBrowser({
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [productId, setProductId] = useState("");
+  const [brand, setBrand] = useState<BrandFilter>("");
   const [converted, setConverted] = useState<ConvertedFilter>("all");
   const [view, setView] = useState<ViewMode>("quotes");
   const [quotes, setQuotes] = useState<QuoteSummaryResponse[]>([]);
@@ -64,6 +68,7 @@ export function ReportBrowser({
       from ||
       to ||
       productId ||
+      brand ||
       converted !== "all",
   );
 
@@ -89,6 +94,7 @@ export function ReportBrowser({
             from: from || undefined,
             to: to || undefined,
             productId: productId || undefined,
+            brand: brand || undefined,
             converted:
               converted === "all" ? undefined : converted === "converted",
           });
@@ -115,6 +121,7 @@ export function ReportBrowser({
     from,
     to,
     productId,
+    brand,
     converted,
   ]);
 
@@ -136,23 +143,18 @@ export function ReportBrowser({
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--rule)] px-5 py-3">
-        <div>
-          <p className="font-display text-[11px] uppercase tracking-[0.22em] text-[var(--steel)]">
-            TeknoTip · Raporlar
-          </p>
-          <h1 className="font-display text-2xl leading-none tracking-wide">Özet</h1>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+      <AppHeader
+        section="Raporlar"
+        title="Özet"
+        actions={
           <ActionButton
             disabled={exporting || !hasActiveFilter}
             onClick={() => void exportExcel()}
           >
             {exporting ? "Excel…" : "Excel"}
           </ActionButton>
-          <AppNav />
-        </div>
-      </header>
+        }
+      />
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-5">
         <section className="grid gap-3 border border-[var(--rule)] bg-[var(--paper)] p-4 lg:grid-cols-4">
@@ -201,6 +203,22 @@ export function ReportBrowser({
               {products.map((product) => (
                 <option key={product.id} value={product.id}>
                   {product.code} · {product.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Marka">
+            <Select
+              value={brand}
+              onChange={(event) => {
+                const value = event.target.value;
+                setBrand(isBrandId(value) ? value : "");
+              }}
+            >
+              <option value="">Tümü</option>
+              {BRANDS.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.displayName}
                 </option>
               ))}
             </Select>
@@ -331,6 +349,7 @@ function QuoteTable({ quotes }: { quotes: QuoteSummaryResponse[] }) {
         <thead className="border-b border-[var(--rule)] font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
           <tr>
             <th className="px-3 py-2 font-medium">Numara</th>
+            <th className="px-3 py-2 font-medium">Marka</th>
             <th className="px-3 py-2 font-medium">Tarih</th>
             <th className="px-3 py-2 font-medium">Kurum</th>
             <th className="px-3 py-2 font-medium">Yetkili</th>
@@ -341,7 +360,7 @@ function QuoteTable({ quotes }: { quotes: QuoteSummaryResponse[] }) {
         <tbody>
           {quotes.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-3 py-8 text-center text-[var(--steel)]">
+              <td colSpan={7} className="px-3 py-8 text-center text-[var(--steel)]">
                 Kayıt yok.
               </td>
             </tr>
@@ -352,6 +371,7 @@ function QuoteTable({ quotes }: { quotes: QuoteSummaryResponse[] }) {
                   {item.quoteNumber || "—"}
                   {(item.versionNumber ?? 1) > 1 ? ` · v${item.versionNumber}` : ""}
                 </td>
+                <td className="px-3 py-2">{brandLabel(item.brand)}</td>
                 <td className="px-3 py-2">{displayQuotedDate(item.quotedDate)}</td>
                 <td className="px-3 py-2">{item.institution || "—"}</td>
                 <td className="px-3 py-2">{item.contactPerson || "—"}</td>

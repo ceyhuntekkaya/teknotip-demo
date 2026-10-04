@@ -182,7 +182,7 @@ export function UserEditor({
 
   return (
     <SplitWorkspace
-      eyebrow="TeknoTip · Kullanıcılar"
+      section="Kullanıcılar"
       title="Kayıtlar"
       listHeader={
         <div className="grid gap-2 px-4 py-3">

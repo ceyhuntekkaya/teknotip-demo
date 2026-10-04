@@ -281,7 +281,7 @@ export function CustomerEditor({
 
   return (
     <SplitWorkspace
-      eyebrow="TeknoTip · Müşteriler"
+      section="Müşteriler"
       title="Kayıtlar"
       listHeader={
         <div className="grid gap-2 border-b border-[var(--rule)] px-4 py-3">

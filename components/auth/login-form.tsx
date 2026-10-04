@@ -11,8 +11,8 @@ export function LoginForm() {
   return (
     <form action={action} className="grid w-full max-w-sm gap-8">
       <Image
-        src="/brand/logo.png"
-        alt="TeknoTip"
+        src="/brand/teknotip/logo.png"
+        alt="TeknoTıp"
         width={812}
         height={298}
         priority

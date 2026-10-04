@@ -20,6 +20,7 @@
  *
  * OpenAPI spec version: v1
  */
+import type { QuoteBrand } from './quoteBrand';
 import type { QuoteLineRequest } from './quoteLineRequest';
 import type { QuoteQuotedToRequest } from './quoteQuotedToRequest';
 
@@ -29,6 +30,8 @@ import type { QuoteQuotedToRequest } from './quoteQuotedToRequest';
 export interface QuoteRequest {
   /** Teklif tarihi */
   quotedDate?: string;
+  /** Antet markası */
+  brand?: QuoteBrand;
   /**
      * Para birimi
      * @minLength 3

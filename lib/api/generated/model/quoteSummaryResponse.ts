@@ -21,6 +21,8 @@
  * OpenAPI spec version: v1
  */
 
+import type { QuoteBrand } from './quoteBrand';
+
 /**
  * Teklif listesi özeti
  */
@@ -29,6 +31,8 @@ export interface QuoteSummaryResponse {
   id?: string;
   /** Teklif numarası */
   quoteNumber?: string;
+  /** Antet markası */
+  brand?: QuoteBrand;
   /** Teklif tarihi */
   quotedDate?: string;
   /** Kurum veya kişi adı */
