@@ -15,14 +15,31 @@ export function recordingFilename(mimeType: string): string {
   return "recording.webm";
 }
 
+/** Longer than the server-side STT timeout, so its message wins when both fire. */
+const TRANSCRIBE_TIMEOUT_MS = 30_000;
+
 export async function transcribeAudio(blob: Blob, filename: string): Promise<string> {
   const formData = new FormData();
   formData.append("file", blob, filename);
-  const response = await fetch("/api/teklif/transcribe", {
-    method: "POST",
-    body: formData,
-  });
-  const payload = (await response.json()) as { error?: string; text?: string };
+  let response: Response;
+  try {
+    response = await fetch("/api/teklif/transcribe", {
+      method: "POST",
+      body: formData,
+      signal: AbortSignal.timeout(TRANSCRIBE_TIMEOUT_MS),
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "TimeoutError") {
+      throw new Error("Ses çevirme zaman aşımına uğradı. Tekrar deneyin.");
+    }
+    throw new Error("STT servisine bağlanılamadı.");
+  }
+  let payload: { error?: string; text?: string } = {};
+  try {
+    payload = (await response.json()) as typeof payload;
+  } catch {
+    /* non-JSON error page */
+  }
   if (!response.ok) {
     throw new Error(payload.error ?? "Ses çevrilemedi.");
   }

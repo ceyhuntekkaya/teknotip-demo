@@ -57,7 +57,26 @@ export function ReportBrowser({
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const hasActiveFilter = Boolean(
+    institutionId ||
+      customerId ||
+      query.trim() ||
+      from ||
+      to ||
+      productId ||
+      converted !== "all",
+  );
+
   useEffect(() => {
+    if (!hasActiveFilter) {
+      setQuotes([]);
+      setProductRows([]);
+      setStats(EMPTY_STATS);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     const handle = window.setTimeout(() => {
       void (async () => {
         setLoading(true);
@@ -88,7 +107,16 @@ export function ReportBrowser({
       })();
     }, 300);
     return () => window.clearTimeout(handle);
-  }, [customerId, institutionId, query, from, to, productId, converted]);
+  }, [
+    hasActiveFilter,
+    customerId,
+    institutionId,
+    query,
+    from,
+    to,
+    productId,
+    converted,
+  ]);
 
   const contactOptions = institutionId
     ? customers.filter((customer) => customer.institution?.id === institutionId)
@@ -117,7 +145,7 @@ export function ReportBrowser({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <ActionButton
-            disabled={exporting}
+            disabled={exporting || !hasActiveFilter}
             onClick={() => void exportExcel()}
           >
             {exporting ? "Excel…" : "Excel"}
@@ -164,6 +192,19 @@ export function ReportBrowser({
               placeholder="Kurum veya yetkili"
             />
           </Field>
+          <Field label="Ürün">
+            <Select
+              value={productId}
+              onChange={(event) => setProductId(event.target.value)}
+            >
+              <option value="">Tümü</option>
+              {products.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.code} · {product.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
           <Field label="Başlangıç">
             <TextInput
               type="date"
@@ -177,19 +218,6 @@ export function ReportBrowser({
               value={to}
               onChange={(event) => setTo(event.target.value)}
             />
-          </Field>
-          <Field label="Ürün">
-            <Select
-              value={productId}
-              onChange={(event) => setProductId(event.target.value)}
-            >
-              <option value="">Tümü</option>
-              {products.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.code} · {product.name}
-                </option>
-              ))}
-            </Select>
           </Field>
           <div className="grid gap-1.5 lg:col-span-2">
             <span className="font-display text-[11px] uppercase tracking-[0.18em] text-[var(--steel)]">
@@ -238,28 +266,43 @@ export function ReportBrowser({
         </section>
 
         {error ? <p className="text-sm text-[#8f2d1f]">{error}</p> : null}
-        <p className="text-xs text-[var(--steel)]">
-          {loading ? "Yükleniyor…" : `${stats.quoteCount ?? 0} teklif`}
-        </p>
 
-        {view === "quotes" ? (
-          <QuoteTable quotes={quotes} />
+        {!hasActiveFilter ? (
+          <p className="border border-dashed border-[var(--rule)] px-4 py-10 text-center text-sm text-[var(--steel)]">
+            Raporu görmek için en az bir filtre seçin.
+          </p>
         ) : (
-          <ProductTable rows={productRows} />
-        )}
+          <>
+            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <StatBox
+                label="Toplam tutar"
+                value={formatTry(stats.totalAmount ?? 0)}
+              />
+              <StatBox
+                label="Satışa dönüşen tutar"
+                value={formatTry(stats.convertedAmount ?? 0)}
+              />
+              <StatBox
+                label="Teklif sayısı"
+                value={String(stats.quoteCount ?? 0)}
+              />
+              <StatBox
+                label="Satışa dönüşen teklif"
+                value={String(stats.convertedQuoteCount ?? 0)}
+              />
+            </section>
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <StatBox label="Toplam tutar" value={formatTry(stats.totalAmount ?? 0)} />
-          <StatBox
-            label="Satışa dönüşen tutar"
-            value={formatTry(stats.convertedAmount ?? 0)}
-          />
-          <StatBox label="Teklif sayısı" value={String(stats.quoteCount ?? 0)} />
-          <StatBox
-            label="Satışa dönüşen teklif"
-            value={String(stats.convertedQuoteCount ?? 0)}
-          />
-        </section>
+            <p className="text-xs text-[var(--steel)]">
+              {loading ? "Yükleniyor…" : `${stats.quoteCount ?? 0} teklif`}
+            </p>
+
+            {view === "quotes" ? (
+              <QuoteTable quotes={quotes} />
+            ) : (
+              <ProductTable rows={productRows} />
+            )}
+          </>
+        )}
       </div>
     </div>
   );

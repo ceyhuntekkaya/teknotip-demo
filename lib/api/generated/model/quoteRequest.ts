@@ -37,6 +37,8 @@ export interface QuoteRequest {
   currency?: string;
   /** Fiyat kırılımı belgede gösterilsin mi */
   priceDetails?: boolean;
+  /** Ürün görselleri belgede gösterilsin mi */
+  showImages?: boolean;
   /** Alıcı bilgisi */
   quotedTo?: QuoteQuotedToRequest;
   /**

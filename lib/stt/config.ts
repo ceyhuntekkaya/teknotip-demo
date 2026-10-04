@@ -1,6 +1,6 @@
 const DEFAULT_URL = "https://speaking.stt.eltaexams.com";
 const DEFAULT_LANGUAGE = "tr";
-const DEFAULT_TIMEOUT_MS = 120_000;
+const DEFAULT_TIMEOUT_MS = 25_000;
 
 export type SttConfig = {
   baseUrl: string;

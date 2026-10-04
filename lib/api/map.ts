@@ -85,6 +85,7 @@ export function quoteToRequest(quote: QuoteResponse): QuoteRequest {
     quotedDate: quote.quotedDate,
     currency: quote.currency ?? "TRY",
     priceDetails: quote.priceDetails ?? true,
+    showImages: quote.showImages ?? false,
     quotedTo,
     discount: quote.priceSummary?.discount,
     taxRatePercent: quote.priceSummary?.taxRatePercent,

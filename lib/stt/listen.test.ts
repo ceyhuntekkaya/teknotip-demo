@@ -59,8 +59,11 @@ describe("byteBuffersEqual", () => {
 describe("frozen analyser frames vs VAD", () => {
   it("lets silence fire if a stuck loud buffer is treated as rms 0", () => {
     const t0 = CLICK_IGNORE_MS;
-    const rising = tickVad(createVadState(0), 0.2, t0);
-    const spoken = tickVad(rising.state, 0.2, t0 + MIN_SPEECH_MS);
+    let spoken = tickVad(createVadState(0), 0.002, t0 - 100);
+    // 50 ms analyser ticks, as in the fallback path.
+    for (let t = t0; t <= t0 + MIN_SPEECH_MS; t += 50) {
+      spoken = tickVad(spoken.state, 0.2, t);
+    }
     expect(spoken.state.speechSeen).toBe(true);
     const done = tickVad(
       spoken.state,

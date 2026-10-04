@@ -43,6 +43,8 @@ export interface QuoteResponse {
   baseId?: string;
   /** Fiyat kırılımı belgede gösterilsin mi */
   priceDetails?: boolean;
+  /** Ürün görselleri belgede gösterilsin mi */
+  showImages?: boolean;
   /** Alıcı bilgisi */
   quotedTo?: QuoteQuotedToResponse;
   /** Hazırlayan kullanıcı kimliği */

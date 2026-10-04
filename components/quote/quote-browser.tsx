@@ -12,6 +12,7 @@ import {
   getQuoteById,
   listQuotes,
   setQuoteConverted,
+  updateQuote,
 } from "@/lib/api/generated/endpoints/quotes/quotes";
 import type {
   CustomerResponse,
@@ -20,6 +21,7 @@ import type {
   QuoteResponse,
   QuoteSummaryResponse,
 } from "@/lib/api/generated/model";
+import { quoteToRequest } from "@/lib/api/map";
 import { formatTry } from "@/lib/catalog/price";
 import {
   downloadQuotesExcel,
@@ -146,6 +148,24 @@ export function QuoteBrowser({
   const applyQuote = (next: QuoteResponse) => {
     setQuote(next);
     setQuotes((current) => current.map((item) => patchSummary(item, next)));
+  };
+
+  const persistQuote = async (next: QuoteResponse) => {
+    if (!next.id) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await updateQuote(next.id, quoteToRequest(next));
+      if (response.status !== 200) {
+        setError(apiErrorMessage(response.data, "Teklif kaydedilemedi."));
+        return;
+      }
+      applyQuote(response.data);
+    } catch {
+      setError("Teklif kaydedilemedi.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const createVersion = async () => {
@@ -319,6 +339,10 @@ export function QuoteBrowser({
               ? `/teklif?quoteId=${encodeURIComponent(quote.id)}&edit=1`
               : undefined
           }
+          onChange={(next) => {
+            applyQuote(next);
+            void persistQuote(next);
+          }}
           onCreateVersion={() => void createVersion()}
           onSelectVersion={setSelectedId}
           onToggleConverted={() => void toggleConverted()}

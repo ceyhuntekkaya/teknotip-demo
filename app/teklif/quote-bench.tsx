@@ -39,6 +39,7 @@ import {
   type ListenSession,
   type UtteranceHandle,
   type UtteranceResult,
+  type VoiceMeter,
 } from "@/lib/stt/listen";
 import { voiceSettings } from "@/lib/stt/settings";
 import { isUsableTranscript } from "@/lib/stt/vad";
@@ -49,12 +50,15 @@ export function QuoteBench({
   institutions,
   initialQuoteId,
   openInEdit = false,
+  voiceDebug = false,
 }: {
   products: ProductResponse[];
   customers: CustomerResponse[];
   institutions: InstitutionResponse[];
   initialQuoteId?: string;
   openInEdit?: boolean;
+  /** /teklif?voiceDebug=1 shows live VAD thresholds under the level bars. */
+  voiceDebug?: boolean;
 }) {
   const router = useRouter();
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
@@ -66,6 +70,7 @@ export function QuoteBench({
   const [voiceSession, setVoiceSession] = useState(false);
   const [voiceLevel, setVoiceLevel] = useState(0);
   const [speechHeard, setSpeechHeard] = useState(false);
+  const [voiceMeter, setVoiceMeter] = useState<VoiceMeter | null>(null);
   const [error, setError] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -73,6 +78,7 @@ export function QuoteBench({
   const aliveRef = useRef(true);
   const voiceSessionRef = useRef(false);
   const recordingRef = useRef(false);
+  const startingRef = useRef(false);
   const loadingRef = useRef(false);
   const listenSessionRef = useRef<ListenSession | null>(null);
   const utteranceRef = useRef<UtteranceHandle | null>(null);
@@ -109,6 +115,18 @@ export function QuoteBench({
       return false;
     }
     return true;
+  };
+
+  /** Listen again, or close the session — never leave it open but deaf. */
+  const continueVoice = () => {
+    if (shouldResumeVoice()) {
+      void startListeningRef.current();
+      return;
+    }
+    if (voiceSessionRef.current) {
+      setSessionOpen(false);
+      destroyListen();
+    }
   };
 
   const persistQuote = useCallback(async (next: QuoteResponse) => {
@@ -310,8 +328,10 @@ export function QuoteBench({
 
   const send = async (override?: string, source: "typed" | "voice" = "typed") => {
     const text = (override ?? inputRef.current?.value ?? "").trim();
-    if (!text) return;
-    if (loadingRef.current) return;
+    if (!text || loadingRef.current) {
+      if (source === "voice") continueVoice();
+      return;
+    }
     if (source === "typed" && (recordingRef.current || transcribing)) return;
 
     if (source === "typed") {
@@ -357,14 +377,20 @@ export function QuoteBench({
     } finally {
       loadingRef.current = false;
       setLoading(false);
-      if (source === "voice" && shouldResumeVoice()) {
-        void startListeningRef.current();
-      }
+      if (source === "voice") continueVoice();
     }
   };
 
   const startListening = async () => {
-    if (!aliveRef.current || !voiceSessionRef.current || recordingRef.current) return;
+    if (
+      !aliveRef.current ||
+      !voiceSessionRef.current ||
+      recordingRef.current ||
+      startingRef.current
+    ) {
+      return;
+    }
+    startingRef.current = true;
     try {
       let session = listenSessionRef.current;
       if (!session || !listenSessionLive(session)) {
@@ -397,10 +423,11 @@ export function QuoteBench({
       setSpeechHeard(false);
       utteranceRef.current = beginUtterance(
         session,
-        (level, heard) => {
+        (meter) => {
           if (!aliveRef.current) return;
-          setVoiceLevel(level);
-          if (heard) setSpeechHeard(true);
+          setVoiceLevel(meter.level);
+          setVoiceMeter(meter);
+          if (meter.speechSeen) setSpeechHeard(true);
         },
         (result) => finishUtteranceRef.current(result),
       );
@@ -408,6 +435,8 @@ export function QuoteBench({
       setSessionOpen(false);
       destroyListen();
       setError("Mikrofona erişilemedi.");
+    } finally {
+      startingRef.current = false;
     }
   };
   startListeningRef.current = startListening;
@@ -428,7 +457,7 @@ export function QuoteBench({
       if (result.blob.size === 0 && (result.speechSeen || result.reason === "manual")) {
         setError("Ses kaydı boş.");
       }
-      if (shouldResumeVoice()) void startListening();
+      continueVoice();
       return;
     }
 
@@ -444,7 +473,7 @@ export function QuoteBench({
         if (!isUsableTranscript(text)) {
           setError("Ses anlaşılamadı. Tekrar deneyin.");
           setTranscribing(false);
-          if (shouldResumeVoice()) void startListening();
+          continueVoice();
           return;
         }
         setTranscribing(false);
@@ -454,7 +483,8 @@ export function QuoteBench({
         setError(
           caught instanceof Error ? caught.message : "STT servisine bağlanılamadı.",
         );
-        if (shouldResumeVoice()) void startListening();
+        setTranscribing(false);
+        continueVoice();
       } finally {
         setTranscribing(false);
       }
@@ -550,6 +580,16 @@ export function QuoteBench({
             {error ? <p className="text-xs text-[#8f2d1f]">{error}</p> : null}
             {speakOpen ? (
               <VoiceLevel level={voiceLevel} active={recording} />
+            ) : null}
+            {voiceDebug && speakOpen && voiceMeter ? (
+              <p className="font-mono text-[11px] text-[var(--steel)]">
+                {voiceMeter.source} · rms {voiceMeter.rms.toFixed(3)} · floor{" "}
+                {voiceMeter.floor.toFixed(3)} · on {voiceMeter.speechOn.toFixed(3)} · off{" "}
+                {voiceMeter.speechOff.toFixed(3)} ·{" "}
+                {voiceMeter.speechSeen
+                  ? `sessiz ${(voiceMeter.silentMs / 1000).toFixed(1)} / ${voiceSettings.silenceSeconds} sn`
+                  : "konuşma bekleniyor"}
+              </p>
             ) : null}
             <textarea
               ref={inputRef}

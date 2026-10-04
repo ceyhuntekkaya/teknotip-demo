@@ -4,20 +4,57 @@ import {
   DEFAULT_VAD_CONFIG,
   MAX_RECORD_MS,
   MIN_SPEECH_MS,
+  RESUME_MS,
   SILENCE_MS,
   createVadState,
   isUsableTranscript,
   rmsFromByteTimeDomain,
   tickVad,
+  type VadConfig,
+  type VadTick,
 } from "./vad";
 
+const FRAME_MS = 20;
+const QUIET = 0.002;
 const LOUD = 0.2;
-const QUIET = 0.001;
 
-function confirmSpeech(start: number) {
-  const loudAt = start + CLICK_IGNORE_MS;
-  const first = tickVad(createVadState(start), LOUD, loudAt);
-  return tickVad(first.state, LOUD, loudAt + MIN_SPEECH_MS);
+/** [rms, durationMs]; rms may be a function of the frame time. */
+type Segment = [number | ((t: number) => number), number];
+
+type Run = {
+  ticks: VadTick[];
+  /** Time of the first non-"continue" decision, or null. */
+  stoppedAt: number | null;
+  decision: VadTick["decision"];
+  /** Time the last speech segment ended. */
+  marks: number[];
+};
+
+/** Feeds 20 ms frames through tickVad, like the AudioWorklet meter. */
+function simulate(segments: Segment[], config: VadConfig = DEFAULT_VAD_CONFIG): Run {
+  let state = createVadState(0);
+  const ticks: VadTick[] = [];
+  const marks: number[] = [];
+  let t = 0;
+  for (const [rms, duration] of segments) {
+    const end = t + duration;
+    for (; t < end; t += FRAME_MS) {
+      const value = typeof rms === "function" ? rms(t) : rms;
+      const tick = tickVad(state, value, t + FRAME_MS, config);
+      ticks.push(tick);
+      state = tick.state;
+      if (tick.decision !== "continue") {
+        return { ticks, stoppedAt: t + FRAME_MS, decision: tick.decision, marks };
+      }
+    }
+    marks.push(t);
+  }
+  return { ticks, stoppedAt: null, decision: "continue", marks };
+}
+
+/** Voiced speech: loud with a short dip between syllables. */
+function speech(level: number, floor = QUIET) {
+  return (t: number) => (t % 460 < 400 ? level : floor);
 }
 
 describe("rmsFromByteTimeDomain", () => {
@@ -46,75 +83,145 @@ describe("rmsFromByteTimeDomain", () => {
 });
 
 describe("tickVad", () => {
-  it("does not stop after 4s if no speech was heard", () => {
-    let state = createVadState(0);
-    const tick = tickVad(state, QUIET, SILENCE_MS + 500);
-    expect(tick.decision).toBe("continue");
-    expect(tick.state.speechSeen).toBe(false);
+  it("fires exactly silenceMs after speech in a quiet room", () => {
+    const run = simulate([
+      [QUIET, 400],
+      [speech(LOUD), 1200],
+      [QUIET, SILENCE_MS + 1000],
+    ]);
+    expect(run.decision).toBe("silence");
+    const lastSpeech = run.ticks.findLast((tick) => tick.silentMs === 0)!;
+    expect(run.stoppedAt! - lastSpeech.state.lastLoudAt!).toBe(SILENCE_MS);
+    expect(run.stoppedAt! - run.marks[1]!).toBeLessThanOrEqual(SILENCE_MS);
+  });
+
+  it("confirms choppy speech whose 20 ms frames keep dipping", () => {
+    // 60 ms voiced, 40 ms dip: never 250 ms above threshold in one piece.
+    const choppy = (t: number) => (t % 100 < 60 ? LOUD : QUIET);
+    const run = simulate([
+      [QUIET, 400],
+      [choppy, 1200],
+      [QUIET, SILENCE_MS + 500],
+    ]);
+    expect(run.decision).toBe("silence");
+    expect(run.stoppedAt! - run.marks[1]!).toBeLessThanOrEqual(SILENCE_MS);
+  });
+
+  it("confirms quiet speech from a low-gain mic (Safari)", () => {
+    const run = simulate([
+      [0.003, 400],
+      [speech(0.03, 0.003), 1500],
+      [0.003, SILENCE_MS + 500],
+    ]);
+    expect(run.decision).toBe("silence");
+    expect(run.stoppedAt! - run.marks[1]!).toBeLessThanOrEqual(SILENCE_MS);
+  });
+
+  it("does not stop on silence if no speech was heard", () => {
+    const run = simulate([[QUIET, SILENCE_MS + 2000]]);
+    expect(run.decision).toBe("continue");
+    expect(run.ticks.at(-1)!.state.speechSeen).toBe(false);
   });
 
   it("ignores a click in the opening window", () => {
-    let state = createVadState(0);
-    const duringClick = tickVad(state, LOUD, CLICK_IGNORE_MS - 10);
-    expect(duringClick.state.speechSeen).toBe(false);
-    expect(duringClick.state.loudStartedAt).toBeNull();
-    const later = tickVad(duringClick.state, QUIET, SILENCE_MS + 1000);
-    expect(later.decision).toBe("continue");
+    const run = simulate([
+      [LOUD, CLICK_IGNORE_MS - 20],
+      [QUIET, SILENCE_MS + 1000],
+    ]);
+    expect(run.decision).toBe("continue");
+    expect(run.ticks.at(-1)!.state.speechSeen).toBe(false);
   });
 
   it("does not count a brief spike as speech", () => {
-    let state = createVadState(0);
-    const t0 = CLICK_IGNORE_MS;
-    const spike = tickVad(state, LOUD, t0);
-    const tooShort = tickVad(spike.state, LOUD, t0 + MIN_SPEECH_MS - 20);
-    expect(tooShort.state.speechSeen).toBe(false);
-    const quiet = tickVad(tooShort.state, QUIET, t0 + MIN_SPEECH_MS);
-    expect(quiet.state.speechSeen).toBe(false);
-    const later = tickVad(quiet.state, QUIET, t0 + MIN_SPEECH_MS + SILENCE_MS);
-    expect(later.decision).toBe("continue");
+    const run = simulate([
+      [QUIET, 400],
+      [LOUD, MIN_SPEECH_MS - 40],
+      [QUIET, SILENCE_MS + 1000],
+    ]);
+    expect(run.decision).toBe("continue");
+    expect(run.ticks.at(-1)!.state.speechSeen).toBe(false);
   });
 
-  it("stops after speech plus 4s of silence", () => {
-    const speaking = confirmSpeech(1_000);
-    expect(speaking.state.speechSeen).toBe(true);
-    expect(speaking.decision).toBe("continue");
-    const silent = tickVad(
-      speaking.state,
-      QUIET,
-      speaking.state.lastLoudAt! + SILENCE_MS,
+  it("fires in a steady noisy room (floor above the old fixed threshold)", () => {
+    const noise = 0.06;
+    expect(noise).toBeGreaterThan(DEFAULT_VAD_CONFIG.speechRms);
+    const run = simulate([
+      [noise, 2500],
+      [speech(0.35, noise), 1500],
+      [noise, SILENCE_MS + 3000],
+    ]);
+    expect(run.decision).toBe("silence");
+    expect(run.stoppedAt! - run.marks[1]!).toBeLessThanOrEqual(SILENCE_MS);
+  });
+
+  it("adapts when noise starts mid-take", () => {
+    const run = simulate([
+      [QUIET, 400],
+      [speech(0.3), 1000],
+      [0.07, 10_000],
+    ]);
+    expect(run.decision).toBe("silence");
+    // Floor needs at most one window to catch up with the new noise.
+    expect(run.stoppedAt! - run.marks[1]!).toBeLessThanOrEqual(
+      SILENCE_MS + DEFAULT_VAD_CONFIG.floorWindowMs,
     );
-    expect(silent.decision).toBe("silence");
+  });
+
+  it("is not held open by noise flickering around the threshold", () => {
+    const flicker = (t: number) => (Math.floor(t / 20) % 2 === 0 ? 0.04 : 0.05);
+    const run = simulate([
+      [flicker, 2500],
+      [speech(0.3, 0.04), 1200],
+      [flicker, SILENCE_MS + 3000],
+    ]);
+    expect(run.decision).toBe("silence");
+    expect(run.stoppedAt! - run.marks[1]!).toBeLessThanOrEqual(SILENCE_MS);
+  });
+
+  it("does not let clicks and coughs after speech reset the timer", () => {
+    const clicks = (t: number) => (t % 500 < 60 ? 0.4 : QUIET);
+    const run = simulate([
+      [QUIET, 400],
+      [speech(LOUD), 1000],
+      [QUIET, 300],
+      [clicks, SILENCE_MS + 1000],
+    ]);
+    expect(run.decision).toBe("silence");
+    expect(run.stoppedAt! - run.marks[1]!).toBeLessThanOrEqual(SILENCE_MS);
+  });
+
+  it("restarts the timer when speech really returns", () => {
+    const run = simulate([
+      [QUIET, 400],
+      [speech(LOUD), 1000],
+      [QUIET, SILENCE_MS - 500],
+      [LOUD, RESUME_MS + 100],
+      [QUIET, SILENCE_MS + 1000],
+    ]);
+    expect(run.decision).toBe("silence");
+    expect(run.stoppedAt!).toBeGreaterThan(run.marks[3]!);
+    expect(run.stoppedAt! - run.marks[3]!).toBeLessThanOrEqual(SILENCE_MS);
+  });
+
+  it("keeps a long sentence open across syllable gaps", () => {
+    const run = simulate([
+      [QUIET, 400],
+      [speech(LOUD), 8000],
+    ]);
+    expect(run.decision).toBe("continue");
+    expect(run.ticks.at(-1)!.state.speechSeen).toBe(true);
   });
 
   it("lets silence fire when the mic sits on a DC-biased floor", () => {
-    const speaking = confirmSpeech(0);
     const dcSilence = rmsFromByteTimeDomain(
       Uint8Array.from({ length: 32 }, () => 140),
     );
-    expect(dcSilence).toBeLessThan(DEFAULT_VAD_CONFIG.speechRms);
-    const done = tickVad(
-      speaking.state,
-      dcSilence,
-      speaking.state.lastLoudAt! + SILENCE_MS,
-    );
-    expect(done.decision).toBe("silence");
-  });
-
-  it("resets the silence timer when speech returns", () => {
-    const spoken = confirmSpeech(0);
-    const lastLoud = spoken.state.lastLoudAt!;
-    const pause = tickVad(spoken.state, QUIET, lastLoud + SILENCE_MS - 200);
-    expect(pause.decision).toBe("continue");
-    const again = tickVad(pause.state, LOUD, lastLoud + SILENCE_MS - 100);
-    expect(again.decision).toBe("continue");
-    const tooSoon = tickVad(
-      again.state,
-      QUIET,
-      again.state.lastLoudAt! + SILENCE_MS - 1,
-    );
-    expect(tooSoon.decision).toBe("continue");
-    const done = tickVad(again.state, QUIET, again.state.lastLoudAt! + SILENCE_MS);
-    expect(done.decision).toBe("silence");
+    const run = simulate([
+      [QUIET, 400],
+      [speech(LOUD), 800],
+      [dcSilence, SILENCE_MS + 500],
+    ]);
+    expect(run.decision).toBe("silence");
   });
 
   it("stops at max duration even without speech", () => {
@@ -122,10 +229,13 @@ describe("tickVad", () => {
     expect(tick.decision).toBe("max");
   });
 
-  it("stops at max duration when the signal never drops", () => {
-    const spoken = confirmSpeech(0);
-    const noisy = tickVad(spoken.state, LOUD, MAX_RECORD_MS);
-    expect(noisy.decision).toBe("max");
+  it("stops at max duration while speech never pauses", () => {
+    const run = simulate([
+      [QUIET, 400],
+      [speech(LOUD), MAX_RECORD_MS + 1000],
+    ]);
+    expect(run.decision).toBe("max");
+    expect(run.stoppedAt).toBe(MAX_RECORD_MS);
   });
 
   it("uses injected config thresholds", () => {
@@ -135,11 +245,16 @@ describe("tickVad", () => {
       minSpeechMs: 10,
       clickIgnoreMs: 0,
     };
-    const rising = tickVad(createVadState(0), LOUD, 0, config);
-    const spoken = tickVad(rising.state, LOUD, 10, config);
-    expect(spoken.state.speechSeen).toBe(true);
-    const done = tickVad(spoken.state, QUIET, 110, config);
-    expect(done.decision).toBe("silence");
+    const run = simulate(
+      [
+        [QUIET, 200],
+        [LOUD, 100],
+        [QUIET, 500],
+      ],
+      config,
+    );
+    expect(run.decision).toBe("silence");
+    expect(run.stoppedAt! - run.marks[1]!).toBe(100);
   });
 });
 

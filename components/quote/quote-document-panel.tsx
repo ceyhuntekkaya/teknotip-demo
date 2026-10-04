@@ -17,6 +17,7 @@ import type {
 } from "@/lib/api/generated/model";
 import { formatQuoteAddOn, formatQuoteAmount } from "@/lib/money";
 import { displayQuotedDate } from "@/lib/pdf/format";
+import { resolveLineImageSrc } from "@/lib/pdf/product-images";
 import {
   isQuoteActionReady,
   QUOTE_ACTION_READY_HINT,
@@ -56,19 +57,35 @@ export function QuoteDocumentPanel({
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [rightView, setRightView] = useState<"quote" | "edit">(defaultView);
   const [remindOpen, setRemindOpen] = useState(false);
-  const [showImages, setShowImages] = useState(false);
 
   const showingPdf = pdfQuote !== null;
   const editing = rightView === "edit";
   const canEdit = Boolean(onChange || editHref);
   const detailedPrices = quote?.priceDetails !== false;
+  const showImages = quote?.showImages === true;
+  const productsById = new Map(
+    products
+      .filter((product) => product.id)
+      .map((product) => [product.id as string, product]),
+  );
 
-  const setPriceMode = (detailed: boolean) => {
-    if (!quote || !onChange || detailedPrices === detailed) return;
-    const next = { ...quote, priceDetails: detailed };
+  const patchDisplay = (patch: Partial<Pick<QuoteResponse, "priceDetails" | "showImages">>) => {
+    if (!quote || !onChange) return;
+    const next = { ...quote, ...patch };
     onChange(next);
     setPdfQuote((current) => (current ? next : current));
   };
+
+  const setPriceMode = (detailed: boolean) => {
+    if (detailedPrices === detailed) return;
+    patchDisplay({ priceDetails: detailed });
+  };
+
+  const setImageMode = (images: boolean) => {
+    if (showImages === images) return;
+    patchDisplay({ showImages: images });
+  };
+
   const lines = quote?.lines ?? [];
   const summary = quote?.priceSummary;
   const actionReady = isQuoteActionReady(quote);
@@ -100,57 +117,59 @@ export function QuoteDocumentPanel({
           {quote ? (
             <div className="flex flex-wrap gap-2">
               {onChange ? (
-                <div className="flex" role="group" aria-label="PDF fiyat görünümü">
-                  {(
-                    [
-                      { detailed: false, label: "Tek Fiyat" },
-                      { detailed: true, label: "Detaylı Fiyat" },
-                    ] as const
-                  ).map((option) => {
-                    const active = detailedPrices === option.detailed;
-                    return (
-                      <button
-                        key={option.label}
-                        type="button"
-                        aria-pressed={active}
-                        onClick={() => setPriceMode(option.detailed)}
-                        className={`h-8 border px-2.5 font-display text-[12px] uppercase tracking-[0.12em] ${
-                          active
-                            ? "border-[var(--heat)] bg-[var(--heat)] text-[var(--paper)]"
-                            : "border-[var(--rule)] text-[var(--charcoal)] hover:border-[var(--charcoal)]"
-                        } ${option.detailed ? "" : "border-r-0"}`}
-                      >
-                        {option.label}
-                      </button>
-                    );
-                  })}
-                </div>
+                <>
+                  <div className="flex" role="group" aria-label="PDF fiyat görünümü">
+                    {(
+                      [
+                        { detailed: false, label: "Tek Fiyat" },
+                        { detailed: true, label: "Detaylı Fiyat" },
+                      ] as const
+                    ).map((option) => {
+                      const active = detailedPrices === option.detailed;
+                      return (
+                        <button
+                          key={option.label}
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() => setPriceMode(option.detailed)}
+                          className={`h-8 border px-2.5 font-display text-[12px] uppercase tracking-[0.12em] ${
+                            active
+                              ? "border-[var(--heat)] bg-[var(--heat)] text-[var(--paper)]"
+                              : "border-[var(--rule)] text-[var(--charcoal)] hover:border-[var(--charcoal)]"
+                          } ${option.detailed ? "" : "border-r-0"}`}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex" role="group" aria-label="PDF görsel görünümü">
+                    {(
+                      [
+                        { images: false, label: "Görselsiz" },
+                        { images: true, label: "Görselli" },
+                      ] as const
+                    ).map((option) => {
+                      const active = showImages === option.images;
+                      return (
+                        <button
+                          key={option.label}
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() => setImageMode(option.images)}
+                          className={`h-8 border px-2.5 font-display text-[12px] uppercase tracking-[0.12em] ${
+                            active
+                              ? "border-[var(--heat)] bg-[var(--heat)] text-[var(--paper)]"
+                              : "border-[var(--rule)] text-[var(--charcoal)] hover:border-[var(--charcoal)]"
+                          } ${option.images ? "" : "border-r-0"}`}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
               ) : null}
-              <div className="flex" role="group" aria-label="PDF görsel görünümü">
-                {(
-                  [
-                    { images: false, label: "Görselsiz" },
-                    { images: true, label: "Görselli" },
-                  ] as const
-                ).map((option) => {
-                  const active = showImages === option.images;
-                  return (
-                    <button
-                      key={option.label}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => setShowImages(option.images)}
-                      className={`h-8 border px-2.5 font-display text-[12px] uppercase tracking-[0.12em] ${
-                        active
-                          ? "border-[var(--heat)] bg-[var(--heat)] text-[var(--paper)]"
-                          : "border-[var(--rule)] text-[var(--charcoal)] hover:border-[var(--charcoal)]"
-                      } ${option.images ? "" : "border-r-0"}`}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
             </div>
           ) : null}
           {(quote?.versions?.length ?? 0) > 1 ? (
@@ -311,83 +330,103 @@ export function QuoteDocumentPanel({
                     {emptyHint}
                   </p>
                 ) : (
-                  lines.map((line, index) => (
-                  <article
-                    key={line.id ?? `line-${index}`}
-                    className="border border-[var(--rule)]"
-                  >
-                    <div className="flex items-start justify-between gap-3 px-3 py-2.5">
-                      <div className="min-w-0">
-                        <h3
-                          className={
-                            line.productId
-                              ? "font-display text-lg uppercase tracking-[0.08em]"
-                              : "whitespace-pre-wrap text-sm leading-snug"
-                          }
-                        >
-                          {line.name}
-                        </h3>
-                        <p className="text-sm text-[var(--steel)]">
-                          {line.code || "—"} · {line.quantity ?? 1} adet
-                          {line.productId ? "" : " · Elle eklenen"}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-display text-[11px] uppercase tracking-[0.14em] text-[var(--steel)]">
-                          Birim
-                        </p>
-                        <p className="font-mono text-sm text-[var(--heat)]">
-                          {formatQuoteAmount(line.price ?? line.basePrice ?? 0, quote.currency)}
-                        </p>
-                        <p className="font-mono text-xs text-[var(--steel)]">
-                          {formatQuoteAmount(line.lineTotal ?? 0, quote.currency)}
-                        </p>
-                      </div>
-                    </div>
-                    {(line.properties ?? []).length ? (
-                      <div className="border-t border-[var(--rule)] px-3 py-2">
-                        <ul className="grid gap-1">
-                          {(line.properties ?? []).map((property, propertyIndex) => (
-                            <li
-                              key={property.id ?? `p-${propertyIndex}`}
-                              className="flex items-baseline justify-between gap-3 text-sm"
-                            >
-                              <span>
-                                {property.name}: {property.values || "—"}
-                              </span>
-                              {property.price ? (
-                                <span className="font-mono text-[11px] text-[var(--heat)]">
-                                  {formatQuoteAddOn(property.price, quote.currency)}
-                                </span>
-                              ) : null}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : null}
-                    {(line.accessories ?? []).length ? (
-                      <div className="border-t border-[var(--rule)] px-3 py-2">
-                        <ul className="grid gap-1">
-                          {(line.accessories ?? []).map((accessory, accessoryIndex) => (
-                            <li
-                              key={accessory.id ?? `a-${accessoryIndex}`}
-                              className="flex items-baseline justify-between gap-3 text-sm"
-                            >
-                              <span>
-                                {accessory.name} × {accessory.quantity ?? 1}
-                              </span>
-                              {accessory.price ? (
-                                <span className="font-mono text-[11px] text-[var(--heat)]">
-                                  {formatQuoteAddOn(accessory.price, quote.currency)}
-                                </span>
-                              ) : null}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : null}
-                  </article>
-                ))
+                  lines.map((line, index) => {
+                    const imageSrc = showImages
+                      ? resolveLineImageSrc(line, productsById)
+                      : null;
+                    return (
+                      <article
+                        key={line.id ?? `line-${index}`}
+                        className="border border-[var(--rule)]"
+                      >
+                        <div className="flex items-start justify-between gap-3 px-3 py-2.5">
+                          <div className="flex min-w-0 items-start gap-3">
+                            {imageSrc ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={imageSrc}
+                                alt=""
+                                className="h-16 w-16 shrink-0 object-contain"
+                              />
+                            ) : null}
+                            <div className="min-w-0">
+                              <h3
+                                className={
+                                  line.productId
+                                    ? "font-display text-lg uppercase tracking-[0.08em]"
+                                    : "whitespace-pre-wrap text-sm leading-snug"
+                                }
+                              >
+                                {line.name}
+                              </h3>
+                              <p className="text-sm text-[var(--steel)]">
+                                {line.code || "—"} · {line.quantity ?? 1} adet
+                                {line.productId ? "" : " · Elle eklenen"}
+                              </p>
+                            </div>
+                          </div>
+                          {detailedPrices ? (
+                            <div className="text-right">
+                              <p className="font-display text-[11px] uppercase tracking-[0.14em] text-[var(--steel)]">
+                                Birim
+                              </p>
+                              <p className="font-mono text-sm text-[var(--heat)]">
+                                {formatQuoteAmount(
+                                  line.price ?? line.basePrice ?? 0,
+                                  quote.currency,
+                                )}
+                              </p>
+                              <p className="font-mono text-xs text-[var(--steel)]">
+                                {formatQuoteAmount(line.lineTotal ?? 0, quote.currency)}
+                              </p>
+                            </div>
+                          ) : null}
+                        </div>
+                        {(line.properties ?? []).length ? (
+                          <div className="border-t border-[var(--rule)] px-3 py-2">
+                            <ul className="grid gap-1">
+                              {(line.properties ?? []).map((property, propertyIndex) => (
+                                <li
+                                  key={property.id ?? `p-${propertyIndex}`}
+                                  className="flex items-baseline justify-between gap-3 text-sm"
+                                >
+                                  <span>
+                                    {property.name}: {property.values || "—"}
+                                  </span>
+                                  {detailedPrices && property.price ? (
+                                    <span className="font-mono text-[11px] text-[var(--heat)]">
+                                      {formatQuoteAddOn(property.price, quote.currency)}
+                                    </span>
+                                  ) : null}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                        {(line.accessories ?? []).length ? (
+                          <div className="border-t border-[var(--rule)] px-3 py-2">
+                            <ul className="grid gap-1">
+                              {(line.accessories ?? []).map((accessory, accessoryIndex) => (
+                                <li
+                                  key={accessory.id ?? `a-${accessoryIndex}`}
+                                  className="flex items-baseline justify-between gap-3 text-sm"
+                                >
+                                  <span>
+                                    {accessory.name} × {accessory.quantity ?? 1}
+                                  </span>
+                                  {detailedPrices && accessory.price ? (
+                                    <span className="font-mono text-[11px] text-[var(--heat)]">
+                                      {formatQuoteAddOn(accessory.price, quote.currency)}
+                                    </span>
+                                  ) : null}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                      </article>
+                    );
+                  })
                 )}
               </div>
             )}

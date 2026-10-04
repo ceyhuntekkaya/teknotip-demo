@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function TeklifPage({
   searchParams,
 }: {
-  searchParams: Promise<{ quoteId?: string; edit?: string }>;
+  searchParams: Promise<{ quoteId?: string; edit?: string; voiceDebug?: string }>;
 }) {
   const params = await searchParams;
   const [productResponse, customerResponse, institutionResponse] = await Promise.all([
@@ -33,6 +33,7 @@ export default async function TeklifPage({
       institutions={institutions}
       initialQuoteId={params.quoteId}
       openInEdit={params.edit === "1"}
+      voiceDebug={params.voiceDebug === "1"}
     />
   );
 }
