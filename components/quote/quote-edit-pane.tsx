@@ -99,12 +99,18 @@ export function QuoteEditPane({
   customers,
   institutions,
   onChange,
+  onAddManualToCatalog,
+  onSaveInstitution,
+  onSaveContact,
 }: {
   quote: QuoteResponse;
   products: ProductResponse[];
   customers: CustomerResponse[];
   institutions: InstitutionResponse[];
   onChange: (next: QuoteResponse) => void;
+  onAddManualToCatalog?: (line: QuoteLineResponse, index: number) => void;
+  onSaveInstitution?: () => void;
+  onSaveContact?: () => void;
 }) {
   const [freeOpen, setFreeOpen] = useState(false);
   const quoted = quote.quotedTo ?? {};
@@ -113,6 +119,12 @@ export function QuoteEditPane({
   const contactOptions = quoted.institutionId
     ? customers.filter((customer) => customer.institution?.id === quoted.institutionId)
     : customers;
+  const showInstitutionSave =
+    !!quoted.institution?.trim() && !quoted.institutionId && !!onSaveInstitution;
+  const showContactSave =
+    !!(quoted.contactPerson?.trim() || quoted.greetingName?.trim()) &&
+    !quoted.customerId &&
+    !!onSaveContact;
 
   const patchQuoted = (patch: Partial<NonNullable<QuoteResponse["quotedTo"]>>) => {
     onChange(patchQuotedTo(quote, patch));
@@ -171,16 +183,30 @@ export function QuoteEditPane({
           </Select>
         </Field>
         <Field label="Teklif verilen kurum">
-          <TextInput
-            value={quoted.institution ?? ""}
-            onChange={(event) => patchQuoted({ institution: event.target.value })}
-          />
+          <div className="flex gap-2">
+            <TextInput
+              value={quoted.institution ?? ""}
+              onChange={(event) => patchQuoted({ institution: event.target.value })}
+            />
+            {showInstitutionSave ? (
+              <ActionButton className="shrink-0" title="Kurumu kaydet" onClick={onSaveInstitution}>
+                + Kaydet
+              </ActionButton>
+            ) : null}
+          </div>
         </Field>
         <Field label="İlgili kişi">
-          <TextInput
-            value={quoted.contactPerson ?? ""}
-            onChange={(event) => patchQuoted({ contactPerson: event.target.value })}
-          />
+          <div className="flex gap-2">
+            <TextInput
+              value={quoted.contactPerson ?? ""}
+              onChange={(event) => patchQuoted({ contactPerson: event.target.value })}
+            />
+            {showContactSave ? (
+              <ActionButton className="shrink-0" title="Kişiyi kaydet" onClick={onSaveContact}>
+                + Kaydet
+              </ActionButton>
+            ) : null}
+          </div>
         </Field>
         <Field label="Unvan">
           <TextInput
@@ -313,6 +339,11 @@ export function QuoteEditPane({
                     code: nextFreeCode(lines.filter((_, itemIndex) => itemIndex !== index)),
                   }),
                 )
+              }
+              onAddToCatalog={
+                onAddManualToCatalog
+                  ? () => onAddManualToCatalog(line, index)
+                  : undefined
               }
             />
           ))
@@ -453,6 +484,7 @@ function LineEditor({
   onRemove,
   onMove,
   onAutoCode,
+  onAddToCatalog,
 }: {
   line: QuoteLineResponse;
   index: number;
@@ -463,6 +495,7 @@ function LineEditor({
   onRemove: () => void;
   onMove: (direction: -1 | 1) => void;
   onAutoCode: () => void;
+  onAddToCatalog?: () => void;
 }) {
   const properties = line.properties ?? [];
   const accessories = line.accessories ?? [];
@@ -495,9 +528,16 @@ function LineEditor({
             )}
           </div>
         </div>
-        <ActionButton tone="danger" onClick={onRemove}>
-          Satırı sil
-        </ActionButton>
+        <div className="flex flex-wrap gap-2">
+          {manual && onAddToCatalog ? (
+            <ActionButton title="Kataloga ekle" onClick={onAddToCatalog}>
+              + Katalog
+            </ActionButton>
+          ) : null}
+          <ActionButton tone="danger" onClick={onRemove}>
+            Satırı sil
+          </ActionButton>
+        </div>
       </div>
 
       {manual ? (

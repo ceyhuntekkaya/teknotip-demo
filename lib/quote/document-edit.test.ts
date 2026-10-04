@@ -8,6 +8,7 @@ import {
   customerLinkState,
   greetingName,
   isManualLine,
+  linkManualLineToProduct,
   moveLine,
   nextFreeCode,
   patchQuotedTo,
@@ -167,5 +168,30 @@ describe("document-edit", () => {
   it("customerLinkState reports free-text quotes as unlinked", () => {
     const freeText = patchQuotedTo(emptyQuote, { institution: "Kayıtsız Kurum" });
     expect(customerLinkState(freeText)).toBe("none");
+  });
+
+  it("linkManualLineToProduct keeps qty/price and selects single property value", () => {
+    const manual = addFreeLine(emptyQuote, {
+      code: "010",
+      name: "Elle CVD",
+      quantity: 3,
+      price: 1200,
+    }).lines![0];
+    const product: ProductResponse = {
+      id: "p2",
+      code: "CVD2",
+      name: "CVD FIRIN",
+      price: 19000,
+      properties: [
+        { id: "pp1", name: "Maksimum sıcaklık", values: ["2000"] },
+        { id: "pp2", name: "Çap", values: ["60 mm", "80 mm"] },
+      ],
+    };
+    const linked = linkManualLineToProduct(manual, product);
+    expect(linked.productId).toBe("p2");
+    expect(linked.quantity).toBe(3);
+    expect(linked.price).toBe(1200);
+    expect(linked.properties?.[0].values).toBe("2000");
+    expect(linked.properties?.[1].values).toBe("");
   });
 });

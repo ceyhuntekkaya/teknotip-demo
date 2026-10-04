@@ -2,17 +2,39 @@ import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes 
 
 export function Field({
   label,
+  error,
   children,
 }: {
   label: string;
+  error?: string | null;
   children: React.ReactNode;
 }) {
+  const invalid = Boolean(error?.trim());
   return (
-    <label className="grid gap-1.5">
-      <span className="font-display text-[11px] uppercase tracking-[0.18em] text-[var(--steel)]">
+    <label
+      className={`grid gap-1.5 ${
+        invalid ? "rounded-sm bg-[#fdf2f0] p-2 ring-1 ring-[#8f2d1f]/55" : ""
+      }`}
+    >
+      <span
+        className={`font-display text-[11px] uppercase tracking-[0.18em] ${
+          invalid ? "text-[#8f2d1f]" : "text-[var(--steel)]"
+        }`}
+      >
         {label}
       </span>
-      {children}
+      <div
+        className={
+          invalid
+            ? "[&_input]:border-[#8f2d1f] [&_input]:focus:border-[#8f2d1f] [&_select]:border-[#8f2d1f] [&_select]:focus:border-[#8f2d1f] [&_textarea]:border-[#8f2d1f] [&_textarea]:focus:border-[#8f2d1f]"
+            : ""
+        }
+      >
+        {children}
+      </div>
+      {invalid ? (
+        <span className="text-xs leading-snug text-[#8f2d1f]">{error}</span>
+      ) : null}
     </label>
   );
 }

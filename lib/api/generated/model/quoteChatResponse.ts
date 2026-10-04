@@ -23,6 +23,17 @@
 import type { QuoteResponse } from './quoteResponse';
 
 /**
+ * Geçersiz değer için isteğe bağlı kataloga ekleme önerisi
+ */
+export type CatalogValueSuggestion = {
+  productId?: string;
+  lineId?: string;
+  propertyName?: string;
+  attemptedValue?: string;
+  validValues?: string[];
+};
+
+/**
  * Teklif sohbet yanıtı
  */
 export interface QuoteChatResponse {
@@ -32,4 +43,6 @@ export interface QuoteChatResponse {
   assistantMessage?: string;
   /** Netleştirme bekleniyor mu */
   needsClarification?: boolean;
+  /** Geçersiz değer için isteğe bağlı kataloga ekleme önerisi */
+  catalogValueSuggestion?: CatalogValueSuggestion;
 }

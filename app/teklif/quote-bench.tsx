@@ -7,7 +7,8 @@ import { ActionButton } from "@/components/catalog/fields";
 import { AppHeader } from "@/components/layout/app-header";
 import { QuoteDocumentPanel } from "@/components/quote/quote-document-panel";
 import { VoiceLevel } from "@/components/teklif/voice-level";
-import { apiErrorMessage } from "@/lib/api/errors";
+import { addQuoteCatalogPropertyValue } from "@/lib/api/catalog-addons";
+import { apiErrorMessage, isSuccessStatus } from "@/lib/api/errors";
 import {
   chatWithQuote,
   createQuote,
@@ -399,6 +400,7 @@ export function QuoteBench({
         {
           role: "assistant",
           content: response.data.assistantMessage ?? "",
+          catalogValueSuggestion: response.data.catalogValueSuggestion,
         },
       ]);
     } catch {
@@ -540,9 +542,64 @@ export function QuoteBench({
   const speakDisabled = (loading || transcribing) && !voiceSession && !recording;
   const speakOpen = recording || voiceSession;
 
+  const applyCatalogValueSuggestion = async (
+    messageIndex: number,
+    suggestion: NonNullable<ChatMessage["catalogValueSuggestion"]>,
+  ) => {
+    const quoteId = quoteRef.current?.id;
+    if (
+      !quoteId ||
+      !suggestion.productId ||
+      !suggestion.lineId ||
+      !suggestion.propertyName ||
+      !suggestion.attemptedValue
+    ) {
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      await flushPersist();
+      const response = await addQuoteCatalogPropertyValue(quoteId, {
+        productId: suggestion.productId,
+        lineId: suggestion.lineId,
+        propertyName: suggestion.propertyName,
+        value: suggestion.attemptedValue,
+      });
+      if (!isSuccessStatus(response.status)) {
+        setError(apiErrorMessage(response.data, "Değer kataloga eklenemedi."));
+        return;
+      }
+      const payload = response.data as {
+        quote?: QuoteResponse;
+        message?: string;
+      };
+      if (payload.quote) setQuote(payload.quote);
+      setMessages((prev) => {
+        const next = [...prev];
+        const current = next[messageIndex];
+        if (current) {
+          next[messageIndex] = { ...current, catalogValueSuggestion: undefined };
+        }
+        next.push({
+          role: "assistant",
+          content:
+            payload.message ??
+            `${suggestion.propertyName} özelliğine ${suggestion.attemptedValue} eklendi.`,
+        });
+        return next;
+      });
+      router.refresh();
+    } catch {
+      setError("Değer eklenirken bağlantı hatası oluştu.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      <AppHeader section="Genixo" title="Teklif" compact />
+      <AppHeader section="Genixo" compact />
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto p-3 lg:grid-cols-[minmax(0,22rem)_1fr] lg:overflow-hidden xl:grid-cols-[minmax(0,28rem)_1fr]">
         <section className="flex h-[min(70dvh,40rem)] min-h-0 flex-col overflow-hidden border border-[var(--rule)] bg-[var(--paper)] lg:h-full">
@@ -570,19 +627,42 @@ export function QuoteBench({
                 Örnek: “CVD fırın olsun, sıcaklık 1400, çap 60 mm.”
               </p>
             ) : (
-              messages.map((message, index) => (
-                <article
-                  key={`${message.role}-${index}`}
-                  className={`grid gap-1.5 text-sm ${
-                    message.role === "user" ? "text-[var(--charcoal)]" : ""
-                  }`}
-                >
-                  <p className="font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
-                    {message.role === "user" ? "Siz" : "Asistan"}
-                  </p>
-                  <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
-                </article>
-              ))
+              messages.map((message, index) => {
+                const suggestion = message.catalogValueSuggestion;
+                const canAddValue =
+                  message.role === "assistant" &&
+                  suggestion?.productId &&
+                  suggestion.lineId &&
+                  suggestion.propertyName &&
+                  suggestion.attemptedValue;
+                const addLabel = canAddValue
+                  ? `${suggestion.propertyName}'a ${suggestion.attemptedValue} ekle`
+                  : null;
+                return (
+                  <article
+                    key={`${message.role}-${index}`}
+                    className={`grid gap-1.5 text-sm ${
+                      message.role === "user" ? "text-[var(--charcoal)]" : ""
+                    }`}
+                  >
+                    <p className="font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
+                      {message.role === "user" ? "Siz" : "Asistan"}
+                    </p>
+                    <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                    {addLabel && suggestion ? (
+                      <div>
+                        <ActionButton
+                          tone="heat"
+                          disabled={loading}
+                          onClick={() => void applyCatalogValueSuggestion(index, suggestion)}
+                        >
+                          {addLabel}
+                        </ActionButton>
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })
             )}
             {loading ? (
               <p className="font-display text-[11px] uppercase tracking-[0.16em] text-[var(--heat)]">

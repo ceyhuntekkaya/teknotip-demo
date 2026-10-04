@@ -212,3 +212,40 @@ export function catalogForLine(
   if (!line.productId) return undefined;
   return products.find((item) => item.id === line.productId);
 }
+
+/** Elle satırı yeni oluşturulan katalog ürününe bağlar; adet ve birim fiyat korunur. */
+export function linkManualLineToProduct(
+  line: QuoteLineResponse,
+  product: ProductResponse,
+): QuoteLineResponse {
+  const quantity = Math.max(1, Math.trunc(line.quantity ?? 1) || 1);
+  const price =
+    Number.isFinite(line.price) && (line.price ?? 0) >= 0
+      ? Number(line.price)
+      : Number.isFinite(line.basePrice) && (line.basePrice ?? 0) >= 0
+        ? Number(line.basePrice)
+        : (product.price ?? 0);
+  return {
+    ...line,
+    productId: product.id,
+    code: product.code,
+    name: product.name,
+    description: product.description,
+    image: product.image,
+    category: product.category,
+    basePrice: product.price,
+    price,
+    quantity,
+    lineTotal: undefined,
+    properties: (product.properties ?? []).map((property) => {
+      const options = property.values ?? [];
+      return {
+        productPropertyId: property.id,
+        name: property.name,
+        values: options.length === 1 ? options[0] : "",
+        price: undefined,
+      };
+    }),
+    accessories: [],
+  };
+}

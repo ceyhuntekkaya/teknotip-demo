@@ -7,12 +7,18 @@ import {
   QuotePdfPanel,
   quotePdfFilename,
 } from "@/components/pdf/quote-pdf-panel";
+import { AddManualToCatalogModal } from "@/components/quote/add-manual-to-catalog-modal";
 import { QuoteEditPane } from "@/components/quote/quote-edit-pane";
 import { QuoteReminderForm } from "@/components/quote/quote-reminder-form";
+import {
+  SavePartyModal,
+  type SavePartyMode,
+} from "@/components/quote/save-party-modal";
 import type {
   CustomerResponse,
   InstitutionResponse,
   ProductResponse,
+  QuoteLineResponse,
   QuoteResponse,
 } from "@/lib/api/generated/model";
 import { formatQuoteAddOn, formatQuoteAmount } from "@/lib/money";
@@ -22,6 +28,13 @@ import {
   isQuoteActionReady,
   QUOTE_ACTION_READY_HINT,
 } from "@/lib/quote/action-ready";
+import {
+  applyCustomer,
+  applyInstitution,
+  isManualLine,
+  linkManualLineToProduct,
+  replaceLine,
+} from "@/lib/quote/document-edit";
 
 export function QuoteDocumentPanel({
   quote,
@@ -57,6 +70,11 @@ export function QuoteDocumentPanel({
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [rightView, setRightView] = useState<"quote" | "edit">(defaultView);
   const [remindOpen, setRemindOpen] = useState(false);
+  const [catalogLine, setCatalogLine] = useState<{
+    line: QuoteLineResponse;
+    index: number;
+  } | null>(null);
+  const [partyMode, setPartyMode] = useState<SavePartyMode | null>(null);
 
   const showingPdf = pdfQuote !== null;
   const editing = rightView === "edit";
@@ -314,6 +332,9 @@ export function QuoteDocumentPanel({
           customers={customers}
           institutions={institutions}
           onChange={onChange}
+          onAddManualToCatalog={(line, index) => setCatalogLine({ line, index })}
+          onSaveInstitution={() => setPartyMode("institution")}
+          onSaveContact={() => setPartyMode("contact")}
         />
       ) : (
         <>
@@ -324,7 +345,12 @@ export function QuoteDocumentPanel({
               </p>
             ) : (
               <div className="grid gap-4">
-                <QuotePartySummary quote={quote} />
+                <QuotePartySummary
+                  quote={quote}
+                  canSave={Boolean(onChange)}
+                  onSaveInstitution={() => setPartyMode("institution")}
+                  onSaveContact={() => setPartyMode("contact")}
+                />
                 {lines.length === 0 ? (
                   <p className="grid place-items-center px-6 py-12 text-center text-sm text-[var(--steel)]">
                     {emptyHint}
@@ -334,6 +360,7 @@ export function QuoteDocumentPanel({
                     const imageSrc = showImages
                       ? resolveLineImageSrc(line, productsById)
                       : null;
+                    const manual = isManualLine(line);
                     return (
                       <article
                         key={line.id ?? `line-${index}`}
@@ -365,22 +392,32 @@ export function QuoteDocumentPanel({
                               </p>
                             </div>
                           </div>
-                          {detailedPrices ? (
-                            <div className="text-right">
-                              <p className="font-display text-[11px] uppercase tracking-[0.14em] text-[var(--steel)]">
-                                Birim
-                              </p>
-                              <p className="font-mono text-sm text-[var(--heat)]">
-                                {formatQuoteAmount(
-                                  line.price ?? line.basePrice ?? 0,
-                                  quote.currency,
-                                )}
-                              </p>
-                              <p className="font-mono text-xs text-[var(--steel)]">
-                                {formatQuoteAmount(line.lineTotal ?? 0, quote.currency)}
-                              </p>
-                            </div>
-                          ) : null}
+                          <div className="flex shrink-0 flex-col items-end gap-2">
+                            {manual && onChange ? (
+                              <ActionButton
+                                title="Kataloga ekle"
+                                onClick={() => setCatalogLine({ line, index })}
+                              >
+                                + Katalog
+                              </ActionButton>
+                            ) : null}
+                            {detailedPrices ? (
+                              <div className="text-right">
+                                <p className="font-display text-[11px] uppercase tracking-[0.14em] text-[var(--steel)]">
+                                  Birim
+                                </p>
+                                <p className="font-mono text-sm text-[var(--heat)]">
+                                  {formatQuoteAmount(
+                                    line.price ?? line.basePrice ?? 0,
+                                    quote.currency,
+                                  )}
+                                </p>
+                                <p className="font-mono text-xs text-[var(--steel)]">
+                                  {formatQuoteAmount(line.lineTotal ?? 0, quote.currency)}
+                                </p>
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
                         {(line.properties ?? []).length ? (
                           <div className="border-t border-[var(--rule)] px-3 py-2">
@@ -451,38 +488,86 @@ export function QuoteDocumentPanel({
           </footer>
         </>
       )}
+
+      {catalogLine && quote && onChange ? (
+        <AddManualToCatalogModal
+          line={catalogLine.line}
+          onClose={() => setCatalogLine(null)}
+          onSaved={(product) => {
+            const linked = linkManualLineToProduct(catalogLine.line, product);
+            onChange(replaceLine(quote, catalogLine.index, linked));
+            setCatalogLine(null);
+            router.refresh();
+          }}
+        />
+      ) : null}
+
+      {partyMode && quote && onChange ? (
+        <SavePartyModal
+          quote={quote}
+          mode={partyMode}
+          onClose={() => setPartyMode(null)}
+          onSaved={({ institution, customer }) => {
+            let next = quote;
+            if (institution) next = applyInstitution(next, institution);
+            if (customer) next = applyCustomer(next, customer);
+            onChange(next);
+            setPartyMode(null);
+            router.refresh();
+          }}
+        />
+      ) : null}
     </section>
   );
 }
 
-function QuotePartySummary({ quote }: { quote: QuoteResponse }) {
+function QuotePartySummary({
+  quote,
+  canSave = false,
+  onSaveInstitution,
+  onSaveContact,
+}: {
+  quote: QuoteResponse;
+  canSave?: boolean;
+  onSaveInstitution?: () => void;
+  onSaveContact?: () => void;
+}) {
   const quoted = quote.quotedTo ?? {};
+  const institution = quoted.institution?.trim() || "";
   const person = quoted.contactPerson?.trim() || quoted.greetingName?.trim() || "";
-  const fields = [
-    {
-      label: "Teklif verilen kurum",
-      value: quoted.institution?.trim() || "—",
-    },
-    {
-      label: "İlgili kişi",
-      value: person || "—",
-    },
-    {
-      label: "Teklif tarihi",
-      value: displayQuotedDate(quote.quotedDate),
-    },
-  ];
+  const showInstitutionSave = canSave && !!institution && !quoted.institutionId;
+  const showContactSave = canSave && !!person && !quoted.customerId;
 
   return (
     <dl className="grid gap-3 border border-[var(--rule)] p-4 sm:grid-cols-3">
-      {fields.map((field) => (
-        <div key={field.label} className="grid gap-1">
-          <dt className="font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
-            {field.label}
-          </dt>
-          <dd className="text-sm leading-snug">{field.value}</dd>
-        </div>
-      ))}
+      <div className="grid gap-1">
+        <dt className="flex items-center justify-between gap-2 font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
+          <span>Teklif verilen kurum</span>
+          {showInstitutionSave ? (
+            <ActionButton title="Kurumu kaydet" onClick={onSaveInstitution}>
+              + Kaydet
+            </ActionButton>
+          ) : null}
+        </dt>
+        <dd className="text-sm leading-snug">{institution || "—"}</dd>
+      </div>
+      <div className="grid gap-1">
+        <dt className="flex items-center justify-between gap-2 font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
+          <span>İlgili kişi</span>
+          {showContactSave ? (
+            <ActionButton title="Kişiyi kaydet" onClick={onSaveContact}>
+              + Kaydet
+            </ActionButton>
+          ) : null}
+        </dt>
+        <dd className="text-sm leading-snug">{person || "—"}</dd>
+      </div>
+      <div className="grid gap-1">
+        <dt className="font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
+          Teklif tarihi
+        </dt>
+        <dd className="text-sm leading-snug">{displayQuotedDate(quote.quotedDate)}</dd>
+      </div>
     </dl>
   );
 }
