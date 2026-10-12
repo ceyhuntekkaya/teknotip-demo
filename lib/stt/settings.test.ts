@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readSilenceSeconds, voiceSettings } from "./settings";
+import { formatSilenceSeconds, readSilenceSeconds, readSpeechRms, voiceSettings } from "./settings";
 
 describe("readSilenceSeconds", () => {
   it("keeps a positive number", () => {
@@ -15,8 +15,23 @@ describe("readSilenceSeconds", () => {
   });
 });
 
+describe("readSpeechRms", () => {
+  it("keeps a positive number", () => {
+    expect(readSpeechRms(0.02)).toBe(0.02);
+  });
+
+  it("falls back when the value is missing or invalid", () => {
+    expect(readSpeechRms(undefined)).toBe(0.02);
+    expect(readSpeechRms(0)).toBe(0.02);
+    expect(readSpeechRms(-1)).toBe(0.02);
+    expect(readSpeechRms("abc")).toBe(0.02);
+  });
+});
+
 describe("voiceSettings", () => {
-  it("loads silenceSeconds from app/data/voice.json", () => {
-    expect(voiceSettings.silenceSeconds).toBeGreaterThan(0);
+  it("loads silenceSeconds and speechRms from app/data/voice.json", () => {
+    expect(voiceSettings.silenceSeconds).toBe(1.2);
+    expect(voiceSettings.speechRms).toBe(0.02);
+    expect(formatSilenceSeconds()).toBe("1,2");
   });
 });

@@ -1,3 +1,4 @@
 {
-  "silenceSeconds": 2
+  "silenceSeconds": 1.2,
+  "speechRms": 0.02
 }

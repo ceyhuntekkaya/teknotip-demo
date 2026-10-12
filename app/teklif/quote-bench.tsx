@@ -44,8 +44,11 @@ import {
   type UtteranceResult,
   type VoiceMeter,
 } from "@/lib/stt/listen";
-import { voiceSettings } from "@/lib/stt/settings";
+import { formatSilenceSeconds } from "@/lib/stt/settings";
 import { isUsableTranscript } from "@/lib/stt/vad";
+
+/** Backend LLM'i en fazla iki kez 30 sn bekler; bunun üstünde Gönder kilitli kalmasın. */
+const CHAT_TIMEOUT_MS = 75_000;
 
 export function QuoteBench({
   products,
@@ -92,6 +95,7 @@ export function QuoteBench({
   const quoteRef = useRef(quote);
   const persistTimer = useRef<number | null>(null);
   const persistInFlight = useRef<Promise<void>>(Promise.resolve());
+  const chatAbortRef = useRef<AbortController | null>(null);
   const startListeningRef = useRef<() => Promise<void>>(async () => {});
   const finishUtteranceRef = useRef<(result: UtteranceResult) => void>(() => {});
 
@@ -260,35 +264,42 @@ export function QuoteBench({
     const workspace = loadQuoteWorkspace();
     const fromQuotes = Boolean(initialQuoteId);
     const targetId = initialQuoteId ?? workspace.quoteId;
-    const nextMessages = fromQuotes ? [] : workspace.messages;
-    setMessages(nextMessages);
+    const storedMessages = fromQuotes ? [] : workspace.messages;
+    // Sohbet yalnızca ait olduğu teklif yüklenince gösterilir; aksi halde boş belgenin
+    // yanında eski yazışma kalır ve iş kaybolmuş gibi görünür.
     void (async () => {
-      if (targetId) {
-        const existing = await getQuoteById(targetId);
-        if (existing.status === 200) {
-          applyLoadedQuote(existing.data);
+      try {
+        if (targetId) {
+          const existing = await getQuoteById(targetId);
+          if (existing.status === 200) {
+            applyLoadedQuote(existing.data);
+            setMessages(storedMessages);
+            saveQuoteWorkspace({
+              version: 3,
+              quoteId: existing.data.id ?? null,
+              messages: storedMessages,
+            });
+            return;
+          }
+          if (fromQuotes) {
+            setError(apiErrorMessage(existing.data, "Teklif yüklenemedi."));
+            return;
+          }
+        }
+        const created = await createQuote({ brand: brandRef.current });
+        if (created.status === 201) {
+          applyLoadedQuote(created.data);
+          setMessages([]);
           saveQuoteWorkspace({
             version: 3,
-            quoteId: existing.data.id ?? null,
-            messages: nextMessages,
+            quoteId: created.data.id ?? null,
+            messages: [],
           });
-          return;
+        } else {
+          setError(apiErrorMessage(created.data, "Teklif açılamadı."));
         }
-        if (fromQuotes) {
-          setError(apiErrorMessage(existing.data, "Teklif yüklenemedi."));
-          return;
-        }
-      }
-      const created = await createQuote({ brand: brandRef.current });
-      if (created.status === 201) {
-        applyLoadedQuote(created.data);
-        saveQuoteWorkspace({
-          version: 3,
-          quoteId: created.data.id ?? null,
-          messages: nextMessages,
-        });
-      } else {
-        setError(apiErrorMessage(created.data, "Teklif açılamadı."));
+      } catch {
+        setError("Teklif yüklenemedi. Sayfayı yenileyip tekrar deneyin.");
       }
     })();
   }, [initialQuoteId, applyLoadedQuote]);
@@ -327,6 +338,7 @@ export function QuoteBench({
     aliveRef.current = true;
     return () => {
       aliveRef.current = false;
+      chatAbortRef.current?.abort();
       voiceSessionRef.current = false;
       utteranceRef.current?.discard();
       destroyListenSession(listenSessionRef.current);
@@ -336,6 +348,15 @@ export function QuoteBench({
   }, []);
 
   const resetQuote = async () => {
+    // Bekleyen sohbet yanıtı eski teklifi yeni teklifin üstüne yazmasın.
+    chatAbortRef.current?.abort();
+    chatAbortRef.current = null;
+    if (persistTimer.current) {
+      window.clearTimeout(persistTimer.current);
+      persistTimer.current = null;
+    }
+    quoteRef.current = null;
+    setQuote(null);
     setMessages([]);
     setError(null);
     if (inputRef.current) inputRef.current.value = "";
@@ -380,6 +401,14 @@ export function QuoteBench({
     setLoading(true);
     setError(null);
 
+    const controller = new AbortController();
+    chatAbortRef.current = controller;
+    let timedOut = false;
+    const timeout = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, CHAT_TIMEOUT_MS);
+
     try {
       await flushPersist();
       const quoteId = quoteRef.current?.id;
@@ -387,7 +416,8 @@ export function QuoteBench({
         setError("Teklif henüz açılmadı.");
         return;
       }
-      const response = await chatWithQuote({ quoteId, message: text });
+      const response = await chatWithQuote({ quoteId, message: text }, { signal: controller.signal });
+      if (quoteRef.current?.id !== quoteId) return;
       if (response.status !== 200) {
         setError(apiErrorMessage(response.data, "İstek başarısız."));
         return;
@@ -404,8 +434,14 @@ export function QuoteBench({
         },
       ]);
     } catch {
-      setError("Bağlantı kurulamadı.");
+      if (timedOut) {
+        setError("Asistan zamanında yanıt vermedi, lütfen tekrar deneyin.");
+      } else if (!controller.signal.aborted) {
+        setError("Bağlantı kurulamadı.");
+      }
     } finally {
+      window.clearTimeout(timeout);
+      if (chatAbortRef.current === controller) chatAbortRef.current = null;
       loadingRef.current = false;
       setLoading(false);
       if (source === "voice") continueVoice();
@@ -688,7 +724,7 @@ export function QuoteBench({
                 {voiceMeter.floor.toFixed(3)} · on {voiceMeter.speechOn.toFixed(3)} · off{" "}
                 {voiceMeter.speechOff.toFixed(3)} ·{" "}
                 {voiceMeter.speechSeen
-                  ? `sessiz ${(voiceMeter.silentMs / 1000).toFixed(1)} / ${voiceSettings.silenceSeconds} sn`
+                  ? `sessiz ${(voiceMeter.silentMs / 1000).toFixed(1)} / ${formatSilenceSeconds()} sn`
                   : "konuşma bekleniyor"}
               </p>
             ) : null}
@@ -708,8 +744,8 @@ export function QuoteBench({
             <p className="text-xs text-[var(--steel)]">
               {recording
                 ? speechHeard
-                  ? `Konuşma alındı. ${voiceSettings.silenceSeconds} sn sessizlikte gönderilir. Durdur, o ana kadarki sesi sohbete yollar.`
-                  : `Dinleniyor. Konuşunca ${voiceSettings.silenceSeconds} sn sessizlikte gönderilir. Durdur, o ana kadarki sesi sohbete yollar.`
+                  ? `Konuşma alındı. ${formatSilenceSeconds()} sn sessizlikte gönderilir. Durdur, o ana kadarki sesi sohbete yollar.`
+                  : `Dinleniyor. Konuşunca ${formatSilenceSeconds()} sn sessizlikte gönderilir. Durdur, o ana kadarki sesi sohbete yollar.`
                 : transcribing
                   ? "Ses yazıya çevriliyor…"
                   : loading && voiceSession
