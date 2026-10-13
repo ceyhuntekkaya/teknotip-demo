@@ -10,7 +10,7 @@ export function tokenCookieOptions(maxAgeSeconds: number) {
     path: "/",
     sameSite: "lax" as const,
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.COOKIE_SECURE !== "false",
     maxAge: maxAgeSeconds,
   };
 }
