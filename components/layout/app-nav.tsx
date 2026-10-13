@@ -7,9 +7,9 @@ import { NotificationBell } from "@/components/layout/notification-bell";
 
 const LINKS = [
   { href: "/teklif", label: "Teklif", emphasis: true },
-  { href: "/products", label: "Katalog" },
+  { href: "/products", label: "Ürünler" },
   { href: "/customers", label: "Müşteriler" },
-  { href: "/quotes", label: "Teklifler" },
+  { href: "/quotes", label: "Önceki Teklifler" },
   { href: "/reports", label: "Raporlar" },
   { href: "/settings", label: "Ayarlar" },
 ] as const;

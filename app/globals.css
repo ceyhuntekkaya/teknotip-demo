@@ -69,6 +69,30 @@ body {
   scrollbar-color: rgb(15 23 42 / 0.18) transparent;
 }
 
+/* Login stage: light table behind the form. Form markup is unchanged. */
+.login-stage {
+  isolation: isolate;
+  background-color: #dfe7f4;
+  background-image:
+    radial-gradient(ellipse 62% 54% at 50% 46%, #f8fafc 0%, rgb(248 250 252 / 0) 68%),
+    radial-gradient(ellipse 46% 42% at 8% 12%, rgb(42 79 214 / 0.28), transparent 70%),
+    radial-gradient(ellipse 40% 38% at 96% 88%, rgb(15 118 110 / 0.2), transparent 68%),
+    radial-gradient(ellipse 28% 24% at 88% 6%, rgb(75 108 240 / 0.16), transparent 70%),
+    linear-gradient(168deg, #eef3fb 0%, #e3ebf6 48%, #d5e0f0 100%);
+}
+
+.login-atmosphere {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgb(42 79 214 / 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(42 79 214 / 0.07) 1px, transparent 1px);
+  background-size: 72px 72px;
+  background-position: center;
+  mask-image: radial-gradient(ellipse 44% 50% at 50% 50%, transparent 0 34%, #000 76%);
+}
+
 /* ---------------------------------------------------------------------------
  * Typography
  * Unlayered on purpose: these win over the tracking/uppercase utilities that
@@ -442,4 +466,880 @@ body {
   .kiln-bench .voice-level .voice-level-bar {
     animation: none !important;
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * Quote sheet — on-screen twin of the brand PDF (A4 @ 96dpi, pt × 4/3)
+ * ------------------------------------------------------------------------ */
+
+.quote-stage {
+  display: flow-root;
+  min-height: 100%;
+  background: #b7bcc3;
+}
+
+.quote-fit {
+  overflow: hidden;
+}
+
+.quote-sheet {
+  font-family: var(--font-plex), "IBM Plex Sans", sans-serif;
+  color: #111111;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+.quote-sheet * {
+  box-sizing: border-box;
+}
+
+.quote-sheet img {
+  display: block;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.quote-sheet .sheet-action {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  margin-left: 8px;
+  padding: 0 6px;
+  border: 1px solid #b5b5b5;
+  background: #fff;
+  color: #333;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: none;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.quote-sheet .sheet-action:hover {
+  border-color: #111;
+}
+
+.quote-page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 794px;
+  min-height: 1123px;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.12),
+    0 12px 32px rgb(0 0 0 / 0.16);
+}
+
+.quote-page + .quote-page {
+  margin-top: 18px;
+}
+
+.sheet-empty {
+  padding: 28px 8px;
+  text-align: center;
+  font-size: 12px;
+  color: #666;
+}
+
+/* TeknoTıp */
+.tt-header,
+.tt-body,
+.tt-footer {
+  padding-left: 48px;
+  padding-right: 48px;
+}
+
+.tt-header {
+  padding-top: 29px;
+}
+
+.tt-body {
+  flex: 1;
+  padding-top: 18px;
+  padding-bottom: 16px;
+}
+
+.tt-footer {
+  padding-bottom: 28px;
+}
+
+.tt-header-row,
+.tt-title-row,
+.tt-recipient-row,
+.tt-meta-row,
+.tt-table-head,
+.tt-table-row,
+.tt-total-row,
+.tt-closing,
+.tt-sign-row {
+  display: flex;
+}
+
+.tt-header-row,
+.tt-title-row,
+.tt-recipient-row,
+.tt-closing {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.tt-logo {
+  width: 224px;
+  height: 56px;
+}
+
+.tt-company {
+  width: 333px;
+  text-align: right;
+}
+
+.tt-company p,
+.tt-footer p {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.28;
+  color: #555;
+}
+
+.tt-footer p {
+  color: #666;
+  text-align: center;
+  line-height: 1.35;
+}
+
+.tt-title-row {
+  align-items: flex-end;
+  margin-top: 16px;
+}
+
+.tt-title {
+  flex: 1;
+  margin: 0;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+
+.tt-date {
+  width: 157px;
+  margin: 0;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tt-recipient-row {
+  gap: 21px;
+  margin-bottom: 16px;
+}
+
+.tt-recipient {
+  flex: 1;
+  padding-right: 16px;
+}
+
+.tt-recipient p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.tt-meta {
+  width: 280px;
+}
+
+.tt-meta-row {
+  margin-bottom: 4px;
+}
+
+.tt-meta-label {
+  width: 96px;
+  font-size: 12px;
+}
+
+.tt-meta-value {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tt-greeting {
+  margin: 0 0 8px;
+  font-size: 12px;
+}
+
+.tt-intro {
+  margin: 0 0 3px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.tt-intro-block {
+  margin-bottom: 16px;
+}
+
+.tt-table-head,
+.tt-table-row {
+  border: 1px solid #8a8a8a;
+  padding: 5px 4px;
+}
+
+.tt-table-head {
+  background: #d0d0d0;
+}
+
+.tt-table-row {
+  border-top: 0;
+}
+
+.tt-table-head span,
+.tt-cell {
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.tt-table-head span,
+.tt-cell-bold {
+  font-weight: 700;
+}
+
+.tt-col-no { flex: 0 0 7%; }
+.tt-col-code { flex: 0 0 16%; }
+.tt-col-desc { flex: 0 0 41%; min-width: 0; }
+.tt-col-desc-wide { flex: 0 0 69%; min-width: 0; }
+.tt-col-qty { flex: 0 0 8%; text-align: center; }
+.tt-col-unit,
+.tt-col-price { flex: 0 0 14%; text-align: right; }
+
+.tt-name,
+.tt-bullet {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.tt-name {
+  font-weight: 700;
+}
+
+.tt-bullet {
+  margin-left: 11px;
+  line-height: 1.4;
+}
+
+.tt-product-image {
+  width: 123px;
+  height: 93px;
+  margin-top: 8px;
+}
+
+.tt-totals {
+  margin-top: 19px;
+}
+
+.tt-total-row {
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+.tt-total-label {
+  width: 120px;
+  margin-right: 16px;
+  text-align: right;
+  font-size: 12px;
+}
+
+.tt-total-value {
+  width: 147px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tt-closing {
+  margin-top: 24px;
+}
+
+.tt-closing-left,
+.tt-closing-right {
+  width: 48%;
+}
+
+.tt-closing-right {
+  text-align: right;
+}
+
+.tt-closing h3,
+.tt-closing p,
+.tt-only,
+.tt-vat {
+  margin: 0;
+  font-size: 12px;
+}
+
+.tt-closing h3,
+.tt-closing-company,
+.tt-vat {
+  font-weight: 700;
+}
+
+.tt-closing h3 {
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+
+.tt-closing-company,
+.tt-only,
+.tt-vat {
+  font-size: 11px;
+}
+
+.tt-only {
+  margin-bottom: 4px;
+}
+
+.tt-conditions-title {
+  margin: 0 0 16px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.tt-condition {
+  margin-bottom: 11px;
+}
+
+.tt-condition h3 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tt-condition p,
+.tt-html p,
+.tt-bank p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.tt-html p {
+  margin-bottom: 5px;
+}
+
+.tt-html li,
+.tt-note {
+  margin: 0 0 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.tt-html ul,
+.tt-html ol {
+  margin: 5px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tt-notes {
+  margin-top: 11px;
+}
+
+.tt-bank h3 {
+  margin: 11px 0 5px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tt-sign-row {
+  gap: 21px;
+  margin-top: 29px;
+}
+
+.tt-sign-box {
+  flex: 1;
+  min-height: 123px;
+  padding: 11px;
+  border: 1px dashed #555;
+}
+
+.tt-sign-box h3,
+.tt-sign-box p {
+  margin: 0;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.tt-sign-box h3 {
+  margin-bottom: 11px;
+  font-weight: 700;
+}
+
+.tt-footer-rule {
+  margin-bottom: 8px;
+  border-top: 1px solid #888;
+}
+
+.tt-page-no {
+  position: absolute;
+  left: 48px;
+  bottom: 21px;
+  margin: 0;
+  font-size: 11px;
+  color: #555;
+}
+
+/* OptoSense */
+.os-page {
+  padding: 48px;
+}
+
+.os-title {
+  margin: 0 0 24px;
+  text-align: right;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+}
+
+.os-header,
+.os-attn,
+.os-meta-row,
+.os-table-head,
+.os-table-row,
+.os-total-row,
+.os-footer {
+  display: flex;
+}
+
+.os-header {
+  justify-content: space-between;
+  gap: 21px;
+  margin-bottom: 24px;
+}
+
+.os-logo {
+  width: 200px;
+  height: 56px;
+  margin-bottom: 11px;
+}
+
+.os-company-name {
+  margin: 0 0 5px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.os-company p,
+.os-contact p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #333;
+}
+
+.os-contact {
+  width: 240px;
+}
+
+.os-label {
+  margin: 0 0 11px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.os-recipient-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.os-recipient {
+  flex: 1;
+  padding-right: 16px;
+}
+
+.os-attn {
+  gap: 13px;
+  margin-bottom: 8px;
+}
+
+.os-attn-label {
+  width: 48px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.os-attn-value,
+.os-address {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.os-institution {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.os-meta {
+  width: 200px;
+}
+
+.os-meta-row {
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.os-table-head {
+  margin-top: 24px;
+  padding: 8px 0;
+  border-top: 1.3px solid #222;
+  border-bottom: 1.3px solid #222;
+}
+
+.os-table-head span {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.os-table-row {
+  padding: 9px 0;
+  border-bottom: 1px solid #ccc;
+}
+
+.os-col-no { flex: 0 0 7%; }
+.os-col-code { flex: 0 0 18%; }
+.os-col-desc { flex: 0 0 37%; min-width: 0; }
+.os-col-qty { flex: 0 0 8%; text-align: center; }
+.os-col-unit,
+.os-col-total { flex: 0 0 15%; text-align: right; }
+
+.os-name,
+.os-spec,
+.os-cell {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.os-name,
+.os-code {
+  font-weight: 700;
+}
+
+.os-product-image {
+  width: 120px;
+  height: 91px;
+  margin-top: 5px;
+}
+
+.os-totals {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-top: 21px;
+}
+
+.os-total-row {
+  width: 293px;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+
+.os-total-row span:first-child,
+.os-total-value {
+  font-weight: 700;
+}
+
+.os-total-currency {
+  width: 48px;
+  text-align: right;
+}
+
+.os-total-value {
+  width: 120px;
+  text-align: right;
+}
+
+.os-footer {
+  gap: 11px;
+  margin-top: 37px;
+  padding-top: 13px;
+  border-top: 1px solid #222;
+}
+
+.os-footer-col {
+  flex: 1;
+}
+
+.os-footer h3,
+.os-footer p {
+  margin: 0;
+  text-align: center;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.os-footer h3 {
+  margin-bottom: 8px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+/* MilimLab */
+.ml-page {
+  padding: 32px;
+}
+
+.ml-logo {
+  width: 224px;
+  height: 45px;
+  margin-bottom: 13px;
+}
+
+.ml-info,
+.ml-company-grid,
+.ml-meta-row,
+.ml-recipient-row,
+.ml-field,
+.ml-table-head,
+.ml-table-row,
+.ml-total-row,
+.ml-section-row {
+  display: flex;
+}
+
+.ml-info {
+  margin-bottom: 13px;
+}
+
+.ml-company {
+  flex: 1;
+  padding: 11px 13px;
+  background: #404040;
+}
+
+.ml-company h2 {
+  margin: 0 0 8px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.ml-company-grid {
+  gap: 11px;
+}
+
+.ml-company-col {
+  flex: 1;
+}
+
+.ml-company p {
+  margin: 0;
+  color: #fff;
+  font-size: 9px;
+  line-height: 1.3;
+}
+
+.ml-meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 211px;
+  padding: 13px;
+  background: #f01613;
+}
+
+.ml-meta-row {
+  margin-bottom: 5px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ml-meta-label { width: 77px; }
+.ml-meta-colon { width: 11px; }
+.ml-meta-value { flex: 1; }
+
+.ml-recipient {
+  margin-bottom: 16px;
+  padding: 11px 13px;
+  background: #f5f5f5;
+}
+
+.ml-recipient-row {
+  gap: 11px;
+  margin-bottom: 5px;
+}
+
+.ml-recipient-row:last-child {
+  margin-bottom: 0;
+}
+
+.ml-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.ml-field-wide {
+  flex: 1.4;
+}
+
+.ml-field-label,
+.ml-field-value {
+  font-size: 11px;
+  color: #111;
+}
+
+.ml-field-label {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ml-field-value {
+  flex: 1;
+}
+
+.ml-table-head {
+  padding: 7px 4px;
+  background: #f01613;
+}
+
+.ml-table-head span {
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.ml-table-head .ml-col-desc {
+  text-align: left;
+}
+
+.ml-table-head .ml-col-unit,
+.ml-table-head .ml-col-sub,
+.ml-table-head .ml-col-disc,
+.ml-table-head .ml-col-total {
+  text-align: right;
+}
+
+.ml-table-row {
+  padding: 7px 4px;
+  border-right: 1px solid #c8c8c8;
+  border-bottom: 1px solid #c8c8c8;
+  border-left: 1px solid #c8c8c8;
+  background: #fff;
+}
+
+.ml-col-no { flex: 0 0 6%; text-align: center; }
+.ml-col-desc { flex: 0 0 34%; min-width: 0; text-align: left; }
+.ml-col-unit { flex: 0 0 14%; text-align: right; }
+.ml-col-qty { flex: 0 0 12%; text-align: center; }
+.ml-col-sub { flex: 0 0 12%; text-align: right; }
+.ml-col-disc { flex: 0 0 10%; text-align: right; }
+.ml-col-total { flex: 0 0 12%; text-align: right; }
+
+.ml-name,
+.ml-spec,
+.ml-cell {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.3;
+  color: #111;
+}
+
+.ml-name {
+  font-weight: 700;
+}
+
+.ml-spec {
+  margin-top: 1px;
+  color: #333;
+}
+
+.ml-product-image {
+  width: 120px;
+  height: 91px;
+  margin-top: 5px;
+}
+
+.ml-totals {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-top: 16px;
+}
+
+.ml-total-row {
+  width: 307px;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.ml-total-label {
+  width: 160px;
+  text-align: right;
+}
+
+.ml-total-value {
+  width: 133px;
+  text-align: right;
+  font-weight: 700;
+}
+
+.ml-section-title {
+  margin: 19px 0 5px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ml-section-row {
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.ml-section-label { width: 133px; }
+.ml-section-colon { width: 13px; }
+.ml-section-value { flex: 1; }
+
+.ml-body,
+.ml-html p {
+  margin: 0 0 3px;
+  font-size: 11px;
+}
+
+.ml-note,
+.ml-html li {
+  margin: 0 0 5px;
+  font-size: 10px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+}
+
+.ml-html ul,
+.ml-html ol {
+  margin: 5px 0 0;
+  padding: 0;
+  list-style: none;
 }

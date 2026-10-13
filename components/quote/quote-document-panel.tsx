@@ -10,6 +10,7 @@ import {
 import { AddManualToCatalogModal } from "@/components/quote/add-manual-to-catalog-modal";
 import { QuoteEditPane } from "@/components/quote/quote-edit-pane";
 import { QuoteReminderForm } from "@/components/quote/quote-reminder-form";
+import { QuoteSheet } from "@/components/quote/sheet/quote-sheet";
 import {
   SavePartyModal,
   type SavePartyMode,
@@ -21,9 +22,6 @@ import type {
   QuoteLineResponse,
   QuoteResponse,
 } from "@/lib/api/generated/model";
-import { formatQuoteAddOn, formatQuoteAmount } from "@/lib/money";
-import { displayQuotedDate } from "@/lib/pdf/format";
-import { resolveLineImageSrc } from "@/lib/pdf/product-images";
 import {
   isQuoteActionReady,
   QUOTE_ACTION_READY_HINT,
@@ -31,7 +29,6 @@ import {
 import {
   applyCustomer,
   applyInstitution,
-  isManualLine,
   linkManualLineToProduct,
   replaceLine,
 } from "@/lib/quote/document-edit";
@@ -81,11 +78,6 @@ export function QuoteDocumentPanel({
   const canEdit = Boolean(onChange || editHref);
   const detailedPrices = quote?.priceDetails !== false;
   const showImages = quote?.showImages === true;
-  const productsById = new Map(
-    products
-      .filter((product) => product.id)
-      .map((product) => [product.id as string, product]),
-  );
 
   const patchDisplay = (patch: Partial<Pick<QuoteResponse, "priceDetails" | "showImages">>) => {
     if (!quote || !onChange) return;
@@ -105,7 +97,6 @@ export function QuoteDocumentPanel({
   };
 
   const lines = quote?.lines ?? [];
-  const summary = quote?.priceSummary;
   const actionReady = isQuoteActionReady(quote);
   const actionHint = actionReady ? undefined : QUOTE_ACTION_READY_HINT;
 
@@ -123,7 +114,7 @@ export function QuoteDocumentPanel({
   };
 
   return (
-    <section className="flex min-h-[24rem] flex-col overflow-hidden border border-[var(--rule)] bg-[var(--paper)] lg:h-full lg:min-h-0">
+    <section className="flex h-full min-h-0 flex-col overflow-hidden border border-[var(--rule)] bg-[var(--paper)]">
       <header className="flex shrink-0 flex-wrap items-end justify-between gap-3 border-b border-[var(--rule)] px-4 py-3">
         <div className="grid gap-2">
           <p className="font-display text-[11px] uppercase tracking-[0.22em] text-[var(--steel)]">
@@ -337,156 +328,24 @@ export function QuoteDocumentPanel({
           onSaveContact={() => setPartyMode("contact")}
         />
       ) : (
-        <>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
-            {!quote ? (
-              <p className="grid place-items-center px-6 py-16 text-center text-sm text-[var(--steel)]">
-                {emptyHint}
-              </p>
-            ) : (
-              <div className="grid gap-4">
-                <QuotePartySummary
-                  quote={quote}
-                  canSave={Boolean(onChange)}
-                  onSaveInstitution={() => setPartyMode("institution")}
-                  onSaveContact={() => setPartyMode("contact")}
-                />
-                {lines.length === 0 ? (
-                  <p className="grid place-items-center px-6 py-12 text-center text-sm text-[var(--steel)]">
-                    {emptyHint}
-                  </p>
-                ) : (
-                  lines.map((line, index) => {
-                    const imageSrc = showImages
-                      ? resolveLineImageSrc(line, productsById)
-                      : null;
-                    const manual = isManualLine(line);
-                    return (
-                      <article
-                        key={line.id ?? `line-${index}`}
-                        className="border border-[var(--rule)]"
-                      >
-                        <div className="flex items-start justify-between gap-3 px-3 py-2.5">
-                          <div className="flex min-w-0 items-start gap-3">
-                            {imageSrc ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={imageSrc}
-                                alt=""
-                                className="h-16 w-16 shrink-0 object-contain"
-                              />
-                            ) : null}
-                            <div className="min-w-0">
-                              <h3
-                                className={
-                                  line.productId
-                                    ? "font-display text-lg uppercase tracking-[0.08em]"
-                                    : "whitespace-pre-wrap text-sm leading-snug"
-                                }
-                              >
-                                {line.name}
-                              </h3>
-                              <p className="text-sm text-[var(--steel)]">
-                                {line.code || "—"} · {line.quantity ?? 1} adet
-                                {line.productId ? "" : " · Elle eklenen"}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex shrink-0 flex-col items-end gap-2">
-                            {manual && onChange ? (
-                              <ActionButton
-                                title="Kataloga ekle"
-                                onClick={() => setCatalogLine({ line, index })}
-                              >
-                                + Katalog
-                              </ActionButton>
-                            ) : null}
-                            {detailedPrices ? (
-                              <div className="text-right">
-                                <p className="font-display text-[11px] uppercase tracking-[0.14em] text-[var(--steel)]">
-                                  Birim
-                                </p>
-                                <p className="font-mono text-sm text-[var(--heat)]">
-                                  {formatQuoteAmount(
-                                    line.price ?? line.basePrice ?? 0,
-                                    quote.currency,
-                                  )}
-                                </p>
-                                <p className="font-mono text-xs text-[var(--steel)]">
-                                  {formatQuoteAmount(line.lineTotal ?? 0, quote.currency)}
-                                </p>
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-                        {(line.properties ?? []).length ? (
-                          <div className="border-t border-[var(--rule)] px-3 py-2">
-                            <ul className="grid gap-1">
-                              {(line.properties ?? []).map((property, propertyIndex) => (
-                                <li
-                                  key={property.id ?? `p-${propertyIndex}`}
-                                  className="flex items-baseline justify-between gap-3 text-sm"
-                                >
-                                  <span>
-                                    {property.name}: {property.values || "—"}
-                                  </span>
-                                  {detailedPrices && property.price ? (
-                                    <span className="font-mono text-[11px] text-[var(--heat)]">
-                                      {formatQuoteAddOn(property.price, quote.currency)}
-                                    </span>
-                                  ) : null}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : null}
-                        {(line.accessories ?? []).length ? (
-                          <div className="border-t border-[var(--rule)] px-3 py-2">
-                            <ul className="grid gap-1">
-                              {(line.accessories ?? []).map((accessory, accessoryIndex) => (
-                                <li
-                                  key={accessory.id ?? `a-${accessoryIndex}`}
-                                  className="flex items-baseline justify-between gap-3 text-sm"
-                                >
-                                  <span>
-                                    {accessory.name} × {accessory.quantity ?? 1}
-                                  </span>
-                                  {detailedPrices && accessory.price ? (
-                                    <span className="font-mono text-[11px] text-[var(--heat)]">
-                                      {formatQuoteAddOn(accessory.price, quote.currency)}
-                                    </span>
-                                  ) : null}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : null}
-                      </article>
-                    );
-                  })
-                )}
-              </div>
-            )}
-          </div>
-
-          <footer className="grid shrink-0 grid-cols-[1fr_auto] items-end gap-4 bg-[var(--soot)] px-4 py-3 text-[var(--paper)]">
-            <div className="grid gap-1 text-[11px] uppercase tracking-[0.16em] text-[var(--heat-soft)]">
-              <span>Ara {formatQuoteAmount(summary?.subtotal ?? 0, quote?.currency)}</span>
-              <span>
-                KDV %{summary?.taxRatePercent ?? 20}{" "}
-                {formatQuoteAmount(summary?.tax ?? 0, quote?.currency)}
-              </span>
-            </div>
-            <div className="text-right">
-              <p className="font-display text-[11px] uppercase tracking-[0.22em] text-[var(--heat-soft)]">
-                Genel toplam
-              </p>
-              <p className="kiln-readout font-mono text-3xl leading-none text-[var(--heat-soft)]">
-                {formatQuoteAmount(summary?.totalAfterTax ?? 0, quote?.currency)}
-              </p>
-            </div>
-          </footer>
-        </>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          {!quote ? (
+            <p className="grid h-full place-items-center px-6 py-16 text-center text-sm text-[var(--steel)]">
+              {emptyHint}
+            </p>
+          ) : (
+            <QuoteSheet
+              quote={quote}
+              products={products}
+              showImages={showImages}
+              emptyHint={emptyHint}
+              canSave={Boolean(onChange)}
+              onSaveInstitution={() => setPartyMode("institution")}
+              onSaveContact={() => setPartyMode("contact")}
+              onAddToCatalog={(line, index) => setCatalogLine({ line, index })}
+            />
+          )}
+        </div>
       )}
 
       {catalogLine && quote && onChange ? (
@@ -518,56 +377,5 @@ export function QuoteDocumentPanel({
         />
       ) : null}
     </section>
-  );
-}
-
-function QuotePartySummary({
-  quote,
-  canSave = false,
-  onSaveInstitution,
-  onSaveContact,
-}: {
-  quote: QuoteResponse;
-  canSave?: boolean;
-  onSaveInstitution?: () => void;
-  onSaveContact?: () => void;
-}) {
-  const quoted = quote.quotedTo ?? {};
-  const institution = quoted.institution?.trim() || "";
-  const person = quoted.contactPerson?.trim() || quoted.greetingName?.trim() || "";
-  const showInstitutionSave = canSave && !!institution && !quoted.institutionId;
-  const showContactSave = canSave && !!person && !quoted.customerId;
-
-  return (
-    <dl className="grid gap-3 border border-[var(--rule)] p-4 sm:grid-cols-3">
-      <div className="grid gap-1">
-        <dt className="flex items-center justify-between gap-2 font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
-          <span>Teklif verilen kurum</span>
-          {showInstitutionSave ? (
-            <ActionButton title="Kurumu kaydet" onClick={onSaveInstitution}>
-              + Kaydet
-            </ActionButton>
-          ) : null}
-        </dt>
-        <dd className="text-sm leading-snug">{institution || "—"}</dd>
-      </div>
-      <div className="grid gap-1">
-        <dt className="flex items-center justify-between gap-2 font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
-          <span>İlgili kişi</span>
-          {showContactSave ? (
-            <ActionButton title="Kişiyi kaydet" onClick={onSaveContact}>
-              + Kaydet
-            </ActionButton>
-          ) : null}
-        </dt>
-        <dd className="text-sm leading-snug">{person || "—"}</dd>
-      </div>
-      <div className="grid gap-1">
-        <dt className="font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
-          Teklif tarihi
-        </dt>
-        <dd className="text-sm leading-snug">{displayQuotedDate(quote.quotedDate)}</dd>
-      </div>
-    </dl>
   );
 }
