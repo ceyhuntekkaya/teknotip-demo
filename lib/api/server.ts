@@ -7,3 +7,4 @@ export { listProducts } from "@/lib/api/generated/endpoints/products/products";
 export { listQuotes } from "@/lib/api/generated/endpoints/quotes/quotes";
 export { listOrganizedProducts } from "@/lib/api/organized-products";
 export { listUsers } from "@/lib/api/generated/endpoints/users/users";
+export { getAiSettings, getBrandTerms } from "@/lib/api/settings";

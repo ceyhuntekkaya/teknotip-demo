@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f2f4f8;
+  --foreground: #0f172a;
 }
 
 @theme inline {
@@ -10,45 +10,48 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-plex), "IBM Plex Sans", sans-serif;
   --font-mono: var(--font-plex-mono), "IBM Plex Mono", monospace;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --radius-sm: 6px;
+  --radius: 8px;
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.05), 0 8px 24px -6px rgb(15 23 42 / 0.12);
+  --shadow: 0 1px 2px rgb(15 23 42 / 0.05), 0 8px 24px -6px rgb(15 23 42 / 0.12);
+  --shadow-lg: 0 2px 6px rgb(15 23 42 / 0.06), 0 24px 56px -12px rgb(15 23 42 / 0.28);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
 
+/*
+ * Design tokens. Component markup references these names directly
+ * (bg-[var(--paper)], text-[var(--steel)] …), so the names stay and only
+ * the values describe the visual language.
+ */
 .kiln-bench {
-  --alumina: #efe8dc;
-  --paper: #f7f1e8;
-  --charcoal: #1b1713;
-  --heat: #c45c12;
-  --heat-soft: #e8a15a;
-  --vacuum: #2a5d78;
-  --vacuum-soft: #d5e4ec;
-  --steel: #7a7368;
-  --soot: #2c2722;
-  --rule: rgba(27, 23, 19, 0.14);
-  --glow: rgba(196, 92, 18, 0.16);
+  --alumina: #f2f4f8; /* app canvas */
+  --paper: #ffffff; /* surfaces */
+  --mist: #eef2fb; /* hover / selected rows */
+  --charcoal: #0f172a; /* primary text */
+  --steel: #5b6779; /* secondary text */
+  --soot: #0b1426; /* dark surfaces */
+  --heat: #2a4fd6; /* primary accent */
+  --heat-soft: #a9bcff; /* accent on dark */
+  --vacuum: #0f766e;
+  --vacuum-soft: #daf2ee;
+  --rule: rgb(15 23 42 / 0.1);
+  --glow: rgb(42 79 214 / 0.14);
+
+  --radius-control: 8px;
+  --radius-panel: 12px;
+  --elev-1: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 3px rgb(15 23 42 / 0.04);
+  --elev-2: 0 1px 2px rgb(15 23 42 / 0.05), 0 6px 16px -4px rgb(15 23 42 / 0.08);
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
   background: var(--alumina);
   color: var(--charcoal);
   color-scheme: light;
   font-family: var(--font-plex), "IBM Plex Sans", sans-serif;
-}
-
-.kiln-bench .font-display {
-  font-family: var(--font-barlow), "Barlow Condensed", sans-serif;
-}
-
-.kiln-bench .font-mono {
-  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  accent-color: var(--heat);
 }
 
 .kiln-bench input,
@@ -57,10 +60,364 @@ body {
   font-family: inherit;
 }
 
+.kiln-bench ::selection {
+  background: color-mix(in srgb, var(--heat) 20%, transparent);
+}
+
+.kiln-bench * {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(15 23 42 / 0.18) transparent;
+}
+
+/* ---------------------------------------------------------------------------
+ * Typography
+ * Unlayered on purpose: these win over the tracking/uppercase utilities that
+ * the components still carry from the previous condensed display face.
+ * ------------------------------------------------------------------------ */
+
+.kiln-bench .font-display {
+  font-family: var(--font-plex), "IBM Plex Sans", sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+}
+
+.kiln-bench .font-display.text-2xl {
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+.kiln-bench .font-display.text-3xl {
+  font-size: 1.5rem;
+  line-height: 1.15;
+}
+
+/* Buttons, tabs, nav: sentence case, medium weight */
+.kiln-bench .font-display.uppercase {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+/* Eyebrows, table heads, badges: small caps labels */
+.kiln-bench .font-display.uppercase:is(.text-\[10px\], .text-\[11px\]) {
+  text-transform: uppercase;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.kiln-bench .font-mono {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------------
+ * App header
+ * ------------------------------------------------------------------------ */
+
+.kiln-bench .app-header {
+  position: relative;
+  z-index: 30;
+  min-height: 3.75rem;
+  background: rgb(255 255 255 / 0.86);
+  backdrop-filter: saturate(1.4) blur(10px);
+  box-shadow: 0 1px 0 var(--rule), 0 4px 16px -12px rgb(15 23 42 / 0.25);
+  border-bottom-color: transparent;
+}
+
+.kiln-bench .app-header > div > a.font-display:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-right: 0.85rem;
+  border-right: 1px solid var(--rule);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--charcoal);
+}
+
+.kiln-bench .app-header > div > a.font-display:first-child::before {
+  content: "";
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #4b6cf0, var(--heat));
+  box-shadow: 0 0 0 4px var(--glow);
+}
+
+.kiln-bench .app-header > div > a.font-display:first-child:hover {
+  color: var(--heat);
+}
+
+.kiln-bench .app-header nav {
+  gap: 0.25rem;
+}
+
+.kiln-bench .app-header nav > a {
+  height: 2.125rem;
+  padding-inline: 0.8rem;
+  border-radius: var(--radius-control);
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--steel);
+  transition:
+    background-color 160ms var(--ease),
+    color 160ms var(--ease);
+}
+
+.kiln-bench .app-header nav > a:hover {
+  background: var(--mist);
+  color: var(--charcoal);
+}
+
+.kiln-bench .app-header nav > a[aria-current="page"] {
+  background: color-mix(in srgb, var(--heat) 10%, white);
+  color: var(--heat);
+  font-weight: 600;
+}
+
+/* Sub-navigation directly under the header (settings tabs) */
+.kiln-bench .app-header + nav {
+  background: var(--paper);
+  border-bottom-color: var(--rule);
+}
+
+.kiln-bench .app-header + nav > a {
+  font-size: 0.84rem;
+  transition: color 160ms var(--ease);
+}
+
+/* ---------------------------------------------------------------------------
+ * Workspace list column
+ * ------------------------------------------------------------------------ */
+
+.kiln-bench aside:not(.border) {
+  background: var(--paper);
+}
+
+.kiln-bench aside:not(.border) li > button {
+  transition:
+    background-color 140ms var(--ease),
+    color 140ms var(--ease);
+}
+
+.kiln-bench aside:not(.border) li > button:hover {
+  background: color-mix(in srgb, var(--mist) 60%, white);
+}
+
+.kiln-bench aside:not(.border) li > button.bg-\[var\(--mist\)\] {
+  background: var(--mist);
+  box-shadow: inset 3px 0 0 var(--heat);
+}
+
+/* Softer hover than a full-ink border */
+.kiln-bench .hover\:border-\[var\(--charcoal\)\]:hover {
+  border-color: rgb(15 23 42 / 0.28);
+}
+
+/* ---------------------------------------------------------------------------
+ * Assistant chat
+ * ------------------------------------------------------------------------ */
+
+.kiln-bench article:has(> p.font-display + p.whitespace-pre-wrap) {
+  max-width: 88%;
+  padding: 0.65rem 0.85rem 0.75rem;
+  border-radius: 14px 14px 14px 4px;
+  background: var(--alumina);
+  gap: 0.25rem;
+}
+
+.kiln-bench article.text-\[var\(--charcoal\)\]:has(> p.font-display + p.whitespace-pre-wrap) {
+  margin-left: auto;
+  border-radius: 14px 14px 4px 14px;
+  background: color-mix(in srgb, var(--heat) 9%, white);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--heat) 14%, transparent);
+}
+
+.kiln-bench article:has(> p.font-display + p.whitespace-pre-wrap) > p.font-display {
+  font-size: 10px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Dark readouts (totals footer, JSON pane)
+ * ------------------------------------------------------------------------ */
+
+.kiln-bench .bg-\[var\(--soot\)\] {
+  background-image:
+    radial-gradient(120% 140% at 100% 0%, rgb(42 79 214 / 0.35), transparent 55%),
+    linear-gradient(180deg, #0f1b33, var(--soot));
+}
+
 .kiln-readout {
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.06em;
-  text-shadow: 0 0 12px var(--glow);
+  letter-spacing: -0.01em;
+  font-weight: 500;
+  color: #fff;
+  text-shadow: 0 0 24px rgb(120 150 255 / 0.35);
+}
+
+/* ---------------------------------------------------------------------------
+ * Base component layer. Layered so explicit utilities in markup
+ * (rounded-*, shadow-*, bg-*) still take precedence.
+ * ------------------------------------------------------------------------ */
+
+@layer components {
+  .kiln-bench .border {
+    border-radius: var(--radius-control);
+  }
+
+  .kiln-bench :is(section, aside, article, dl, ul, form).border {
+    border-radius: var(--radius-panel);
+  }
+
+  .kiln-bench section.border.bg-\[var\(--paper\)\],
+  .kiln-bench article.border.bg-\[var\(--paper\)\] {
+    box-shadow: var(--elev-2);
+  }
+
+  .kiln-bench :is(aside, article, dl).border:not(.bg-\[var\(--paper\)\]) {
+    background-color: var(--paper);
+    box-shadow: var(--elev-1);
+  }
+
+  /* Segmented controls */
+  .kiln-bench [role="group"] > .border {
+    border-radius: 0;
+  }
+
+  .kiln-bench [role="group"] > .border:first-child {
+    border-start-start-radius: var(--radius-control);
+    border-end-start-radius: var(--radius-control);
+  }
+
+  .kiln-bench [role="group"] > .border:last-child {
+    border-start-end-radius: var(--radius-control);
+    border-end-end-radius: var(--radius-control);
+  }
+
+  /* Buttons */
+  .kiln-bench button,
+  .kiln-bench a {
+    transition:
+      background-color 160ms var(--ease),
+      border-color 160ms var(--ease),
+      color 160ms var(--ease),
+      box-shadow 160ms var(--ease),
+      filter 160ms var(--ease);
+  }
+
+  .kiln-bench button.border.bg-\[var\(--paper\)\] {
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.06);
+  }
+
+  .kiln-bench button.border.bg-\[var\(--paper\)\]:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--mist) 55%, white);
+  }
+
+  .kiln-bench button.bg-\[var\(--heat\)\] {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.18),
+      0 1px 2px rgb(23 45 140 / 0.3),
+      0 4px 12px -4px rgb(42 79 214 / 0.45);
+  }
+
+  .kiln-bench button:active:not(:disabled) {
+    transform: translateY(0.5px);
+  }
+
+  /* Form controls */
+  .kiln-bench :is(input, select, textarea).border {
+    transition:
+      border-color 160ms var(--ease),
+      box-shadow 160ms var(--ease);
+  }
+
+  .kiln-bench :is(input, select, textarea):hover:not(:focus):not(:disabled) {
+    border-color: rgb(15 23 42 / 0.2);
+  }
+
+  .kiln-bench :is(input, select, textarea):focus {
+    box-shadow: 0 0 0 3px var(--glow);
+  }
+
+  .kiln-bench input::placeholder,
+  .kiln-bench textarea::placeholder {
+    color: rgb(91 103 121 / 0.7);
+  }
+
+  .kiln-bench :is(input[type="checkbox"], input[type="radio"]) {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  /* Keyboard focus */
+  .kiln-bench :is(a, button, [role="option"], summary):focus-visible {
+    outline: 2px solid var(--heat);
+    outline-offset: 2px;
+    border-radius: var(--radius-control);
+  }
+
+  /* Popovers and modals */
+  .kiln-bench .fixed.inset-0 {
+    backdrop-filter: blur(4px);
+    background-color: rgb(11 20 38 / 0.38);
+  }
+
+  .kiln-bench .fixed.inset-0 > * {
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .kiln-bench ul[role="listbox"] {
+    padding: 0.25rem;
+    border-radius: 10px;
+  }
+
+  .kiln-bench ul[role="listbox"] button {
+    border-radius: 6px;
+  }
+
+  /* Count badge on the notification bell */
+  .kiln-bench button > span.absolute.bg-\[var\(--heat\)\] {
+    border-radius: 999px;
+    box-shadow: 0 0 0 2px var(--paper);
+  }
+
+  .kiln-bench .h-9.w-9 {
+    border-radius: var(--radius-control);
+  }
+
+  .kiln-bench .h-9.w-9:hover {
+    background-color: var(--mist);
+  }
+
+  /* Tables */
+  .kiln-bench thead {
+    background: color-mix(in srgb, var(--alumina) 70%, white);
+  }
+
+  .kiln-bench tbody tr {
+    transition: background-color 120ms var(--ease);
+  }
+
+  .kiln-bench tbody tr:hover {
+    background: color-mix(in srgb, var(--mist) 60%, white);
+  }
+
+  /* Inline status chips */
+  .kiln-bench span.bg-\[var\(--alumina\)\] {
+    border-radius: 999px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Voice meter
+ * ------------------------------------------------------------------------ */
+
+.kiln-bench .voice-level-bar {
+  border-radius: 999px;
+  background: linear-gradient(180deg, #5b7bf5, var(--heat));
 }
 
 .kiln-bench .voice-level[data-active="true"] .voice-level-bar {

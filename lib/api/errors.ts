@@ -13,6 +13,28 @@ const FIELD_LABELS: Record<string, string> = {
   phone: "Telefon",
   email: "E-posta",
   institutionId: "Kurum",
+  baseUrl: "Adres",
+  language: "Dil",
+  timeoutMs: "Zaman aşımı",
+  model: "Model",
+  numCtx: "Bağlam",
+  numPredict: "Üretim limiti",
+  keepAlive: "Keep alive",
+  basicUser: "Kullanıcı adı",
+  basicPass: "Şifre",
+  organizeTimeoutMs: "Düzenleme zaman aşımı",
+  "stt.baseUrl": "STT adresi",
+  "stt.language": "Dil",
+  "stt.timeoutMs": "STT zaman aşımı",
+  "llm.ollama.baseUrl": "Ollama adresi",
+  "llm.ollama.model": "Model",
+  "llm.ollama.timeoutMs": "Sohbet zaman aşımı",
+  "llm.ollama.numCtx": "Bağlam",
+  "llm.ollama.numPredict": "Üretim limiti",
+  "llm.ollama.keepAlive": "Keep alive",
+  "llm.ollama.basicUser": "Kullanıcı adı",
+  "llm.ollama.basicPass": "Şifre",
+  "llm.ollama.organizeTimeoutMs": "Düzenleme zaman aşımı",
 };
 
 export function apiErrorMessage(
@@ -62,8 +84,9 @@ export function fieldError(
 
 export function fieldLabel(field?: string | null): string {
   if (!field) return "Alan";
+  if (FIELD_LABELS[field]) return FIELD_LABELS[field];
   const root = field.split(/[.[\]]/, 1)[0] || field;
-  return FIELD_LABELS[root] ?? FIELD_LABELS[field] ?? field;
+  return FIELD_LABELS[root] ?? field;
 }
 
 export function isSuccessStatus(status: number): boolean {

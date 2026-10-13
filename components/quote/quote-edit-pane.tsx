@@ -33,6 +33,7 @@ import {
   removeLine,
   replaceLine,
 } from "@/lib/quote/document-edit";
+import { QuoteTermsFields } from "@/components/quote/quote-terms-fields";
 
 const LINK_BADGE = {
   contact: { label: "Kayıtlı müşteriye bağlı", tone: "bg-emerald-50 text-emerald-700" },
@@ -277,6 +278,8 @@ export function QuoteEditPane({
           </Field>
         </div>
       </section>
+
+      <QuoteTermsFields quote={quote} onChange={onChange} />
 
       <section className="grid gap-3">
         <div className="flex flex-wrap items-end justify-between gap-3">

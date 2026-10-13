@@ -1,4 +1,5 @@
 import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
+import { HtmlBlocks } from "@/components/pdf/html-blocks";
 import { amountInWords } from "@/lib/pdf/amount-in-words";
 import { companyTemplate, type CompanyTemplate } from "@/lib/pdf/company";
 import {
@@ -8,6 +9,7 @@ import {
   formatQuoteDate,
   formatTl,
 } from "@/lib/pdf/format";
+import { applyTermTokens, textOr } from "@/lib/pdf/html-blocks";
 import { lineImageKey } from "@/lib/pdf/product-images";
 import { pdfStyles as s } from "@/lib/pdf/styles";
 import type { QuoteLineResponse, QuoteResponse } from "@/lib/api/generated/model";
@@ -180,8 +182,10 @@ export function TeknotipQuoteDocument({
   const { company, bank, texts, terms } = template;
   const dateIso = quote.quotedDate ?? "";
   const dateLabel = formatQuoteDate(dateIso);
-  const validityDate = addDaysFormatted(dateIso, terms.validityDays);
+  const validityDays = quote.terms?.validityDays ?? terms.validityDays;
+  const validityDate = addDaysFormatted(dateIso, validityDays);
   const taxRate = quote.priceSummary?.taxRatePercent ?? 20;
+  const salesConditions = textOr(quote.terms?.salesConditions, "");
   const vatIncluded = texts.vatIncluded.replaceAll("{rate}", String(taxRate));
   const words = amountInWords(quote.priceSummary?.totalAfterTax ?? 0, quote.currency);
   const quoted = quote.quotedTo ?? {};
@@ -282,24 +286,39 @@ export function TeknotipQuoteDocument({
         <View break />
 
         <Text style={s.conditionsTitle}>{texts.salesConditionsTitle}</Text>
-        {terms.conditions.map((condition, index) => (
-          <View key={condition.title} style={s.condition}>
-            <Text style={s.conditionTitle}>
-              {index + 1}. {condition.title}
-            </Text>
-            <Text style={s.conditionBody}>
-              {condition.body.replaceAll("{date}", validityDate).replaceAll("{rate}", String(taxRate))}
-            </Text>
-          </View>
-        ))}
+        {salesConditions ? (
+          <HtmlBlocks
+            html={applyTermTokens(salesConditions, {
+              rate: String(taxRate),
+              date: validityDate,
+            })}
+            paragraphStyle={s.conditionBody}
+            listStyle={s.note}
+          />
+        ) : (
+          <>
+            {terms.conditions.map((condition, index) => (
+              <View key={condition.title} style={s.condition}>
+                <Text style={s.conditionTitle}>
+                  {index + 1}. {condition.title}
+                </Text>
+                <Text style={s.conditionBody}>
+                  {condition.body
+                    .replaceAll("{date}", validityDate)
+                    .replaceAll("{rate}", String(taxRate))}
+                </Text>
+              </View>
+            ))}
 
-        <View style={{ marginTop: 8 }}>
-          {terms.notes.map((note) => (
-            <Text key={note.slice(0, 40)} style={s.note}>
-              {note}
-            </Text>
-          ))}
-        </View>
+            <View style={{ marginTop: 8 }}>
+              {terms.notes.map((note) => (
+                <Text key={note.slice(0, 40)} style={s.note}>
+                  {note}
+                </Text>
+              ))}
+            </View>
+          </>
+        )}
 
         <Text style={s.bankTitle}>{texts.bankTitle}</Text>
         <Text style={s.bankLine}>Hesap Adı: {bank.accountName}</Text>

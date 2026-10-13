@@ -9,7 +9,7 @@ export function LoginForm() {
   const [error, action, pending] = useActionState(loginAction, null);
 
   return (
-    <form action={action} className="grid w-full max-w-sm gap-8">
+    <form action={action} className="grid w-full max-w-sm gap-8 rounded-2xl border border-[var(--rule)] bg-[var(--paper)] p-8 shadow-lg">
       <Image
         src="/brand/teknotip/logo.png"
         alt="TeknoTıp"

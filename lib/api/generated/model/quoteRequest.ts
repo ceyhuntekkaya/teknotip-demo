@@ -23,6 +23,7 @@
 import type { QuoteBrand } from './quoteBrand';
 import type { QuoteLineRequest } from './quoteLineRequest';
 import type { QuoteQuotedToRequest } from './quoteQuotedToRequest';
+import type { QuoteTerms } from './quoteTerms';
 
 /**
  * Teklif oluşturma veya güncelleme
@@ -56,6 +57,8 @@ export interface QuoteRequest {
   taxRatePercent?: number;
   /** Ek bilgi (HTML olabilir) */
   additionalInformation?: string;
+  /** PDF koşul metinleri. Boşsa oluşturmada marka varsayılanı kopyalanır; güncellemede mevcut koşullar korunur. */
+  terms?: QuoteTerms;
   /** Teklif satırları */
   lines?: QuoteLineRequest[];
 }

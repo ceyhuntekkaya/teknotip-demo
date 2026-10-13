@@ -26,7 +26,8 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/musteriler") ||
     pathname.startsWith("/organized-products") ||
     pathname.startsWith("/temp-product-transfer") ||
-    pathname.startsWith("/users");
+    pathname.startsWith("/users") ||
+    pathname.startsWith("/settings");
 
   if (isPrivate && !authed) {
     return NextResponse.redirect(new URL("/", request.url));
@@ -54,6 +55,8 @@ export const config = {
     "/temp-product-transfer/:path*",
     "/users",
     "/users/:path*",
+    "/settings",
+    "/settings/:path*",
     "/backend/:path*",
   ],
 };

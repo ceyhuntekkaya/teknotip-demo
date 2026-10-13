@@ -23,6 +23,21 @@ export function getSttConfig(): SttConfig {
   };
 }
 
+export function sttConfigFromSettings(input: {
+  baseUrl: string;
+  language?: string | null;
+  timeoutMs: number;
+}): SttConfig {
+  return {
+    baseUrl: input.baseUrl.trim().replace(/\/$/, ""),
+    language: input.language?.trim() ?? "",
+    timeoutMs:
+      Number.isFinite(input.timeoutMs) && input.timeoutMs > 0
+        ? input.timeoutMs
+        : DEFAULT_TIMEOUT_MS,
+  };
+}
+
 export function sttTranscribeUrl(config: SttConfig): string {
   if (!config.language) {
     return `${config.baseUrl}/transcribe`;

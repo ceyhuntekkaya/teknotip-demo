@@ -35,8 +35,10 @@ type Status = "idle" | "saving" | "saved" | "transferring" | "transferred" | "er
 
 export function OrganizedProductEditor({
   initialProducts,
+  embedded = false,
 }: {
   initialProducts: OrganizedProductResponse[];
+  embedded?: boolean;
 }) {
   const [products, setProducts] = useState(initialProducts);
   const [selectedId, setSelectedId] = useState<string | "new" | null>(
@@ -228,6 +230,7 @@ export function OrganizedProductEditor({
 
   return (
     <SplitWorkspace
+      showHeader={!embedded}
       section="Geçici"
       title="Geçici Ürünler"
       listHeader={

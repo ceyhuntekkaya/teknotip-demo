@@ -11,8 +11,7 @@ const LINKS = [
   { href: "/customers", label: "Müşteriler" },
   { href: "/quotes", label: "Teklifler" },
   { href: "/reports", label: "Raporlar" },
-  { href: "/organized-products", label: "Geçici Ürünler" },
-  { href: "/users", label: "Kullanıcılar" },
+  { href: "/settings", label: "Ayarlar" },
 ] as const;
 
 const linkClass =

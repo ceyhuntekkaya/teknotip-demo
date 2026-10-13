@@ -20,6 +20,26 @@ const nextConfig: NextConfig = {
         destination: "/customers/:path*",
         permanent: true,
       },
+      {
+        source: "/users",
+        destination: "/settings/users",
+        permanent: false,
+      },
+      {
+        source: "/users/:path*",
+        destination: "/settings/users",
+        permanent: false,
+      },
+      {
+        source: "/organized-products",
+        destination: "/settings/organized-products",
+        permanent: false,
+      },
+      {
+        source: "/organized-products/:path*",
+        destination: "/settings/organized-products",
+        permanent: false,
+      },
     ];
   },
 };

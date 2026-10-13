@@ -4,6 +4,7 @@ import {
   formatQuoteDateEn,
   formatTl,
 } from "@/lib/pdf/format";
+import { textOr } from "@/lib/pdf/html-blocks";
 import { moneyUnit } from "@/lib/money";
 import { lineImageKey } from "@/lib/pdf/product-images";
 import { optoStyles as s } from "@/lib/pdf/optosense-styles";
@@ -230,19 +231,27 @@ export function OptosenseQuoteDocument({
         <View style={s.footerRow} wrap={false}>
           <View style={s.footerCol}>
             <Text style={s.footerTitle}>{texts.footer.deliveryTitle}</Text>
-            <Text style={s.footerBody}>{texts.footer.delivery}</Text>
+            <Text style={s.footerBody}>
+              {textOr(quote.terms?.delivery, texts.footer.delivery)}
+            </Text>
           </View>
           <View style={s.footerCol}>
             <Text style={s.footerTitle}>{texts.footer.paymentTitle}</Text>
-            <Text style={s.footerBody}>{texts.footer.payment}</Text>
+            <Text style={s.footerBody}>
+              {textOr(quote.terms?.payment, texts.footer.payment)}
+            </Text>
           </View>
           <View style={s.footerCol}>
             <Text style={s.footerTitle}>{texts.footer.validationTitle}</Text>
-            <Text style={s.footerBody}>{texts.footer.validation}</Text>
+            <Text style={s.footerBody}>
+              {textOr(quote.terms?.validation, texts.footer.validation)}
+            </Text>
           </View>
           <View style={s.footerCol}>
             <Text style={s.footerTitle}>{texts.footer.termsTitle}</Text>
-            <Text style={s.footerBody}>{texts.footer.terms}</Text>
+            <Text style={s.footerBody}>
+              {textOr(quote.terms?.tradeTerms, texts.footer.terms)}
+            </Text>
           </View>
         </View>
       </Page>

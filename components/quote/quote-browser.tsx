@@ -31,6 +31,7 @@ import {
 } from "@/lib/export/quote-excel";
 import { displayQuotedDate } from "@/lib/pdf/format";
 import { isQuoteActionReady } from "@/lib/quote/action-ready";
+import { quoteWithBrand } from "@/lib/quote/terms";
 import { saveQuoteWorkspace } from "@/lib/quote/workspace";
 
 const PAGE_SIZE = 10;
@@ -191,7 +192,7 @@ export function QuoteBrowser({
       if (!isBrandId(nextBrand)) return;
       const current = quoteRef.current;
       if (!current || current.brand === nextBrand) return;
-      void persistQuote({ ...current, brand: nextBrand });
+      void quoteWithBrand(current, nextBrand).then((next) => persistQuote(next));
     };
     window.addEventListener("teknotip:brand-change", onBrandChange);
     return () => {

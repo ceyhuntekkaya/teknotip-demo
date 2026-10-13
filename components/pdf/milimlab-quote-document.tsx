@@ -1,10 +1,12 @@
 import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
+import { HtmlBlocks } from "@/components/pdf/html-blocks";
 import {
   addDaysFormatted,
   assetUrl,
   formatQuoteDateSlash,
   formatTl,
 } from "@/lib/pdf/format";
+import { applyTermTokens, textOr } from "@/lib/pdf/html-blocks";
 import { lineImageKey } from "@/lib/pdf/product-images";
 import { milimStyles as s } from "@/lib/pdf/milimlab-styles";
 import {
@@ -124,6 +126,14 @@ export function MilimlabQuoteDocument({
   const showLinePrices = quote.priceDetails !== false;
   const currency = quote.currency;
   const taxRate = quote.priceSummary?.taxRatePercent ?? 20;
+  const deliveryTime = textOr(quote.terms?.deliveryTime, texts.deliveryTime);
+  const deliveryMode = textOr(quote.terms?.deliveryMode, texts.deliveryMode);
+  const commercialBody = applyTermTokens(
+    textOr(quote.terms?.commercialTerms, texts.commercialBody),
+    { rate: String(taxRate) },
+  );
+  const paymentBody = textOr(quote.terms?.paymentTerms, texts.paymentBody);
+  const generalProvisions = textOr(quote.terms?.generalProvisions, "");
   const contact = [quoted.contactPerson, quoted.department]
     .filter(Boolean)
     .join(" / ");
@@ -281,28 +291,34 @@ export function MilimlabQuoteDocument({
         <View style={s.sectionRow}>
           <Text style={s.sectionLabel}>{texts.deliveryTimeLabel}</Text>
           <Text style={s.sectionColon}>:</Text>
-          <Text style={s.sectionValue}>{texts.deliveryTime}</Text>
+          <Text style={s.sectionValue}>{deliveryTime}</Text>
         </View>
         <View style={s.sectionRow}>
           <Text style={s.sectionLabel}>{texts.deliveryModeLabel}</Text>
           <Text style={s.sectionColon}>:</Text>
-          <Text style={s.sectionValue}>{texts.deliveryMode}</Text>
+          <Text style={s.sectionValue}>{deliveryMode}</Text>
         </View>
 
         <Text style={s.sectionTitle}>{texts.commercialTitle}</Text>
-        <Text style={s.commercialBody}>
-          {texts.commercialBody.replaceAll("{rate}", String(taxRate))}
-        </Text>
+        <Text style={s.commercialBody}>{commercialBody}</Text>
 
         <Text style={s.sectionTitle}>{texts.paymentTitle}</Text>
-        <Text style={s.commercialBody}>{texts.paymentBody}</Text>
+        <Text style={s.commercialBody}>{paymentBody}</Text>
 
         <Text style={s.sectionTitle}>{texts.generalTitle}</Text>
-        {texts.notes.map((note) => (
-          <Text key={note.slice(0, 48)} style={s.note}>
-            {note}
-          </Text>
-        ))}
+        {generalProvisions ? (
+          <HtmlBlocks
+            html={generalProvisions}
+            paragraphStyle={s.commercialBody}
+            listStyle={s.note}
+          />
+        ) : (
+          texts.notes.map((note) => (
+            <Text key={note.slice(0, 48)} style={s.note}>
+              {note}
+            </Text>
+          ))
+        )}
       </Page>
     </Document>
   );

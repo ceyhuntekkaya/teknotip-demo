@@ -28,7 +28,7 @@ export function AppHeader({
 
   return (
     <header
-      className={`flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--rule)] ${
+      className={`app-header flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--rule)] ${
         compact ? "px-4 py-3" : "px-5 py-3"
       }`}
     >

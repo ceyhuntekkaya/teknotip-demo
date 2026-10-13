@@ -66,9 +66,11 @@ function matchesQuery(user: UserResponse, query: string): boolean {
 export function UserEditor({
   initialUsers,
   currentUserId,
+  embedded = false,
 }: {
   initialUsers: UserResponse[];
   currentUserId?: string;
+  embedded?: boolean;
 }) {
   const [users, setUsers] = useState(() => sortUsers(initialUsers));
   const [query, setQuery] = useState("");
@@ -182,6 +184,7 @@ export function UserEditor({
 
   return (
     <SplitWorkspace
+      showHeader={!embedded}
       section="Kullanıcılar"
       title="Kayıtlar"
       listHeader={

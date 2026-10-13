@@ -26,6 +26,7 @@ import type {
 import { quoteToRequest } from "@/lib/api/map";
 import { DEFAULT_BRAND, isBrandId, type BrandId } from "@/lib/brand/brands";
 import { isQuoteActionReady } from "@/lib/quote/action-ready";
+import { quoteWithBrand } from "@/lib/quote/terms";
 import {
   clearQuoteWorkspace,
   loadQuoteWorkspace,
@@ -310,7 +311,7 @@ export function QuoteBench({
       if (!isBrandId(nextBrand)) return;
       const current = quoteRef.current;
       if (!current || current.brand === nextBrand) return;
-      schedulePersist({ ...current, brand: nextBrand });
+      void quoteWithBrand(current, nextBrand).then((next) => schedulePersist(next));
     };
     window.addEventListener("teknotip:brand-change", onBrandChange);
     return () => {

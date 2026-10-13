@@ -36,4 +36,13 @@ describe("quoteToRequest", () => {
     });
     expect(request.brand).toBe("OPTOSENSE");
   });
+
+  it("keeps quote terms when saving", () => {
+    const request = quoteToRequest({
+      id: "q1",
+      lines: [],
+      terms: { delivery: "10-12 weeks order approval" },
+    });
+    expect(request.terms?.delivery).toBe("10-12 weeks order approval");
+  });
 });

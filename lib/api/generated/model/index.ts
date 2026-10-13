@@ -88,6 +88,7 @@ export * from './quoteReportResponse';
 export * from './quoteReportStatsResponse';
 export * from './quoteRequest';
 export * from './quoteResponse';
+export * from './quoteTerms';
 export * from './quoteSummaryResponse';
 export * from './quoteVersionResponse';
 export * from './refreshRequest';

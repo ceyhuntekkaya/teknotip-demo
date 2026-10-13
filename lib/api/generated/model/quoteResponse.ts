@@ -24,6 +24,7 @@ import type { QuoteBrand } from './quoteBrand';
 import type { QuoteLineResponse } from './quoteLineResponse';
 import type { QuotePriceSummaryResponse } from './quotePriceSummaryResponse';
 import type { QuoteQuotedToResponse } from './quoteQuotedToResponse';
+import type { QuoteTerms } from './quoteTerms';
 import type { QuoteVersionResponse } from './quoteVersionResponse';
 
 /**
@@ -56,6 +57,8 @@ export interface QuoteResponse {
   preparedByName?: string;
   /** Ek bilgi (HTML olabilir) */
   additionalInformation?: string;
+  /** PDF koşul metinleri */
+  terms?: QuoteTerms;
   /** Fiyat özeti */
   priceSummary?: QuotePriceSummaryResponse;
   /** Teklif satırları */

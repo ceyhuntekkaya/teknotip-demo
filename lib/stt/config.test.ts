@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { getSttConfig, sttTranscribeUrl } from "./config";
+import { getSttConfig, sttConfigFromSettings, sttTranscribeUrl } from "./config";
 
 const keys = ["STT_URL", "STT_LANGUAGE", "STT_TIMEOUT_MS"] as const;
 
@@ -25,6 +25,18 @@ describe("stt config", () => {
     expect(sttTranscribeUrl(config)).toBe(
       "https://speaking.stt.eltaexams.com/transcribe",
     );
+  });
+
+  it("reads the address saved in settings", () => {
+    const config = sttConfigFromSettings({
+      baseUrl: "https://speaking.stt.eltaexams.com/",
+      language: "tr",
+      timeoutMs: 20000,
+    });
+    expect(sttTranscribeUrl(config)).toBe(
+      "https://speaking.stt.eltaexams.com/transcribe/tr",
+    );
+    expect(config.timeoutMs).toBe(20000);
   });
 
   it("strips a trailing slash from STT_URL", () => {

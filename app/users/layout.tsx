@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Kullanıcılar — TeknoTip",
-  description: "Uygulama kullanıcılarını yönet.",
+  title: "Ayarlar — TeknoTip",
+  description: "Kullanıcılar ve AI ayarları.",
 };
 
 export default function UsersLayout({

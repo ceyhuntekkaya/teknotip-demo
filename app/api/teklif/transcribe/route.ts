@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { getSttConfig, sttTranscribeUrl } from "@/lib/stt/config";
+import { activeOf, isAiSettings } from "@/lib/api/settings";
+import { getAiSettings } from "@/lib/api/server";
+import { sttConfigFromSettings, sttTranscribeUrl } from "@/lib/stt/config";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -26,7 +28,15 @@ export async function POST(request: Request) {
   const outgoing = new FormData();
   outgoing.append("file", file, filename);
 
-  const stt = getSttConfig();
+  const settings = await getAiSettings();
+  if (settings.status !== 200 || !isAiSettings(settings.data)) {
+    return NextResponse.json({ error: "STT ayarları okunamadı." }, { status: 502 });
+  }
+  const active = activeOf(settings.data.stt);
+  if (!active) {
+    return NextResponse.json({ error: "Aktif STT adresi yok." }, { status: 502 });
+  }
+  const stt = sttConfigFromSettings(active);
   try {
     const response = await fetch(sttTranscribeUrl(stt), {
       method: "POST",
@@ -50,7 +60,7 @@ export async function POST(request: Request) {
       {
         error: timedOut
           ? "STT zaman aşımına uğradı."
-          : "STT servisine bağlanılamadı. STT_URL değerini kontrol edin.",
+          : "STT servisine bağlanılamadı. Ayarlar’daki STT adresini kontrol edin.",
       },
       { status: 502 },
     );

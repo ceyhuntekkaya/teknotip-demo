@@ -91,6 +91,7 @@ export function quoteToRequest(quote: QuoteResponse): QuoteRequest {
     discount: quote.priceSummary?.discount,
     taxRatePercent: quote.priceSummary?.taxRatePercent,
     additionalInformation: quote.additionalInformation,
+    terms: quote.terms,
     lines,
   };
 }
