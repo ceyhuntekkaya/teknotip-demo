@@ -21,6 +21,8 @@
       "total": "TOTAL"
     },
     "subtotal": "Subtotal",
+    "discount": "Discount",
+    "tax": "VAT",
     "total": "TOTAL",
     "optionLabel": "Option",
     "footer": {

@@ -356,16 +356,18 @@ export function QuoteEditPane({
   );
 }
 
-function FreeLineForm({
+export function FreeLineForm({
   nextNo,
   suggestedCode,
   onAdd,
   onCancel,
+  bare = false,
 }: {
   nextNo: number;
   suggestedCode: string;
   onAdd: (input: { code?: string; name: string; quantity?: number; price?: number }) => void;
   onCancel: () => void;
+  bare?: boolean;
 }) {
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
@@ -396,13 +398,15 @@ function FreeLineForm({
   };
 
   return (
-    <article className="grid gap-3 border border-[var(--heat)] p-4">
-      <div className="flex items-center justify-between gap-3">
-        <h4 className="font-display text-lg tracking-wide">Serbest satır</h4>
-        <p className="font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
-          Katalog dışı
-        </p>
-      </div>
+    <article className={bare ? "grid gap-3" : "grid gap-3 border border-[var(--heat)] p-4"}>
+      {bare ? null : (
+        <div className="flex items-center justify-between gap-3">
+          <h4 className="font-display text-lg tracking-wide">Serbest satır</h4>
+          <p className="font-display text-[11px] uppercase tracking-[0.16em] text-[var(--steel)]">
+            Katalog dışı
+          </p>
+        </div>
+      )}
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="No">
           <TextInput value={String(nextNo)} readOnly />
@@ -477,7 +481,7 @@ function FreeLineForm({
   );
 }
 
-function LineEditor({
+export function LineEditor({
   line,
   index,
   total,
@@ -488,6 +492,7 @@ function LineEditor({
   onMove,
   onAutoCode,
   onAddToCatalog,
+  bare = false,
 }: {
   line: QuoteLineResponse;
   index: number;
@@ -499,6 +504,7 @@ function LineEditor({
   onMove: (direction: -1 | 1) => void;
   onAutoCode: () => void;
   onAddToCatalog?: () => void;
+  bare?: boolean;
 }) {
   const properties = line.properties ?? [];
   const accessories = line.accessories ?? [];
@@ -508,7 +514,7 @@ function LineEditor({
   const lineTotal = line.lineTotal ?? unitPrice * quantity;
 
   return (
-    <article className="grid gap-3 border border-[var(--rule)] p-4">
+    <article className={bare ? "grid gap-3" : "grid gap-3 border border-[var(--rule)] p-4"}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-2">
           <ReorderButtons

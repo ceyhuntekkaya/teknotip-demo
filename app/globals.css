@@ -524,6 +524,123 @@ body {
   border-color: #111;
 }
 
+.tt-table-head,
+.ml-table-head,
+.os-table-head {
+  position: relative;
+}
+
+.quote-sheet .sheet-add {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #1a1a1a;
+  border-radius: 999px;
+  background: #fff;
+  color: #1a1a1a;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.16);
+}
+
+.quote-sheet .sheet-add:hover {
+  border-color: #2a4fd6;
+  background: #2a4fd6;
+  color: #fff;
+}
+
+.quote-sheet .sheet-no {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.quote-sheet .ml-col-no.sheet-no,
+.quote-sheet .os-col-no.sheet-no {
+  justify-content: center;
+  width: 100%;
+}
+
+.quote-sheet .sheet-remove {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #9a3b2f;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.quote-sheet .sheet-remove svg {
+  width: 12px;
+  height: 12px;
+}
+
+.quote-sheet .sheet-remove:hover {
+  color: #6e241c;
+  opacity: 1;
+}
+
+.quote-sheet .sheet-hot,
+.quote-sheet .sheet-row-edit {
+  cursor: pointer;
+}
+
+.quote-sheet .sheet-hot {
+  border-radius: 2px;
+}
+
+.quote-sheet .sheet-hot:hover {
+  background: rgb(42 79 214 / 0.08);
+  box-shadow: inset 0 -1px 0 #2a4fd6;
+}
+
+.quote-sheet .sheet-row-edit:hover {
+  background: rgb(42 79 214 / 0.045);
+}
+
+.quote-sheet .sheet-row-active {
+  background: rgb(42 79 214 / 0.07);
+  box-shadow: inset 2px 0 0 #2a4fd6;
+}
+
+.quote-quick-card {
+  animation: quote-quick-in 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+@keyframes quote-quick-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quote-quick-card {
+    animation: none;
+  }
+}
+
 .quote-page {
   position: relative;
   display: flex;

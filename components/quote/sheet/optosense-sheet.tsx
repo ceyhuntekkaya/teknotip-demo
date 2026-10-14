@@ -1,6 +1,13 @@
 "use client";
 
-import { SheetAction, type QuoteSheetProps } from "@/components/quote/sheet/sheet-types";
+import { SheetAdd, SheetHot, SheetRemove } from "@/components/quote/sheet/sheet-chrome";
+import {
+  bindRowEdit,
+  hotZone,
+  SheetAction,
+  type QuoteSheetProps,
+  type SheetField,
+} from "@/components/quote/sheet/sheet-types";
 import type { QuoteLineResponse } from "@/lib/api/generated/model";
 import { moneyUnit } from "@/lib/money";
 import { formatQuoteDateEn, formatTl } from "@/lib/pdf/format";
@@ -16,7 +23,10 @@ function ProductBlock({
   showLinePrices,
   optionLabel,
   imageSrc,
+  active = false,
   onAddToCatalog,
+  onEdit,
+  onRemove,
 }: {
   line: QuoteLineResponse;
   index: number;
@@ -24,20 +34,29 @@ function ProductBlock({
   showLinePrices: boolean;
   optionLabel: string;
   imageSrc: string | null;
+  active?: boolean;
   onAddToCatalog?: () => void;
+  onEdit?: () => void;
+  onRemove?: () => void;
 }) {
   const specs = (line.properties ?? [])
     .filter((property) => property.name && property.values)
     .map((property) => `${property.name}: ${property.values}`);
   const accessories = line.accessories ?? [];
 
+  const rowEdit = bindRowEdit(onEdit);
+  const rowClass = `os-table-row${rowEdit.className ? ` ${rowEdit.className}` : ""}${active ? " sheet-row-active" : ""}`;
+
   return (
     <>
-      <div className="os-table-row">
-        <span className="os-cell os-col-no">{index}</span>
+      <div className={rowClass} onClick={rowEdit.onClick}>
+        <span className={`os-cell os-col-no${onRemove ? " sheet-no" : ""}`}>
+          {onRemove ? <SheetRemove onClick={onRemove} /> : null}
+          {index}
+        </span>
         <span className="os-cell os-code os-col-code">{line.code || "—"}</span>
         <div className="os-col-desc">
-          <p className="os-name">
+          <p className="os-name" title={onEdit ? "Düzenlemek için tıklayın" : undefined}>
             {line.name || "—"}
             <SheetAction title="Kataloga ekle" onClick={onAddToCatalog}>
               + Katalog
@@ -65,7 +84,11 @@ function ProductBlock({
         const qty = accessory.quantity ?? 1;
         const unit = accessory.price ?? 0;
         return (
-          <div key={`${line.id ?? index}-acc-${accessoryIndex}`} className="os-table-row">
+          <div
+            key={`${line.id ?? index}-acc-${accessoryIndex}`}
+            className={rowClass}
+            onClick={rowEdit.onClick}
+          >
             <span className="os-cell os-col-no" />
             <span className="os-cell os-code os-col-code">{optionLabel}</span>
             <div className="os-col-desc">
@@ -91,9 +114,11 @@ export function OptosenseSheet({
   showImages,
   emptyHint,
   canSave = false,
+  activeLineIndex = null,
   onSaveInstitution,
   onSaveContact,
   onAddToCatalog,
+  onIntent,
 }: QuoteSheetProps) {
   const { company, texts } = optosenseTemplate;
   const dateLabel = formatQuoteDateEn(quote.quotedDate ?? "");
@@ -109,14 +134,47 @@ export function OptosenseSheet({
   const showInstitutionSave = canSave && !!quoted.institution?.trim() && !quoted.institutionId;
   const person = quoted.contactPerson?.trim() || "";
   const showContactSave = canSave && !!person && !quoted.customerId;
-  const footer = [
-    { title: texts.footer.deliveryTitle, body: textOr(quote.terms?.delivery, texts.footer.delivery) },
-    { title: texts.footer.paymentTitle, body: textOr(quote.terms?.payment, texts.footer.payment) },
+  const editDate = onIntent ? () => onIntent({ kind: "edit-date" }) : undefined;
+  const editInstitution = onIntent ? () => onIntent({ kind: "edit-institution" }) : undefined;
+  const editContact = onIntent ? () => onIntent({ kind: "edit-contact" }) : undefined;
+  const editAddress = onIntent ? () => onIntent({ kind: "edit-field", field: "address" }) : undefined;
+  const currencyHot = hotZone(
+    onIntent ? () => onIntent({ kind: "edit-field", field: "currency" }) : undefined,
+    "Para birimini değiştirmek için tıklayın",
+  );
+  const discountHot = hotZone(
+    onIntent ? () => onIntent({ kind: "edit-field", field: "discount" }) : undefined,
+    "İndirimi düzenlemek için tıklayın",
+  );
+  const taxHot = hotZone(
+    onIntent ? () => onIntent({ kind: "edit-tax" }) : undefined,
+    "KDV oranını değiştirmek için tıklayın",
+  );
+  const footer: { field: SheetField; title: string; body: string; hint: string }[] = [
     {
+      field: "delivery",
+      title: texts.footer.deliveryTitle,
+      body: textOr(quote.terms?.delivery, texts.footer.delivery),
+      hint: "Teslimatı düzenlemek için tıklayın",
+    },
+    {
+      field: "payment",
+      title: texts.footer.paymentTitle,
+      body: textOr(quote.terms?.payment, texts.footer.payment),
+      hint: "Ödemeyi düzenlemek için tıklayın",
+    },
+    {
+      field: "validation",
       title: texts.footer.validationTitle,
       body: textOr(quote.terms?.validation, texts.footer.validation),
+      hint: "Geçerliliği düzenlemek için tıklayın",
     },
-    { title: texts.footer.termsTitle, body: textOr(quote.terms?.tradeTerms, texts.footer.terms) },
+    {
+      field: "trade-terms",
+      title: texts.footer.termsTitle,
+      body: textOr(quote.terms?.tradeTerms, texts.footer.terms),
+      hint: "Ticari koşulu düzenlemek için tıklayın",
+    },
   ];
 
   return (
@@ -145,7 +203,9 @@ export function OptosenseSheet({
           <div className="os-attn">
             <span className="os-attn-label">{texts.attnLabel}</span>
             <p className="os-attn-value">
-              {person || "—"}
+              <SheetHot title="Yetkili kişiyi düzenlemek için tıklayın" onEdit={editContact}>
+                {person || "—"}
+              </SheetHot>
               {showContactSave ? (
                 <SheetAction title="Kişiyi kaydet" onClick={onSaveContact}>
                   + Kaydet
@@ -154,21 +214,40 @@ export function OptosenseSheet({
             </p>
           </div>
           <p className="os-institution">
-            {quoted.institution?.trim() || "—"}
+            <SheetHot title="Kurumu düzenlemek için tıklayın" onEdit={editInstitution}>
+              {quoted.institution?.trim() || "—"}
+            </SheetHot>
             {showInstitutionSave ? (
               <SheetAction title="Kurumu kaydet" onClick={onSaveInstitution}>
                 + Kaydet
               </SheetAction>
             ) : null}
           </p>
-          {quoted.address?.trim() ? <p className="os-address">{quoted.address}</p> : null}
+          {quoted.address?.trim() ? (
+            <p className="os-address">
+              <SheetHot title="Adresi düzenlemek için tıklayın" onEdit={editAddress}>
+                {quoted.address}
+              </SheetHot>
+            </p>
+          ) : null}
         </div>
         <div className="os-meta">
           <div className="os-meta-row">
             <span>{texts.quoteNoLabel}</span>
             <span>{quote.quoteNumber?.trim() || "—"}</span>
           </div>
-          <div className="os-meta-row">
+          <div
+            className={`os-meta-row${editDate ? " sheet-hot" : ""}`}
+            title={editDate ? "Tarihi düzenlemek için tıklayın" : undefined}
+            onClick={
+              editDate
+                ? (event) => {
+                    event.preventDefault();
+                    editDate();
+                  }
+                : undefined
+            }
+          >
             <span>{texts.dateLabel}</span>
             <span>{dateLabel}</span>
           </div>
@@ -176,6 +255,7 @@ export function OptosenseSheet({
       </div>
 
       <div className="os-table-head">
+        {onIntent ? <SheetAdd onClick={(anchor) => onIntent({ kind: "add", anchor })} /> : null}
         <span className="os-col-no">{texts.table.no}</span>
         <span className="os-col-code">{texts.table.code}</span>
         <span className="os-col-desc">{texts.table.description}</span>
@@ -206,9 +286,12 @@ export function OptosenseSheet({
             showLinePrices={showLinePrices}
             optionLabel={texts.optionLabel}
             imageSrc={showImages ? resolveLineImageSrc(line, productsById) : null}
+            active={activeLineIndex === index}
             onAddToCatalog={
               isManualLine(line) && onAddToCatalog ? () => onAddToCatalog(line, index) : undefined
             }
+            onEdit={onIntent ? () => onIntent({ kind: "edit-line", index }) : undefined}
+            onRemove={onIntent ? () => onIntent({ kind: "delete-line", index }) : undefined}
           />
         ))
       )}
@@ -219,8 +302,26 @@ export function OptosenseSheet({
             <span>{texts.subtotal}</span>
             <span className="os-total-currency">{currencyLabel}</span>
             <span className="os-total-value">
-              {formatTl(priceSummary?.totalAfterDiscount ?? priceSummary?.subtotal ?? 0, currency)}
+              {formatTl(priceSummary?.subtotal ?? priceSummary?.totalAfterDiscount ?? 0, currency)}
             </span>
+          </div>
+          <div
+            className={`os-total-row${discountHot.className ? ` ${discountHot.className}` : ""}`}
+            title={discountHot.title}
+            onClick={discountHot.onClick}
+          >
+            <span>{texts.discount}</span>
+            <span className="os-total-currency">{currencyLabel}</span>
+            <span className="os-total-value">{formatTl(priceSummary?.discount ?? 0, currency)}</span>
+          </div>
+          <div
+            className={`os-total-row${taxHot.className ? ` ${taxHot.className}` : ""}`}
+            title={taxHot.title}
+            onClick={taxHot.onClick}
+          >
+            <span>{texts.tax}</span>
+            <span className="os-total-currency">{currencyLabel}</span>
+            <span className="os-total-value">{formatTl(priceSummary?.tax ?? 0, currency)}</span>
           </div>
           <div className="os-total-row">
             <span>{texts.total}</span>
@@ -229,16 +330,36 @@ export function OptosenseSheet({
               {formatTl(priceSummary?.totalAfterTax ?? 0, currency)}
             </span>
           </div>
+          <div
+            className={`os-total-row${currencyHot.className ? ` ${currencyHot.className}` : ""}`}
+            title={currencyHot.title}
+            onClick={currencyHot.onClick}
+          >
+            <span>PB :</span>
+            <span className="os-total-currency" />
+            <span className="os-total-value">{currencyLabel}</span>
+          </div>
         </div>
       ) : null}
 
       <div className="os-footer">
-        {footer.map((column) => (
-          <div key={column.title} className="os-footer-col">
-            <h3>{column.title}</h3>
-            <p>{column.body}</p>
-          </div>
-        ))}
+        {footer.map((column) => {
+          const zone = hotZone(
+            onIntent ? () => onIntent({ kind: "edit-field", field: column.field }) : undefined,
+            column.hint,
+          );
+          return (
+            <div
+              key={column.title}
+              className={`os-footer-col${zone.className ? ` ${zone.className}` : ""}`}
+              title={zone.title}
+              onClick={zone.onClick}
+            >
+              <h3>{column.title}</h3>
+              <p>{column.body}</p>
+            </div>
+          );
+        })}
       </div>
     </article>
   );

@@ -215,9 +215,25 @@ export function OptosenseQuoteDocument({
               <Text style={s.totalLabel}>{texts.subtotal}</Text>
               <Text style={s.totalCurrency}>{currencyLabel}</Text>
               <Text style={s.totalValue}>
-                {formatTl(priceSummary?.totalAfterDiscount ?? priceSummary?.subtotal ?? 0, currency)}
+                {formatTl(priceSummary?.subtotal ?? priceSummary?.totalAfterDiscount ?? 0, currency)}
               </Text>
             </View>
+            {(priceSummary?.discount ?? 0) > 0 ? (
+              <View style={s.totalRow}>
+                <Text style={s.totalLabel}>{texts.discount}</Text>
+                <Text style={s.totalCurrency}>{currencyLabel}</Text>
+                <Text style={s.totalValue}>
+                  {formatTl(priceSummary?.discount ?? 0, currency)}
+                </Text>
+              </View>
+            ) : null}
+            {(priceSummary?.tax ?? 0) > 0 ? (
+              <View style={s.totalRow}>
+                <Text style={s.totalLabel}>{texts.tax}</Text>
+                <Text style={s.totalCurrency}>{currencyLabel}</Text>
+                <Text style={s.totalValue}>{formatTl(priceSummary?.tax ?? 0, currency)}</Text>
+              </View>
+            ) : null}
             <View style={s.totalRow}>
               <Text style={s.totalLabel}>{texts.total}</Text>
               <Text style={s.totalCurrency}>{currencyLabel}</Text>

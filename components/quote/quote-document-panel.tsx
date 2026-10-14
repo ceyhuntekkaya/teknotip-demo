@@ -9,6 +9,11 @@ import {
 } from "@/components/pdf/quote-pdf-panel";
 import { AddManualToCatalogModal } from "@/components/quote/add-manual-to-catalog-modal";
 import { QuoteEditPane } from "@/components/quote/quote-edit-pane";
+import {
+  QuoteQuickEdit,
+  sessionFromSheet,
+  type QuickSession,
+} from "@/components/quote/quote-quick-edit";
 import { QuoteReminderForm } from "@/components/quote/quote-reminder-form";
 import { QuoteSheet } from "@/components/quote/sheet/quote-sheet";
 import {
@@ -72,6 +77,8 @@ export function QuoteDocumentPanel({
     index: number;
   } | null>(null);
   const [partyMode, setPartyMode] = useState<SavePartyMode | null>(null);
+  const [quick, setQuick] = useState<QuickSession | null>(null);
+  const closeQuick = useCallback(() => setQuick(null), []);
 
   const showingPdf = pdfQuote !== null;
   const editing = rightView === "edit";
@@ -104,6 +111,10 @@ export function QuoteDocumentPanel({
     if (!actionReady) setRemindOpen(false);
   }, [actionReady]);
 
+  useEffect(() => {
+    setQuick(null);
+  }, [quote?.id, editing, showingPdf]);
+
   const handlePdfUrl = useCallback((url: string | null) => {
     setPdfUrl(url);
   }, []);
@@ -114,7 +125,7 @@ export function QuoteDocumentPanel({
   };
 
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden border border-[var(--rule)] bg-[var(--paper)]">
+    <section className="relative flex h-full min-h-0 flex-col overflow-hidden border border-[var(--rule)] bg-[var(--paper)]">
       <header className="flex shrink-0 flex-wrap items-end justify-between gap-3 border-b border-[var(--rule)] px-4 py-3">
         <div className="grid gap-2">
           <p className="font-display text-[11px] uppercase tracking-[0.22em] text-[var(--steel)]">
@@ -340,13 +351,34 @@ export function QuoteDocumentPanel({
               showImages={showImages}
               emptyHint={emptyHint}
               canSave={Boolean(onChange)}
+              activeLineIndex={quick?.kind === "line" ? quick.index : null}
               onSaveInstitution={() => setPartyMode("institution")}
               onSaveContact={() => setPartyMode("contact")}
               onAddToCatalog={(line, index) => setCatalogLine({ line, index })}
+              onIntent={onChange ? (intent) => setQuick(sessionFromSheet(intent)) : undefined}
             />
           )}
         </div>
       )}
+
+      {quick && quote && onChange && !editing && !showingPdf ? (
+        <QuoteQuickEdit
+          session={quick}
+          quote={quote}
+          products={products}
+          customers={customers}
+          institutions={institutions}
+          onSession={setQuick}
+          onClose={closeQuick}
+          onChange={onChange}
+          onAddManualToCatalog={(index) => {
+            const line = quote.lines?.[index];
+            if (line) setCatalogLine({ line, index });
+          }}
+          onSaveInstitution={() => setPartyMode("institution")}
+          onSaveContact={() => setPartyMode("contact")}
+        />
+      ) : null}
 
       {catalogLine && quote && onChange ? (
         <AddManualToCatalogModal
