@@ -26,6 +26,7 @@ export type SheetIntent =
   | { kind: "add"; anchor: DOMRect }
   | { kind: "edit-line"; index: number }
   | { kind: "delete-line"; index: number }
+  | { kind: "move-line"; index: number; direction: -1 | 1 }
   | { kind: "edit-date" }
   | { kind: "edit-tax" }
   | { kind: "edit-institution" }

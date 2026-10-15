@@ -155,6 +155,7 @@ export const pdfStyles = StyleSheet.create({
   colPrice: { width: "14%", textAlign: "right" },
   cell: { fontSize: 8, lineHeight: 1.35 },
   cellBold: { fontSize: 8, fontWeight: 700, lineHeight: 1.35 },
+  lineDesc: { fontSize: 8, fontWeight: 400, lineHeight: 1.35, marginTop: 1 },
   bullet: { fontSize: 8, lineHeight: 1.4, marginLeft: 8 },
   productImage: {
     width: 92,

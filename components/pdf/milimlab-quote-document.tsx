@@ -8,6 +8,7 @@ import {
 } from "@/lib/pdf/format";
 import { applyTermTokens, textOr } from "@/lib/pdf/html-blocks";
 import { lineImageKey } from "@/lib/pdf/product-images";
+import { textLines } from "@/lib/quote/line-text";
 import { milimStyles as s } from "@/lib/pdf/milimlab-styles";
 import {
   milimlabTemplate,
@@ -67,13 +68,24 @@ function ProductRow({
   const qty = line.quantity ?? 1;
   const unit = line.price ?? 0;
   const subtotal = unit * qty;
-  const title = (line.name || line.code || "—").trim();
+  const nameLines = textLines(line.name);
+  const shownNames = nameLines.length > 0 ? nameLines : [(line.code || "—").trim()];
+  const descriptionLines = textLines(line.description);
 
   return (
     <View style={s.tableRow}>
       <Text style={[s.cell, s.colNo]}>{index}</Text>
       <View style={s.colDesc}>
-        <Text style={s.cellBold}>{title}</Text>
+        {shownNames.map((part, nameIndex) => (
+          <Text key={`name-${nameIndex}`} style={s.cellBold}>
+            {part || " "}
+          </Text>
+        ))}
+        {descriptionLines.map((part, descriptionIndex) => (
+          <Text key={`desc-${descriptionIndex}`} style={s.lineDesc}>
+            {part || " "}
+          </Text>
+        ))}
         {specs.map((item) => (
           <Text key={item} style={s.bullet}>
             {item}

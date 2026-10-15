@@ -17,7 +17,9 @@ import {
   TextArea,
   TextInput,
 } from "@/components/catalog/fields";
+import { ProductUpdateModal } from "@/components/catalog/product-update-modal";
 import { formatQuoteAmount } from "@/lib/money";
+import { resolveLineDescription, textLines } from "@/lib/quote/line-text";
 import { customerLabel } from "@/lib/customer/display";
 import {
   addFreeLine,
@@ -132,8 +134,8 @@ export function QuoteEditPane({
   };
 
   return (
-    <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain p-4">
-      <section className="grid gap-3 sm:grid-cols-2">
+    <div className="@container min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain p-4">
+      <section className="grid gap-3 @lg:grid-cols-2 @3xl:grid-cols-4">
         <Field label="Teklif tarihi">
           <TextInput
             type="date"
@@ -146,9 +148,6 @@ export function QuoteEditPane({
             }
           />
         </Field>
-        <div className="flex items-center justify-end sm:justify-start">
-          <CustomerLinkBadge quote={quote} />
-        </div>
         <Field label="Kurum kaydı">
           <Select
             value={quoted.institutionId ?? ""}
@@ -183,6 +182,9 @@ export function QuoteEditPane({
             ))}
           </Select>
         </Field>
+        <div className="flex items-end">
+          <CustomerLinkBadge quote={quote} />
+        </div>
         <Field label="Teklif verilen kurum">
           <div className="flex gap-2">
             <TextInput
@@ -221,17 +223,11 @@ export function QuoteEditPane({
             onChange={(event) => patchQuoted({ phone: event.target.value })}
           />
         </Field>
-        <Field label="E-posta">
-          <TextInput
-            value={quoted.email ?? ""}
-            onChange={(event) => patchQuoted({ email: event.target.value })}
-          />
-        </Field>
-        <div className="sm:col-span-2">
-          <Field label="Adres">
-            <TextArea
-              value={quoted.address ?? ""}
-              onChange={(event) => patchQuoted({ address: event.target.value })}
+        <div className="@3xl:col-span-2">
+          <Field label="E-posta">
+            <TextInput
+              value={quoted.email ?? ""}
+              onChange={(event) => patchQuoted({ email: event.target.value })}
             />
           </Field>
         </div>
@@ -267,9 +263,19 @@ export function QuoteEditPane({
             }
           />
         </Field>
-        <div className="sm:col-span-2">
+        <div className="@lg:col-span-2">
+          <Field label="Adres">
+            <TextArea
+              rows={2}
+              value={quoted.address ?? ""}
+              onChange={(event) => patchQuoted({ address: event.target.value })}
+            />
+          </Field>
+        </div>
+        <div className="@lg:col-span-2">
           <Field label="Ek bilgi">
             <TextArea
+              rows={2}
               value={quote.additionalInformation ?? ""}
               onChange={(event) =>
                 onChange({ ...quote, additionalInformation: event.target.value })
@@ -506,12 +512,19 @@ export function LineEditor({
   onAddToCatalog?: () => void;
   bare?: boolean;
 }) {
+  const [productOpen, setProductOpen] = useState(false);
   const properties = line.properties ?? [];
   const accessories = line.accessories ?? [];
   const manual = isManualLine(line);
   const quantity = line.quantity ?? 1;
   const unitPrice = line.price ?? line.basePrice ?? 0;
   const lineTotal = line.lineTotal ?? unitPrice * quantity;
+  const descriptionLines = textLines(
+    resolveLineDescription(
+      line,
+      product?.id ? new Map([[product.id, product]]) : undefined,
+    ),
+  );
 
   return (
     <article className={bare ? "grid gap-3" : "grid gap-3 border border-[var(--rule)] p-4"}>
@@ -532,22 +545,64 @@ export function LineEditor({
                 <h4 className="font-display text-lg uppercase tracking-[0.08em]">
                   {index + 1}. {line.name}
                 </h4>
+                {descriptionLines.map((part, descriptionIndex) => (
+                  <p
+                    key={`desc-${descriptionIndex}`}
+                    className="text-sm font-normal normal-case tracking-normal text-[var(--charcoal)]"
+                  >
+                    {part || "\u00a0"}
+                  </p>
+                ))}
                 <p className="font-mono text-xs text-[var(--steel)]">{line.code}</p>
               </>
             )}
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {manual && onAddToCatalog ? (
             <ActionButton title="Kataloga ekle" onClick={onAddToCatalog}>
               + Katalog
             </ActionButton>
           ) : null}
-          <ActionButton tone="danger" onClick={onRemove}>
-            Satırı sil
-          </ActionButton>
+          {line.productId ? (
+            <ActionButton onClick={() => setProductOpen(true)}>ÜRÜN Güncelle</ActionButton>
+          ) : null}
+          <button
+            type="button"
+            title="Satırı sil"
+            aria-label="Satırı sil"
+            onClick={onRemove}
+            className="grid h-9 w-9 place-items-center border border-[var(--rule)] text-[#8f2d1f] hover:border-[#8f2d1f]"
+          >
+            <svg viewBox="0 0 16 16" className="h-4 w-4" aria-hidden="true">
+              <path
+                d="M3.6 4.6h8.8M6.1 4.6V3.3h3.8v1.3M4.7 4.6l.55 8h5.5l.55-8"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
         </div>
       </div>
+      {productOpen && line.productId ? (
+        <ProductUpdateModal
+          productId={line.productId}
+          onClose={() => setProductOpen(false)}
+          onSaved={(saved) => {
+            onChange({
+              ...line,
+              name: saved.name ?? line.name,
+              description: saved.description,
+              code: saved.code ?? line.code,
+              image: saved.image,
+            });
+            setProductOpen(false);
+          }}
+        />
+      ) : null}
 
       {manual ? (
         <div className="grid gap-3 sm:grid-cols-3">

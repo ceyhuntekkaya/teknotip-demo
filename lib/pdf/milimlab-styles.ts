@@ -146,6 +146,13 @@ export const milimStyles = StyleSheet.create({
     lineHeight: 1.3,
     color: milimColors.text,
   },
+  lineDesc: {
+    fontSize: 7.5,
+    fontWeight: 400,
+    lineHeight: 1.3,
+    marginTop: 1,
+    color: milimColors.text,
+  },
   bullet: {
     fontSize: 7.5,
     lineHeight: 1.3,

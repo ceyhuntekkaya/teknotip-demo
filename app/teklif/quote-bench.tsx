@@ -13,6 +13,7 @@ import {
   chatWithQuote,
   createQuote,
   createQuoteVersion,
+  deleteQuote,
   getQuoteById,
   setQuoteConverted,
   updateQuote,
@@ -287,7 +288,7 @@ export function QuoteBench({
             return;
           }
         }
-        const created = await createQuote({ brand: brandRef.current });
+        const created = await createQuote({ brand: brandRef.current, currency: "USD" });
         if (created.status === 201) {
           applyLoadedQuote(created.data);
           setMessages([]);
@@ -365,7 +366,7 @@ export function QuoteBench({
     utteranceRef.current?.discard();
     destroyListen();
     clearQuoteWorkspace();
-    const created = await createQuote({ brand });
+    const created = await createQuote({ brand, currency: "USD" });
     if (created.status === 201) {
       applyLoadedQuote(created.data);
       saveQuoteWorkspace({
@@ -376,6 +377,23 @@ export function QuoteBench({
     } else {
       setError(apiErrorMessage(created.data, "Yeni teklif açılamadı."));
     }
+  };
+
+  const cancelQuote = async () => {
+    if (!window.confirm("Bu teklifi silmek istiyor musunuz?")) return;
+    if (persistTimer.current) {
+      window.clearTimeout(persistTimer.current);
+      persistTimer.current = null;
+    }
+    const currentId = quoteRef.current?.id;
+    if (currentId) {
+      const response = await deleteQuote(currentId);
+      if (!isSuccessStatus(response.status)) {
+        setError(apiErrorMessage(response.data, "Teklif silinemedi."));
+        return;
+      }
+    }
+    await resetQuote();
   };
 
   const send = async (override?: string, source: "typed" | "voice" = "typed") => {
@@ -786,6 +804,7 @@ export function QuoteBench({
           onCreateVersion={() => void createVersion()}
           onSelectVersion={(id) => void selectVersion(id)}
           onToggleConverted={() => void toggleConverted()}
+          onCancelQuote={() => void cancelQuote()}
         />
       </div>
     </div>

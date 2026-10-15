@@ -1,14 +1,20 @@
 "use client";
 
 import { SheetHtml } from "@/components/quote/sheet/sheet-html";
-import { SheetAdd, SheetHot, SheetRemove } from "@/components/quote/sheet/sheet-chrome";
+import {
+  SheetAdd,
+  SheetHeadEnd,
+  SheetHot,
+  SheetMove,
+  SheetRowEnd,
+} from "@/components/quote/sheet/sheet-chrome";
 import {
   bindRowEdit,
   hotZone,
   SheetAction,
   type QuoteSheetProps,
 } from "@/components/quote/sheet/sheet-types";
-import type { QuoteLineResponse } from "@/lib/api/generated/model";
+import type { ProductResponse, QuoteLineResponse } from "@/lib/api/generated/model";
 import { amountInWords } from "@/lib/pdf/amount-in-words";
 import { companyTemplate } from "@/lib/pdf/company";
 import {
@@ -21,6 +27,7 @@ import { applyTermTokens, textOr } from "@/lib/pdf/html-blocks";
 import { moneyUnit } from "@/lib/money";
 import { resolveLineImageSrc } from "@/lib/pdf/product-images";
 import { isManualLine } from "@/lib/quote/document-edit";
+import { resolveLineDescription, textLines } from "@/lib/quote/line-text";
 
 function ProductRow({
   line,
@@ -28,9 +35,13 @@ function ProductRow({
   currency,
   showLinePrices,
   imageSrc,
+  productsById,
   active = false,
   onAddToCatalog,
   onEdit,
+  onMove,
+  canMoveUp = false,
+  canMoveDown = false,
   onRemove,
 }: {
   line: QuoteLineResponse;
@@ -38,9 +49,13 @@ function ProductRow({
   currency?: string;
   showLinePrices: boolean;
   imageSrc: string | null;
+  productsById?: Map<string, ProductResponse>;
   active?: boolean;
   onAddToCatalog?: () => void;
   onEdit?: () => void;
+  onMove?: (direction: -1 | 1) => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
   onRemove?: () => void;
 }) {
   const specs = [
@@ -52,7 +67,9 @@ function ProductRow({
       return `· ${accessory.name}${qty}`;
     }),
   ];
-  const nameLines = (line.name ?? "").split("\n");
+  const nameLines = textLines(line.name);
+  const shownNames = nameLines.length > 0 ? nameLines : [" "];
+  const descriptionLines = textLines(resolveLineDescription(line, productsById));
   const rowEdit = bindRowEdit(onEdit);
 
   return (
@@ -60,24 +77,31 @@ function ProductRow({
       className={`tt-table-row${rowEdit.className ? ` ${rowEdit.className}` : ""}${active ? " sheet-row-active" : ""}`}
       onClick={rowEdit.onClick}
     >
-      <span className={`tt-cell tt-col-no${onRemove ? " sheet-no" : ""}`}>
-        {onRemove ? <SheetRemove onClick={onRemove} /> : null}
+      <span className={`tt-cell tt-col-no${onMove ? " sheet-no" : ""}`}>
+        {onMove ? (
+          <SheetMove canMoveUp={canMoveUp} canMoveDown={canMoveDown} onMove={onMove} />
+        ) : null}
         {index}
       </span>
       <span className="tt-cell tt-col-code">{line.code || "—"}</span>
       <div className={showLinePrices ? "tt-col-desc" : "tt-col-desc-wide"}>
-        {nameLines.map((part, nameIndex) => (
+        {shownNames.map((part, nameIndex) => (
           <p
             key={`name-${nameIndex}`}
             className="tt-name"
             title={nameIndex === 0 && onEdit ? "Düzenlemek için tıklayın" : undefined}
           >
-            {part || " "}
+            {part || "\u00a0"}
             {nameIndex === 0 ? (
               <SheetAction title="Kataloga ekle" onClick={onAddToCatalog}>
                 + Katalog
               </SheetAction>
             ) : null}
+          </p>
+        ))}
+        {descriptionLines.map((part, descriptionIndex) => (
+          <p key={`desc-${descriptionIndex}`} className="tt-line-desc">
+            {part || "\u00a0"}
           </p>
         ))}
         {specs.map((item) => (
@@ -97,6 +121,7 @@ function ProductRow({
           <span className="tt-cell tt-col-price">{formatTl(line.lineTotal ?? 0, currency)}</span>
         </>
       ) : null}
+      <SheetRowEnd onRemove={onRemove} />
     </div>
   );
 }
@@ -340,6 +365,7 @@ export function TeknotipSheet({
                 <span className="tt-col-price">{texts.table.price}</span>
               </>
             ) : null}
+            <SheetHeadEnd active={Boolean(onIntent)} />
           </div>
           {lines.length === 0 ? (
             <p className="sheet-empty">{emptyHint}</p>
@@ -352,6 +378,7 @@ export function TeknotipSheet({
                 currency={currency}
                 showLinePrices={showLinePrices}
                 imageSrc={showImages ? resolveLineImageSrc(line, productsById) : null}
+                productsById={productsById}
                 active={activeLineIndex === index}
                 onAddToCatalog={
                   isManualLine(line) && onAddToCatalog
@@ -359,6 +386,13 @@ export function TeknotipSheet({
                     : undefined
                 }
                 onEdit={onIntent ? () => onIntent({ kind: "edit-line", index }) : undefined}
+                onMove={
+                  onIntent
+                    ? (direction) => onIntent({ kind: "move-line", index, direction })
+                    : undefined
+                }
+                canMoveUp={index > 0}
+                canMoveDown={index < lines.length - 1}
                 onRemove={onIntent ? () => onIntent({ kind: "delete-line", index }) : undefined}
               />
             ))

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { QuotePdfDocument } from "@/components/pdf/quote-document";
 import { registerPdfFonts } from "@/lib/pdf/fonts";
 import { prefetchQuoteImages } from "@/lib/pdf/product-images";
+import { quoteWithResolvedDescriptions } from "@/lib/quote/line-text";
 import type { ProductResponse, QuoteResponse } from "@/lib/api/generated/model";
 
 export function QuotePdfPanel({
@@ -38,7 +39,7 @@ export function QuotePdfPanel({
         if (cancelled) return;
         const blob = await pdf(
           <QuotePdfDocument
-            quote={quote}
+            quote={quoteWithResolvedDescriptions(quote, products)}
             origin={window.location.origin}
             showImages={showImages}
             imageDataUrls={imageDataUrls}

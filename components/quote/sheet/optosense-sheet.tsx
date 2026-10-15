@@ -1,6 +1,12 @@
 "use client";
 
-import { SheetAdd, SheetHot, SheetRemove } from "@/components/quote/sheet/sheet-chrome";
+import {
+  SheetAdd,
+  SheetHeadEnd,
+  SheetHot,
+  SheetMove,
+  SheetRowEnd,
+} from "@/components/quote/sheet/sheet-chrome";
 import {
   bindRowEdit,
   hotZone,
@@ -8,13 +14,14 @@ import {
   type QuoteSheetProps,
   type SheetField,
 } from "@/components/quote/sheet/sheet-types";
-import type { QuoteLineResponse } from "@/lib/api/generated/model";
+import type { ProductResponse, QuoteLineResponse } from "@/lib/api/generated/model";
 import { moneyUnit } from "@/lib/money";
 import { formatQuoteDateEn, formatTl } from "@/lib/pdf/format";
 import { textOr } from "@/lib/pdf/html-blocks";
 import { optosenseTemplate } from "@/lib/pdf/optosense-template";
 import { resolveLineImageSrc } from "@/lib/pdf/product-images";
 import { isManualLine } from "@/lib/quote/document-edit";
+import { resolveLineDescription, textLines } from "@/lib/quote/line-text";
 
 function ProductBlock({
   line,
@@ -23,9 +30,13 @@ function ProductBlock({
   showLinePrices,
   optionLabel,
   imageSrc,
+  productsById,
   active = false,
   onAddToCatalog,
   onEdit,
+  onMove,
+  canMoveUp = false,
+  canMoveDown = false,
   onRemove,
 }: {
   line: QuoteLineResponse;
@@ -34,9 +45,13 @@ function ProductBlock({
   showLinePrices: boolean;
   optionLabel: string;
   imageSrc: string | null;
+  productsById?: Map<string, ProductResponse>;
   active?: boolean;
   onAddToCatalog?: () => void;
   onEdit?: () => void;
+  onMove?: (direction: -1 | 1) => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
   onRemove?: () => void;
 }) {
   const specs = (line.properties ?? [])
@@ -44,24 +59,42 @@ function ProductBlock({
     .map((property) => `${property.name}: ${property.values}`);
   const accessories = line.accessories ?? [];
 
+  const nameLines = textLines(line.name);
+  const shownNames = nameLines.length > 0 ? nameLines : ["—"];
+  const descriptionLines = textLines(resolveLineDescription(line, productsById));
   const rowEdit = bindRowEdit(onEdit);
   const rowClass = `os-table-row${rowEdit.className ? ` ${rowEdit.className}` : ""}${active ? " sheet-row-active" : ""}`;
 
   return (
     <>
       <div className={rowClass} onClick={rowEdit.onClick}>
-        <span className={`os-cell os-col-no${onRemove ? " sheet-no" : ""}`}>
-          {onRemove ? <SheetRemove onClick={onRemove} /> : null}
+        <span className={`os-cell os-col-no${onMove ? " sheet-no" : ""}`}>
+          {onMove ? (
+            <SheetMove canMoveUp={canMoveUp} canMoveDown={canMoveDown} onMove={onMove} />
+          ) : null}
           {index}
         </span>
         <span className="os-cell os-code os-col-code">{line.code || "—"}</span>
         <div className="os-col-desc">
-          <p className="os-name" title={onEdit ? "Düzenlemek için tıklayın" : undefined}>
-            {line.name || "—"}
-            <SheetAction title="Kataloga ekle" onClick={onAddToCatalog}>
-              + Katalog
-            </SheetAction>
-          </p>
+          {shownNames.map((part, nameIndex) => (
+            <p
+              key={`name-${nameIndex}`}
+              className="os-name"
+              title={nameIndex === 0 && onEdit ? "Düzenlemek için tıklayın" : undefined}
+            >
+              {part || "\u00a0"}
+              {nameIndex === 0 ? (
+                <SheetAction title="Kataloga ekle" onClick={onAddToCatalog}>
+                  + Katalog
+                </SheetAction>
+              ) : null}
+            </p>
+          ))}
+          {descriptionLines.map((part, descriptionIndex) => (
+            <p key={`desc-${descriptionIndex}`} className="os-line-desc">
+              {part || "\u00a0"}
+            </p>
+          ))}
           {specs.map((item) => (
             <p key={item} className="os-spec">
               {item}
@@ -79,6 +112,7 @@ function ProductBlock({
             <span className="os-cell os-col-total">{formatTl(line.lineTotal ?? 0, currency)}</span>
           </>
         ) : null}
+        <SheetRowEnd onRemove={onRemove} />
       </div>
       {accessories.map((accessory, accessoryIndex) => {
         const qty = accessory.quantity ?? 1;
@@ -101,6 +135,7 @@ function ProductBlock({
                 <span className="os-cell os-col-total">{formatTl(unit * qty, currency)}</span>
               </>
             ) : null}
+            {onRemove ? <span className="sheet-col-end" /> : null}
           </div>
         );
       })}
@@ -272,6 +307,7 @@ export function OptosenseSheet({
             </span>
           </>
         ) : null}
+        <SheetHeadEnd active={Boolean(onIntent)} />
       </div>
 
       {lines.length === 0 ? (
@@ -286,11 +322,19 @@ export function OptosenseSheet({
             showLinePrices={showLinePrices}
             optionLabel={texts.optionLabel}
             imageSrc={showImages ? resolveLineImageSrc(line, productsById) : null}
+            productsById={productsById}
             active={activeLineIndex === index}
             onAddToCatalog={
               isManualLine(line) && onAddToCatalog ? () => onAddToCatalog(line, index) : undefined
             }
             onEdit={onIntent ? () => onIntent({ kind: "edit-line", index }) : undefined}
+            onMove={
+              onIntent
+                ? (direction) => onIntent({ kind: "move-line", index, direction })
+                : undefined
+            }
+            canMoveUp={index > 0}
+            canMoveDown={index < lines.length - 1}
             onRemove={onIntent ? () => onIntent({ kind: "delete-line", index }) : undefined}
           />
         ))
@@ -300,7 +344,6 @@ export function OptosenseSheet({
         <div className="os-totals">
           <div className="os-total-row">
             <span>{texts.subtotal}</span>
-            <span className="os-total-currency">{currencyLabel}</span>
             <span className="os-total-value">
               {formatTl(priceSummary?.subtotal ?? priceSummary?.totalAfterDiscount ?? 0, currency)}
             </span>
@@ -311,7 +354,6 @@ export function OptosenseSheet({
             onClick={discountHot.onClick}
           >
             <span>{texts.discount}</span>
-            <span className="os-total-currency">{currencyLabel}</span>
             <span className="os-total-value">{formatTl(priceSummary?.discount ?? 0, currency)}</span>
           </div>
           <div
@@ -320,12 +362,10 @@ export function OptosenseSheet({
             onClick={taxHot.onClick}
           >
             <span>{texts.tax}</span>
-            <span className="os-total-currency">{currencyLabel}</span>
             <span className="os-total-value">{formatTl(priceSummary?.tax ?? 0, currency)}</span>
           </div>
           <div className="os-total-row">
             <span>{texts.total}</span>
-            <span className="os-total-currency">{currencyLabel}</span>
             <span className="os-total-value">
               {formatTl(priceSummary?.totalAfterTax ?? 0, currency)}
             </span>

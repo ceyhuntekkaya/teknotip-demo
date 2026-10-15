@@ -14,6 +14,65 @@ export function SheetAdd({ onClick }: { onClick: (anchor: DOMRect) => void }) {
   );
 }
 
+export function SheetMove({
+  canMoveUp,
+  canMoveDown,
+  onMove,
+}: {
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMove: (direction: -1 | 1) => void;
+}) {
+  return (
+    <span className="sheet-move">
+      <button
+        type="button"
+        className="sheet-move-btn"
+        title="Yukarı taşı"
+        aria-label="Yukarı taşı"
+        disabled={!canMoveUp}
+        onClick={(event) => {
+          event.stopPropagation();
+          onMove(-1);
+        }}
+      >
+        <svg viewBox="0 0 10 10" aria-hidden="true">
+          <path d="M2 6.5 5 3.5 8 6.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        className="sheet-move-btn"
+        title="Aşağı taşı"
+        aria-label="Aşağı taşı"
+        disabled={!canMoveDown}
+        onClick={(event) => {
+          event.stopPropagation();
+          onMove(1);
+        }}
+      >
+        <svg viewBox="0 0 10 10" aria-hidden="true">
+          <path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
+        </svg>
+      </button>
+    </span>
+  );
+}
+
+export function SheetRowEnd({ onRemove }: { onRemove?: () => void }) {
+  if (!onRemove) return null;
+  return (
+    <span className="sheet-col-end">
+      <SheetRemove onClick={onRemove} />
+    </span>
+  );
+}
+
+export function SheetHeadEnd({ active }: { active: boolean }) {
+  if (!active) return null;
+  return <span className="sheet-col-end" aria-hidden="true" />;
+}
+
 export function SheetRemove({ onClick }: { onClick: () => void }) {
   return (
     <button

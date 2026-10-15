@@ -120,6 +120,7 @@ export const optoStyles = StyleSheet.create({
   colTotal: { width: "15%", textAlign: "right" },
   cell: { fontSize: 8, lineHeight: 1.35 },
   cellBold: { fontSize: 8, fontWeight: 700, lineHeight: 1.35 },
+  lineDesc: { fontSize: 8, fontWeight: 400, lineHeight: 1.35, marginTop: 1 },
   bullet: { fontSize: 8, lineHeight: 1.35, marginTop: 1 },
   totalsBlock: {
     marginTop: 16,
@@ -134,11 +135,6 @@ export const optoStyles = StyleSheet.create({
   totalLabel: {
     fontSize: 9,
     fontWeight: 700,
-  },
-  totalCurrency: {
-    fontSize: 9,
-    width: 36,
-    textAlign: "right",
   },
   totalValue: {
     fontSize: 9,

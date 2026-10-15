@@ -7,6 +7,7 @@ import {
 import { textOr } from "@/lib/pdf/html-blocks";
 import { moneyUnit } from "@/lib/money";
 import { lineImageKey } from "@/lib/pdf/product-images";
+import { textLines } from "@/lib/quote/line-text";
 import { optoStyles as s } from "@/lib/pdf/optosense-styles";
 import {
   optosenseTemplate,
@@ -47,14 +48,29 @@ function ProductBlock({
 }) {
   const specs = lineSpecs(line);
   const accessories = line.accessories ?? [];
+  const nameLines = textLines(line.name);
+  const shownNames = nameLines.length > 0 ? nameLines : ["—"];
+  const descriptionLines = textLines(line.description);
 
   return (
     <>
-      <View style={s.tableRow} wrap={false}>
+      <View
+        style={s.tableRow}
+        wrap={shownNames.length > 1 || descriptionLines.length > 0}
+      >
         <Text style={[s.cell, s.colNo]}>{index}</Text>
         <Text style={[s.cellBold, s.colCode]}>{line.code || "—"}</Text>
         <View style={s.colDesc}>
-          <Text style={s.cellBold}>{line.name || "—"}</Text>
+          {shownNames.map((part, nameIndex) => (
+            <Text key={`name-${nameIndex}`} style={s.cellBold}>
+              {part || " "}
+            </Text>
+          ))}
+          {descriptionLines.map((part, descriptionIndex) => (
+            <Text key={`desc-${descriptionIndex}`} style={s.lineDesc}>
+              {part || " "}
+            </Text>
+          ))}
           {specs.map((item) => (
             <Text key={item} style={s.bullet}>
               {item}
@@ -213,7 +229,6 @@ export function OptosenseQuoteDocument({
           <View style={s.totalsBlock} wrap={false}>
             <View style={s.totalRow}>
               <Text style={s.totalLabel}>{texts.subtotal}</Text>
-              <Text style={s.totalCurrency}>{currencyLabel}</Text>
               <Text style={s.totalValue}>
                 {formatTl(priceSummary?.subtotal ?? priceSummary?.totalAfterDiscount ?? 0, currency)}
               </Text>
@@ -221,7 +236,6 @@ export function OptosenseQuoteDocument({
             {(priceSummary?.discount ?? 0) > 0 ? (
               <View style={s.totalRow}>
                 <Text style={s.totalLabel}>{texts.discount}</Text>
-                <Text style={s.totalCurrency}>{currencyLabel}</Text>
                 <Text style={s.totalValue}>
                   {formatTl(priceSummary?.discount ?? 0, currency)}
                 </Text>
@@ -230,13 +244,11 @@ export function OptosenseQuoteDocument({
             {(priceSummary?.tax ?? 0) > 0 ? (
               <View style={s.totalRow}>
                 <Text style={s.totalLabel}>{texts.tax}</Text>
-                <Text style={s.totalCurrency}>{currencyLabel}</Text>
                 <Text style={s.totalValue}>{formatTl(priceSummary?.tax ?? 0, currency)}</Text>
               </View>
             ) : null}
             <View style={s.totalRow}>
               <Text style={s.totalLabel}>{texts.total}</Text>
-              <Text style={s.totalCurrency}>{currencyLabel}</Text>
               <Text style={s.totalValue}>
                 {formatTl(priceSummary?.totalAfterTax ?? 0, currency)}
               </Text>

@@ -567,10 +567,53 @@ body {
   gap: 3px;
 }
 
+.quote-sheet .sheet-move {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.quote-sheet .sheet-move-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 12px;
+  height: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+
+.quote-sheet .sheet-move-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.quote-sheet .sheet-move-btn svg {
+  width: 8px;
+  height: 8px;
+}
+
+.quote-sheet .sheet-col-end {
+  flex: 0 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .quote-sheet .ml-col-no.sheet-no,
 .quote-sheet .os-col-no.sheet-no {
   justify-content: center;
   width: 100%;
+}
+
+.quote-sheet .tt-col-no.sheet-no,
+.quote-sheet .ml-col-no.sheet-no,
+.quote-sheet .os-col-no.sheet-no {
+  flex: 0 0 52px;
+  width: auto;
 }
 
 .quote-sheet .sheet-remove {
@@ -845,6 +888,13 @@ body {
 
 .tt-name {
   font-weight: 700;
+}
+
+.tt-line-desc {
+  margin: 1px 0 0;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.35;
 }
 
 .tt-bullet {
@@ -1161,6 +1211,13 @@ body {
   font-weight: 700;
 }
 
+.os-line-desc {
+  margin: 1px 0 0;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
 .os-product-image {
   width: 120px;
   height: 91px;
@@ -1387,6 +1444,14 @@ body {
 
 .ml-name {
   font-weight: 700;
+}
+
+.ml-line-desc {
+  margin: 1px 0 0;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: #111;
 }
 
 .ml-spec {

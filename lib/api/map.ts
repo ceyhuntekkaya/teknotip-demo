@@ -84,7 +84,7 @@ export function quoteToRequest(quote: QuoteResponse): QuoteRequest {
   return {
     quotedDate: quote.quotedDate,
     brand: quote.brand ?? "TEKNOTIP",
-    currency: quote.currency ?? "TRY",
+    currency: quote.currency ?? "USD",
     priceDetails: quote.priceDetails ?? true,
     showImages: quote.showImages ?? false,
     quotedTo,

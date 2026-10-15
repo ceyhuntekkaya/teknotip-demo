@@ -1,20 +1,27 @@
 "use client";
 
 import { SheetHtml } from "@/components/quote/sheet/sheet-html";
-import { SheetAdd, SheetHot, SheetRemove } from "@/components/quote/sheet/sheet-chrome";
+import {
+  SheetAdd,
+  SheetHeadEnd,
+  SheetHot,
+  SheetMove,
+  SheetRowEnd,
+} from "@/components/quote/sheet/sheet-chrome";
 import {
   bindRowEdit,
   hotZone,
   SheetAction,
   type QuoteSheetProps,
 } from "@/components/quote/sheet/sheet-types";
-import type { QuoteLineResponse } from "@/lib/api/generated/model";
+import type { ProductResponse, QuoteLineResponse } from "@/lib/api/generated/model";
 import { addDaysFormatted, formatQuoteDateSlash, formatTl } from "@/lib/pdf/format";
 import { applyTermTokens, textOr } from "@/lib/pdf/html-blocks";
 import { moneyUnit } from "@/lib/money";
 import { milimlabTemplate } from "@/lib/pdf/milimlab-template";
 import { resolveLineImageSrc } from "@/lib/pdf/product-images";
 import { isManualLine } from "@/lib/quote/document-edit";
+import { resolveLineDescription, textLines } from "@/lib/quote/line-text";
 
 function Field({
   label,
@@ -56,9 +63,13 @@ function ProductRow({
   showLinePrices,
   quantityUnit,
   imageSrc,
+  productsById,
   active = false,
   onAddToCatalog,
   onEdit,
+  onMove,
+  canMoveUp = false,
+  canMoveDown = false,
   onRemove,
 }: {
   line: QuoteLineResponse;
@@ -67,9 +78,13 @@ function ProductRow({
   showLinePrices: boolean;
   quantityUnit: string;
   imageSrc: string | null;
+  productsById?: Map<string, ProductResponse>;
   active?: boolean;
   onAddToCatalog?: () => void;
   onEdit?: () => void;
+  onMove?: (direction: -1 | 1) => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
   onRemove?: () => void;
 }) {
   const specs = [
@@ -84,7 +99,9 @@ function ProductRow({
   const qty = line.quantity ?? 1;
   const unit = line.price ?? 0;
   const subtotal = unit * qty;
-  const title = (line.name || line.code || "—").trim();
+  const nameLines = textLines(line.name);
+  const shownNames = nameLines.length > 0 ? nameLines : [(line.code || "—").trim()];
+  const descriptionLines = textLines(resolveLineDescription(line, productsById));
   const rowEdit = bindRowEdit(onEdit);
 
   return (
@@ -92,17 +109,32 @@ function ProductRow({
       className={`ml-table-row${rowEdit.className ? ` ${rowEdit.className}` : ""}${active ? " sheet-row-active" : ""}`}
       onClick={rowEdit.onClick}
     >
-      <span className={`ml-cell ml-col-no${onRemove ? " sheet-no" : ""}`}>
-        {onRemove ? <SheetRemove onClick={onRemove} /> : null}
+      <span className={`ml-cell ml-col-no${onMove ? " sheet-no" : ""}`}>
+        {onMove ? (
+          <SheetMove canMoveUp={canMoveUp} canMoveDown={canMoveDown} onMove={onMove} />
+        ) : null}
         {index}
       </span>
       <div className="ml-col-desc">
-        <p className="ml-name" title={onEdit ? "Düzenlemek için tıklayın" : undefined}>
-          {title}
-          <SheetAction title="Kataloga ekle" onClick={onAddToCatalog}>
-            + Katalog
-          </SheetAction>
-        </p>
+        {shownNames.map((part, nameIndex) => (
+          <p
+            key={`name-${nameIndex}`}
+            className="ml-name"
+            title={nameIndex === 0 && onEdit ? "Düzenlemek için tıklayın" : undefined}
+          >
+            {part || "\u00a0"}
+            {nameIndex === 0 ? (
+              <SheetAction title="Kataloga ekle" onClick={onAddToCatalog}>
+                + Katalog
+              </SheetAction>
+            ) : null}
+          </p>
+        ))}
+        {descriptionLines.map((part, descriptionIndex) => (
+          <p key={`desc-${descriptionIndex}`} className="ml-line-desc">
+            {part || "\u00a0"}
+          </p>
+        ))}
         {specs.map((item) => (
           <p key={item} className="ml-spec">
             {item}
@@ -130,6 +162,7 @@ function ProductRow({
           {qty} {quantityUnit}
         </span>
       )}
+      <SheetRowEnd onRemove={onRemove} />
     </div>
   );
 }
@@ -336,6 +369,7 @@ export function MilimlabSheet({
         ) : (
           <span className="ml-col-qty">{texts.table.quantity}</span>
         )}
+        <SheetHeadEnd active={Boolean(onIntent)} />
       </div>
 
       {lines.length === 0 ? (
@@ -350,11 +384,19 @@ export function MilimlabSheet({
             showLinePrices={showLinePrices}
             quantityUnit={texts.quantityUnit}
             imageSrc={showImages ? resolveLineImageSrc(line, productsById) : null}
+            productsById={productsById}
             active={activeLineIndex === index}
             onAddToCatalog={
               isManualLine(line) && onAddToCatalog ? () => onAddToCatalog(line, index) : undefined
             }
             onEdit={onIntent ? () => onIntent({ kind: "edit-line", index }) : undefined}
+            onMove={
+              onIntent
+                ? (direction) => onIntent({ kind: "move-line", index, direction })
+                : undefined
+            }
+            canMoveUp={index > 0}
+            canMoveDown={index < lines.length - 1}
             onRemove={onIntent ? () => onIntent({ kind: "delete-line", index }) : undefined}
           />
         ))

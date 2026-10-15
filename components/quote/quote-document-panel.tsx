@@ -35,6 +35,7 @@ import {
   applyCustomer,
   applyInstitution,
   linkManualLineToProduct,
+  moveLine,
   replaceLine,
 } from "@/lib/quote/document-edit";
 
@@ -51,6 +52,7 @@ export function QuoteDocumentPanel({
   onCreateVersion,
   onSelectVersion,
   onToggleConverted,
+  onCancelQuote,
   onDelete,
 }: {
   quote: QuoteResponse | null;
@@ -65,6 +67,7 @@ export function QuoteDocumentPanel({
   onCreateVersion?: () => void;
   onSelectVersion?: (id: string) => void;
   onToggleConverted?: () => void;
+  onCancelQuote?: () => void;
   onDelete?: () => void;
 }) {
   const router = useRouter();
@@ -237,6 +240,16 @@ export function QuoteDocumentPanel({
             </>
           ) : (
             <>
+              {onCancelQuote ? (
+                <ActionButton
+                  type="button"
+                  tone="danger"
+                  disabled={!quote || saving}
+                  onClick={onCancelQuote}
+                >
+                  İptal Et
+                </ActionButton>
+              ) : null}
               {quote?.id ? (
                 <ActionButton
                   type="button"
@@ -355,7 +368,17 @@ export function QuoteDocumentPanel({
               onSaveInstitution={() => setPartyMode("institution")}
               onSaveContact={() => setPartyMode("contact")}
               onAddToCatalog={(line, index) => setCatalogLine({ line, index })}
-              onIntent={onChange ? (intent) => setQuick(sessionFromSheet(intent)) : undefined}
+              onIntent={
+                onChange
+                  ? (intent) => {
+                      if (intent.kind === "move-line") {
+                        onChange(moveLine(quote, intent.index, intent.direction));
+                        return;
+                      }
+                      setQuick(sessionFromSheet(intent));
+                    }
+                  : undefined
+              }
             />
           )}
         </div>

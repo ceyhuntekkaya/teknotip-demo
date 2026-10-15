@@ -11,6 +11,7 @@ import {
 } from "@/lib/pdf/format";
 import { applyTermTokens, textOr } from "@/lib/pdf/html-blocks";
 import { lineImageKey } from "@/lib/pdf/product-images";
+import { textLines } from "@/lib/quote/line-text";
 import { pdfStyles as s } from "@/lib/pdf/styles";
 import type { QuoteLineResponse, QuoteResponse } from "@/lib/api/generated/model";
 
@@ -108,16 +109,27 @@ function ProductRow({
       return `· ${accessory.name}${qty}`;
     }),
   ];
-  const nameLines = (line.name ?? "").split("\n");
-  const longName = nameLines.length > 1 || (line.name ?? "").length > 120;
+  const nameLines = textLines(line.name);
+  const shownNames = nameLines.length > 0 ? nameLines : [" "];
+  const descriptionLines = textLines(line.description);
+  const longName =
+    shownNames.length > 1 ||
+    descriptionLines.length > 0 ||
+    (line.name ?? "").length > 120 ||
+    (line.description ?? "").length > 120;
 
   return (
     <View style={s.tableRow} wrap={longName}>
       <Text style={[s.cell, s.colNo]}>{index}</Text>
       <Text style={[s.cell, s.colCode]}>{line.code || "—"}</Text>
       <View style={showLinePrices ? s.colDesc : s.colDescWide}>
-        {nameLines.map((part, nameIndex) => (
+        {shownNames.map((part, nameIndex) => (
           <Text key={`name-${nameIndex}`} style={s.cellBold}>
+            {part || " "}
+          </Text>
+        ))}
+        {descriptionLines.map((part, descriptionIndex) => (
+          <Text key={`desc-${descriptionIndex}`} style={s.lineDesc}>
             {part || " "}
           </Text>
         ))}

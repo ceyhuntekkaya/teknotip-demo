@@ -49,7 +49,9 @@ export type QuickSession =
   | { kind: "contact" }
   | { kind: "field"; field: SheetField };
 
-export function sessionFromSheet(intent: SheetIntent): QuickSession {
+export function sessionFromSheet(
+  intent: Exclude<SheetIntent, { kind: "move-line" }>,
+): QuickSession {
   switch (intent.kind) {
     case "add":
       return { kind: "add", anchor: intent.anchor };

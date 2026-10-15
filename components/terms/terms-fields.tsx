@@ -19,7 +19,7 @@ export function TermsFields({
 }) {
   if (brand === "TEKNOTIP") {
     return (
-      <div className="grid gap-4">
+      <div className="grid gap-4 @lg:grid-cols-2 @3xl:grid-cols-4">
         <Field label="Geçerlilik (gün)">
           <NumberInput
             min={0}
@@ -33,22 +33,24 @@ export function TermsFields({
             }}
           />
         </Field>
-        <Field label="Genel satış koşulları">
-          <HtmlEditor
-            value={terms.salesConditions ?? ""}
-            onChange={(salesConditions) => patch(terms, onChange, { salesConditions })}
-          />
-          <p className="text-xs text-[var(--steel)]">
-            {"{rate}"} teklifin KDV oranı, {"{date}"} geçerlilik gününden hesaplanan tarihtir.
-          </p>
-        </Field>
+        <div className="@lg:col-span-2 @3xl:col-span-4">
+          <Field label="Genel satış koşulları">
+            <HtmlEditor
+              value={terms.salesConditions ?? ""}
+              onChange={(salesConditions) => patch(terms, onChange, { salesConditions })}
+            />
+            <p className="text-xs text-[var(--steel)]">
+              {"{rate}"} teklifin KDV oranı, {"{date}"} geçerlilik gününden hesaplanan tarihtir.
+            </p>
+          </Field>
+        </div>
       </div>
     );
   }
 
   if (brand === "OPTOSENSE") {
     return (
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 @3xl:grid-cols-4">
         <Field label="Delivery terms">
           <TextInput
             value={terms.delivery ?? ""}
@@ -79,7 +81,7 @@ export function TermsFields({
 
   return (
     <div className="grid gap-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 @3xl:grid-cols-4">
         <Field label="Teslimat süresi">
           <TextInput
             value={terms.deliveryTime ?? ""}

@@ -6,27 +6,19 @@ import {
   deleteProduct,
   updateProduct,
 } from "@/lib/api/generated/endpoints/products/products";
-import type {
-  ProductPropertyRequest,
-  ProductRequest,
-  ProductResponse,
-} from "@/lib/api/generated/model";
-import { ProductPropertyRequestType } from "@/lib/api/generated/model";
+import type { ProductRequest, ProductResponse } from "@/lib/api/generated/model";
 import { apiErrorMessage, isSuccessStatus } from "@/lib/api/errors";
 import { emptyProductDraft, productToRequest } from "@/lib/api/map";
 import { matchesQuery, productSearchValues } from "@/lib/search/matches-query";
 import { SplitWorkspace } from "@/components/layout/split-workspace";
 import { ListSearchInput } from "@/components/layout/list-search-input";
 import { RelatedQuotesPanel } from "@/components/quote/related-quotes-panel";
-import { ProductImageField } from "@/components/catalog/product-image-field";
 import {
-  ActionButton,
-  Field,
-  NumberInput,
-  Select,
-  TextArea,
-  TextInput,
-} from "@/components/catalog/fields";
+  ProductForm,
+  productDraftError,
+  productPayload,
+} from "@/components/catalog/product-form";
+import { ActionButton } from "@/components/catalog/fields";
 
 type Status = "idle" | "saving" | "saved" | "error";
 
@@ -114,25 +106,16 @@ export function ProductEditor({ initialProducts }: { initialProducts: ProductRes
     );
   };
 
-  const patchProperty = (index: number, next: Partial<ProductPropertyRequest>) => {
-    const properties = [...(draft.properties ?? [])];
-    properties[index] = { ...properties[index], ...next };
-    patch({ properties });
-  };
-
   const save = async () => {
-    if (!draft.code.trim() || !draft.name.trim()) {
-      setError("Kod ve ad zorunludur.");
+    const problem = productDraftError(draft);
+    if (problem) {
+      setError(problem);
       setStatus("error");
       return;
     }
     setStatus("saving");
     setError(null);
-    const payload: ProductRequest = {
-      ...draft,
-      properties: (draft.properties ?? []).filter((item) => item.name.trim()),
-      accessories: (draft.accessories ?? []).filter((item) => item.name.trim()),
-    };
+    const payload: ProductRequest = productPayload(draft);
     const response =
       selectedId && selectedId !== "new"
         ? await updateProduct(selectedId, payload)
@@ -215,196 +198,19 @@ export function ProductEditor({ initialProducts }: { initialProducts: ProductRes
       }
     >
       <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-2">
-      <div className="grid gap-6">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Kod">
-            <TextInput
-              value={draft.code}
-              onChange={(event) => patch({ code: event.target.value })}
-              required
-            />
-          </Field>
-          <Field label="Ad">
-            <TextInput
-              value={draft.name}
-              onChange={(event) => patch({ name: event.target.value })}
-              required
-            />
-          </Field>
-          <Field label="Fiyat">
-            <NumberInput
-              min={0}
-              step="0.01"
-              value={draft.price}
-              onChange={(event) => patch({ price: Number(event.target.value) || 0 })}
-            />
-          </Field>
-          <Field label="Kategori">
-            <TextInput
-              value={draft.category ?? ""}
-              onChange={(event) => patch({ category: event.target.value })}
-            />
-          </Field>
-          <ProductImageField
-            image={draft.image}
-            pendingProduct={selectedId === "new"}
-            onChange={(image) => void applyImage(image)}
-          />
-        </div>
-        <Field label="Açıklama">
-          <TextArea
-            value={draft.description ?? ""}
-            onChange={(event) => patch({ description: event.target.value })}
-          />
-        </Field>
-
-        <div className="grid gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg tracking-wide">Özellikler</h2>
-            <ActionButton
-              onClick={() =>
-                patch({
-                  properties: [
-                    ...(draft.properties ?? []),
-                    {
-                      name: "",
-                      type: ProductPropertyRequestType.SINGLE_CHOICE,
-                      values: [""],
-                    },
-                  ],
-                })
-              }
-            >
-              Özellik ekle
-            </ActionButton>
-          </div>
-          {(draft.properties ?? []).map((property, index) => (
-            <article
-              key={`property-${index}`}
-              className="grid gap-3 border border-[var(--rule)] p-4"
-            >
-              <div className="grid gap-3 sm:grid-cols-[1fr_10rem_auto]">
-                <Field label="Ad">
-                  <TextInput
-                    value={property.name}
-                    onChange={(event) =>
-                      patchProperty(index, { name: event.target.value })
-                    }
-                  />
-                </Field>
-                <Field label="Tip">
-                  <Select
-                    value={property.type}
-                    onChange={(event) =>
-                      patchProperty(index, {
-                        type: event.target.value as ProductPropertyRequest["type"],
-                      })
-                    }
-                  >
-                    <option value={ProductPropertyRequestType.SINGLE_CHOICE}>
-                      Tek seçim
-                    </option>
-                    <option value={ProductPropertyRequestType.MULTIPLE_CHOICE}>
-                      Çoklu seçim
-                    </option>
-                  </Select>
-                </Field>
-                <div className="flex items-end">
-                  <ActionButton
-                    tone="danger"
-                    onClick={() =>
-                      patch({
-                        properties: (draft.properties ?? []).filter(
-                          (_, itemIndex) => itemIndex !== index,
-                        ),
-                      })
-                    }
-                  >
-                    Sil
-                  </ActionButton>
-                </div>
-              </div>
-              <Field label="Değerler (satır satır)">
-                <TextArea
-                  value={(property.values ?? []).join("\n")}
-                  onChange={(event) =>
-                    patchProperty(index, {
-                      values: event.target.value.split("\n"),
-                    })
-                  }
-                />
-              </Field>
-            </article>
-          ))}
-        </div>
-
-        <div className="grid gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg tracking-wide">Aksesuarlar</h2>
-            <ActionButton
-              onClick={() =>
-                patch({
-                  accessories: [...(draft.accessories ?? []), { name: "" }],
-                })
-              }
-            >
-              Aksesuar ekle
-            </ActionButton>
-          </div>
-          {(draft.accessories ?? []).map((accessory, index) => (
-            <div key={`acc-${index}`} className="flex gap-3">
-              <TextInput
-                value={accessory.name}
-                placeholder="Aksesuar adı"
-                onChange={(event) => {
-                  const accessories = [...(draft.accessories ?? [])];
-                  accessories[index] = { name: event.target.value };
-                  patch({ accessories });
-                }}
-              />
-              <ActionButton
-                tone="danger"
-                onClick={() =>
-                  patch({
-                    accessories: (draft.accessories ?? []).filter(
-                      (_, itemIndex) => itemIndex !== index,
-                    ),
-                  })
-                }
-              >
-                Sil
-              </ActionButton>
-            </div>
-          ))}
-        </div>
-
-        {error ? <p className="text-sm text-[#8f2d1f]">{error}</p> : null}
-        {status === "saved" ? (
-          <p className="text-sm text-[var(--steel)]">Kaydedildi.</p>
-        ) : null}
-        <div className="flex flex-wrap gap-2">
-          <ActionButton
-            tone="heat"
-            disabled={status === "saving" || imageSaving}
-            onClick={() => void save()}
-          >
-            Kaydet
-          </ActionButton>
-          {selectedId && selectedId !== "new" ? (
-            <ActionButton tone="danger" onClick={() => void remove()}>
-              Sil
-            </ActionButton>
-          ) : null}
-        </div>
-        {selected?.updatedAt ? (
-          <p className="text-xs text-[var(--steel)]">
-            Son güncelleme: {selected.updatedAt}
-          </p>
-        ) : null}
-      </div>
-        <RelatedQuotesPanel
-          productId={selectedId !== "new" ? selected?.id : undefined}
+        <ProductForm
+          draft={draft}
+          onChange={patch}
+          onImageChange={(image) => void applyImage(image)}
+          imagePending={selectedId === "new"}
+          error={error}
+          saved={status === "saved"}
+          saving={status === "saving" || imageSaving}
+          onSave={() => void save()}
+          onDelete={selectedId && selectedId !== "new" ? () => void remove() : undefined}
+          updatedAt={selected?.updatedAt}
         />
+        <RelatedQuotesPanel productId={selectedId !== "new" ? selected?.id : undefined} />
       </div>
     </SplitWorkspace>
   );
